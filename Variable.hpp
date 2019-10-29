@@ -8,10 +8,24 @@ private:
     int id;
 
 public:
+    Variable() = delete;
     Variable(int id);
     int getId() const;
     bool operator==(const Variable &anotherVariable) const;
 };
+
+namespace std
+{
+    template <>
+    struct hash<Variable>
+    {
+        size_t operator()(const Variable& k) const
+        {
+            return hash<int>()(k.getId());
+        }
+    };
+}
+
 /*
 class ExistVariable : Variable {
 public:

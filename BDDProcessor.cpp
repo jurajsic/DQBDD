@@ -56,3 +56,11 @@ Variable BDDProcessor::getFreeVariable() {
     }
     return Variable(nextFreeVarId++);
 }
+
+bdd BDDProcessor::getBDDRepr(Variable var) {
+    return bdd_ithvar(var.getId());
+}
+
+bdd BDDProcessor::getBDDReprNeg(Variable var) {
+    return bdd_nithvar(var.getId());
+}

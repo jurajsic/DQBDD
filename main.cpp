@@ -29,7 +29,7 @@ int main(int argc, char **argw)
     } else {
         solver.setFormula(getTestFormula1());
     }
-
+    
     if (solver.solve()) {
         std::cout << "SAT" << std::endl;
     } else {

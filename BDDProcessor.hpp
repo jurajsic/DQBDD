@@ -19,7 +19,7 @@ private:
 
 public:
     // making it a singleton
-    static BDDProcessor& BDDProcessor::getInstance() {
+    static BDDProcessor& getInstance() {
         static BDDProcessor instance;
         return instance;
     }

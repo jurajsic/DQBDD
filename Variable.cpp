@@ -12,18 +12,6 @@ int Variable::getId() const {
 bool Variable::operator==(const Variable &anotherVariable) const {
     return (id == anotherVariable.id);
 }
-
-namespace std
-{
-    template <>
-    struct hash<Variable>
-    {
-        size_t operator()(const Variable& k) const
-        {
-            return hash<int>()(k.getId());
-        }
-    };
-}
 /*
 ExistVariable::ExistVariable(int id) : Variable(id) {
 

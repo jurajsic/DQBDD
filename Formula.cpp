@@ -40,7 +40,7 @@ void Formula::addExistVar(Variable eVar) {
 }
 
 void Formula::addDependency(Variable eVar, std::unordered_set<Variable> dependencies) {
-    existVarsDependencies.insert(dependencies.begin(),dependencies.end());
+    existVarsDependencies[eVar].insert(dependencies.begin(),dependencies.end());
     for (Variable uVar : dependencies) {
         univVarsDependencies[uVar].insert(eVar);
     }
@@ -57,7 +57,7 @@ void Formula::removeDependency(Variable eVar, std::unordered_set<Variable> depen
     }
 }
 
-void removeDependency(Variable eVar, Variable uVar) {
+void Formula::removeDependency(Variable eVar, Variable uVar) {
     removeDependency(eVar, {uVar});
 }
 
