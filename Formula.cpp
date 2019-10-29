@@ -40,25 +40,26 @@ void Formula::addExistVar(Variable eVar) {
 }
 
 void Formula::addDependency(Variable eVar, std::unordered_set<Variable> dependencies) {
-    existVarsDependencies[eVar].insert(dependencies.begin(),dependencies.end());
     for (Variable uVar : dependencies) {
+        existVarsDependencies[eVar].insert(uVar);
         univVarsDependencies[uVar].insert(eVar);
     }
 }
 
 void Formula::addDependency(Variable eVar, Variable uVar) {
-    addDependency(eVar, {uVar});
+    addDependency(eVar, std::unordered_set<Variable>{uVar});
 }
 
 void Formula::removeDependency(Variable eVar, std::unordered_set<Variable> dependencies) {
-    existVarsDependencies[eVar].erase(dependencies.begin(),dependencies.end());
-    for (Variable uVar : dependencies) {
-        univVarsDependencies[uVar].erase(uVar);
+    //existVarsDependencies[eVar].erase(dependencies.begin(),dependencies.end());
+    for (Variable remVar : dependencies) {
+        existVarsDependencies[eVar].erase(remVar);
+        univVarsDependencies[remVar].erase(eVar);
     }
 }
 
 void Formula::removeDependency(Variable eVar, Variable uVar) {
-    removeDependency(eVar, {uVar});
+    removeDependency(eVar, std::unordered_set<Variable>{uVar});
 }
 
 void Formula::removeUnivVar(Variable uVar) {
@@ -66,11 +67,13 @@ void Formula::removeUnivVar(Variable uVar) {
     for (Variable existVarToUpdate : existVarsToUpdate) {
         removeDependency(existVarToUpdate, uVar);
     }
+    univVars.erase(uVar);
     univVarsDependencies.erase(uVar);
 }
 
 void Formula::removeExistVar(Variable eVar) {
     removeDependency(eVar, existVarsDependencies[eVar]);
+    existVars.erase(eVar);
     existVarsDependencies.erase(eVar);
 }
 
@@ -85,4 +88,12 @@ std::unordered_set<Variable> Formula::getUnivVarDependencies(Variable uVar) {
 
 bool Formula::dependsOnEverything(Variable eVar) {
     return (existVarsDependencies[eVar].size() == univVars.size());
+}
+
+bool Formula::isTrue() {
+    return matrix == bddtrue;
+}
+
+bool Formula::isFalse() {
+    return matrix == bddfalse;
 }

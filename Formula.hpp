@@ -37,6 +37,9 @@ public:
     std::unordered_set<Variable> getExistVarDependencies(Variable eVar);
     std::unordered_set<Variable> getUnivVarDependencies(Variable uVar);
     bool dependsOnEverything(Variable eVar);
+    bool isTrue();
+    bool isFalse();
+    bool isSimple();
 };
 
 #endif
