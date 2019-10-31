@@ -2,18 +2,20 @@
 #define SOLVER_HPP
 
 #include <fstream>
-#include "bdd.h"
+#include "cuddObj.hh"
 #include "Formula.hpp"
-#include "BDDProcessor.hpp"
+//#include "BDDProcessor.hpp"
 
 class Solver {
 private:
     Formula formula;
-    BDDProcessor& bddProcessor = BDDProcessor::getInstance();
+    //BDDProcessor& bddProcessor = BDDProcessor::getInstance();
+    Cudd mgr;
     Variable getSomeUnivVar();
-    bdd getVarBDDFromStr(std::string strVar);
+    BDD getVarBDDFromStr(std::string strVar);
 public:
-    Solver() = default;
+    Solver() = delete;
+    Solver(Cudd mgr);
     Solver(std::ifstream& file);
     Solver(Formula formula);
     void readFile(std::ifstream& file);

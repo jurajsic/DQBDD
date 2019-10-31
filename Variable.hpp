@@ -1,16 +1,22 @@
 #ifndef VARIABLE_HPP
 #define VARIABLE_HPP
 
-#include "bdd.h"
+#include "cuddObj.hh"
 
 class Variable {
 private:
-    int id;
+    unsigned int id;
+    BDD represantation;
 
 public:
+    operator BDD();
     Variable() = delete;
-    Variable(int id);
-    int getId() const;
+    Variable(int id, Cudd &mgr);
+    Variable(BDD repr);
+    unsigned int getId() const;
+    BDD getRepr() const;
+    // TODO
+    //int getLevel();
     bool operator==(const Variable &anotherVariable) const;
 };
 
@@ -26,15 +32,4 @@ namespace std
     };
 }
 
-/*
-class ExistVariable : Variable {
-public:
-    ExistVariable(int id);
-};
-
-class UnivVariable : Variable {
-public:
-    UnivVariable(int id);
-};
-*/
 #endif

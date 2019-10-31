@@ -3,15 +3,16 @@
 #include <algorithm>
 #include <vector>
 #include <limits>
-#include "bdd.h"
+#include <iostream>
+//#include "bdd.h"
 #include "Solver.hpp"
-#include "BDDPair.hpp"
+//#include "BDDPair.hpp"
 
-Solver::Solver(Formula formula) : Solver() {
+Solver::Solver(Formula formula) : {
     this->formula = formula;
 }
 
-Solver::Solver(std::ifstream& file) : Solver() {
+Solver::Solver(std::ifstream& file) : {
     readFile(file);
 }
 
@@ -19,24 +20,18 @@ void Solver::setFormula(Formula formula) {
     this->formula = formula;
 }
 
-bdd Solver::getVarBDDFromStr(std::string strVar) {
-    int var_id = std::stoi(strVar);
-    if (var_id < 0) {
-        return bddProcessor.getBDDReprNeg(Variable(-var_id));
-    } else {
-        return bddProcessor.getBDDRepr(Variable(var_id));
-    }
-}
-
 void Solver::readFile(std::ifstream& file) {
     std::string line;
-    bdd matrix = bddtrue;
+    BDD matrix = mgr.bddOne();
 
     while(std::getline(file, line)) {
         std::istringstream streamline(line);
         std::string token;
         streamline >> token;
         if (token == "p") {
+            continue;
+            // TODO maybe initialize manager here based on the size??
+            /*
             streamline >> token; // ignore "cnf"
             streamline >> token; // number of variables
             // TODO decide initial number of variables
@@ -45,12 +40,13 @@ void Solver::readFile(std::ifstream& file) {
             // TODO decide iniatiliazon of BDD based on the size of formula
             bddProcessor.initialize(100000,10000);
             bddProcessor.setNumOfVars(numOfVariables);
+            */
         } else if (token == "a") {
             while (streamline >> token) {
                 if (token == "0") {
                     continue;
                 }
-                Variable univVar(std::stoi(token));
+                Variable univVar(std::stoi(token), mgr);
                 formula.addUnivVar(univVar);
             }
         } else if (token == "e") {
@@ -58,28 +54,37 @@ void Solver::readFile(std::ifstream& file) {
                 if (token == "0") {
                     continue;
                 }
-                Variable existVar(std::stoi(token));
-                formula.addExistVar(existVar);
-                formula.addDependency(existVar, formula.getUnivVars());
+                Variable existVar(std::stoi(token), mgr);
+                formula.addExistVar(existVar, formula.getUnivVars());
             }    
         } else if (token == "d") {
             streamline >> token;
-            Variable existVar(std::stoi(token));
+            Variable existVar(std::stoi(token), mgr);
             formula.addExistVar(existVar);
             while (streamline >> token) {
                 if (token == "0") {
                     continue;
                 }
-                Variable univVar(std::stoi(token));
+                Variable univVar(std::stoi(token), mgr);
                 formula.addDependency(existVar, univVar);
             }
-        } else {
-            bdd disj = getVarBDDFromStr(token);
+        } else { // parse clause (disjunction of literals)
+            // n -> returns BDD variable with index n
+            // -n -> returns negated BDD variable with index n
+            auto getVarFromStr = [&](std::string tok) {
+                int i = std::stoi(tok);
+                if (i < 0) {
+                    return !mgr.bddVar(-i);
+                } else {
+                    return mgr.bddVar(i);
+                }
+            };
+            BDD disj = getVarFromStr(token);
             while (streamline >> token) {
                 if (token == "0") {
                     continue;
                 }
-                disj = disj | getVarBDDFromStr(token);
+                disj = disj | getVarFromStr(token);
             }
             matrix = matrix & disj;
         }
@@ -108,10 +113,11 @@ bool Solver::solve() {
                 formula.removeExistVar(eVar);
                 std::cout << "Removing exist variable " << eVar.getId() << std::endl;
                 // eliminate from bdd
-                bdd newMatrix = bdd_exist(formula.getMatrix(), bddProcessor.getBDDRepr(eVar));
+                BDD newMatrix = formula.getMatrix().ExistAbstract(eVar.getRepr());
+                if (newMatrix.IsOne() || newMatrix.IsZero()){
+                    return newMatrix.IsOne();
+                }
                 formula.setMatrix(newMatrix);
-                if (formula.isTrue() || formula.isFalse())
-                    return formula.isTrue();
             }
         }
         
@@ -126,39 +132,39 @@ bool Solver::solve() {
 
         for (Variable eVarToDuplicate : eVarsToDuplicate) {
             //std::cout << "Duplicating var " << eVarToDuplicate.getId() << std::endl;
-            Variable newExistVar = bddProcessor.getFreeVariable();
+            int eVarToDuplicateLevel = mgr.ReadPerm(eVarToDuplicate.getId());
+            Variable newExistVar = mgr.bddNewVarAtLevel(eVarToDuplicateLevel);
             formula.addExistVar(newExistVar);
             formula.addDependency(newExistVar, formula.getExistVarDependencies(eVarToDuplicate));
             pairToRepl.addToPair(eVarToDuplicate, newExistVar);
-            //bddProcessor.addToPairAndSetOrder(pairToRepl, eVarToDuplicate, newExistVar);
         }
-        std::cout << "Setting better order with " << formula.getExistVars().size() + formula.getUnivVars().size() << " variables in use" << std::endl;
-        //bddProcessor.setNewOrder(pairToRepl);
 
 
+        // TODO what is the FUCKING difference between constrain and restrict
         std::cout << "Creating BDDs" << std::endl;
+        BDD matrix = formula.getMatrix();
         // univ_id=0 where we have old existential variables
-        bdd f1 = bdd_restrict(formula.getMatrix(), bddProcessor.getBDDReprNeg(uVarToEliminate));
+        BDD f1 = matrix.Restrict(!uVarToEliminate.getRepr());
         std::cout << "Restriction 1 finished" << std::endl;
         // univ_id=1 where we have new existential variables
-        bdd f2  = bdd_restrict(formula.getMatrix(), bddProcessor.getBDDRepr(uVarToEliminate));
+        BDD f2  = matrix.Restrict(uVarToEliminate);
         std::cout << "Restriction 2 finished" << std::endl;
         f2 = bdd_replace(f2, pairToRepl.getPair());
         std::cout << "Replacing finished" << std::endl;
         // get their conjuction and thus remove univ_id from the formula
-        formula.setMatrix(f1 & f2);
+        BDD res = f1 & f2;
+        if (res.IsOne() || res.IsOne())
+            return res.IsOne();
+        formula.setMatrix(res);
         std::cout << "BDD created" << std::endl;
-
-        if (formula.isTrue() || formula.isFalse())
-            return formula.isTrue();
     }
 
-    // check if matrix of formula is false
+    // check if matrix of formula is 0
     // if it is -> UNSAT
     // it it is not -> there exists a way in BDD to get to 1 
-    //      -> because we only have existential variables left
-    //      -> SAT
-    return !formula.isFalse();
+    //                   -> because we only have existential variables left
+    //                   -> SAT
+    return !formula.getMatrix().IsZero();
     
     /*
     for (Variable eVar : formula.getExistVars()) {

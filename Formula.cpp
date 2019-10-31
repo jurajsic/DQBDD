@@ -1,27 +1,19 @@
 #include "Formula.hpp"
 
-/*
-Formula::Formula(const Formula &f) {
-    univVars = f.univVars;
-    existVars = f.existVars;
-    univVarsDependencies = f.univVarsDependencies;
-    existVarsDependencies = f.existVarsDependencies;
-    matrix = f.matrix;
-}*/
 
-std::unordered_set<Variable> Formula::getUnivVars() const {
+VariableSet Formula::getUnivVars() const {
     return univVars;
 }
 
-std::unordered_set<Variable> Formula::getExistVars() const {
+VariableSet Formula::getExistVars() const {
     return existVars;
 }
 
-bdd Formula::getMatrix() const {
+BDD Formula::getMatrix() const {
     return matrix;
 }
 
-void Formula::setMatrix(bdd matrix) {
+void Formula::setMatrix(BDD matrix) {
     this->matrix = matrix;
 }
 
@@ -33,13 +25,19 @@ void Formula::addUnivVar(Variable uVar) {
 }
 
 void Formula::addExistVar(Variable eVar) {
+    addExistVar(eVar, VariableSet());
+}
+
+
+void Formula::addExistVar(Variable eVar, VariableSet dependencies) {
     auto result = existVars.insert(eVar);
     if (result.second) { // if eVar was not in existVars before
         existVarsDependencies[eVar] = {};
     }
+    addDependency(eVar, dependencies);
 }
 
-void Formula::addDependency(Variable eVar, std::unordered_set<Variable> dependencies) {
+void Formula::addDependency(Variable eVar, VariableSet dependencies) {
     for (Variable uVar : dependencies) {
         existVarsDependencies[eVar].insert(uVar);
         univVarsDependencies[uVar].insert(eVar);
@@ -47,10 +45,10 @@ void Formula::addDependency(Variable eVar, std::unordered_set<Variable> dependen
 }
 
 void Formula::addDependency(Variable eVar, Variable uVar) {
-    addDependency(eVar, std::unordered_set<Variable>{uVar});
+    addDependency(eVar, VariableSet{uVar});
 }
 
-void Formula::removeDependency(Variable eVar, std::unordered_set<Variable> dependencies) {
+void Formula::removeDependency(Variable eVar, VariableSet dependencies) {
     //existVarsDependencies[eVar].erase(dependencies.begin(),dependencies.end());
     for (Variable remVar : dependencies) {
         existVarsDependencies[eVar].erase(remVar);
@@ -59,7 +57,7 @@ void Formula::removeDependency(Variable eVar, std::unordered_set<Variable> depen
 }
 
 void Formula::removeDependency(Variable eVar, Variable uVar) {
-    removeDependency(eVar, std::unordered_set<Variable>{uVar});
+    removeDependency(eVar, VariableSet{uVar});
 }
 
 void Formula::removeUnivVar(Variable uVar) {
@@ -77,11 +75,11 @@ void Formula::removeExistVar(Variable eVar) {
     existVarsDependencies.erase(eVar);
 }
 
-std::unordered_set<Variable> Formula::getExistVarDependencies(Variable eVar) {
+VariableSet Formula::getExistVarDependencies(Variable eVar) {
     return existVarsDependencies[eVar];
 }
 
-std::unordered_set<Variable> Formula::getUnivVarDependencies(Variable uVar) {
+VariableSet Formula::getUnivVarDependencies(Variable uVar) {
     return univVarsDependencies[uVar];
 }
 
@@ -90,10 +88,12 @@ bool Formula::dependsOnEverything(Variable eVar) {
     return (existVarsDependencies[eVar].size() == univVars.size());
 }
 
-bool Formula::isTrue() {
+/*
+bool Formula::isMatrixOne() {
     return matrix == bddtrue;
 }
 
-bool Formula::isFalse() {
+bool Formula::isMatrixZero() {
     return matrix == bddfalse;
 }
+*/
