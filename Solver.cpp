@@ -37,13 +37,13 @@ void Solver::readFile(std::ifstream& file) {
         std::string token;
         streamline >> token;
         if (token == "p") {
-            streamline >> token; // ignore cnf
+            streamline >> token; // ignore "cnf"
             streamline >> token; // number of variables
             // TODO decide initial number of variables
             int numOfVariables = std::stoi(token) + 1;
             streamline >> token; // number of CNF conjuncts
             // TODO decide iniatiliazon of BDD based on the size of formula
-            bddProcessor.initialize(1000000,1000000);
+            bddProcessor.initialize(100000,10000);
             bddProcessor.setNumOfVars(numOfVariables);
         } else if (token == "a") {
             while (streamline >> token) {
@@ -132,8 +132,8 @@ bool Solver::solve() {
             pairToRepl.addToPair(eVarToDuplicate, newExistVar);
             //bddProcessor.addToPairAndSetOrder(pairToRepl, eVarToDuplicate, newExistVar);
         }
-        std::cout << "Setting better order." << std::endl;
-        bddProcessor.setNewOrder(pairToRepl);
+        std::cout << "Setting better order with " << formula.getExistVars().size() + formula.getUnivVars().size() << " variables in use" << std::endl;
+        //bddProcessor.setNewOrder(pairToRepl);
 
 
         std::cout << "Creating BDDs" << std::endl;
@@ -153,6 +153,14 @@ bool Solver::solve() {
             return formula.isTrue();
     }
 
+    // check if matrix of formula is false
+    // if it is -> UNSAT
+    // it it is not -> there exists a way in BDD to get to 1 
+    //      -> because we only have existential variables left
+    //      -> SAT
+    return !formula.isFalse();
+    
+    /*
     for (Variable eVar : formula.getExistVars()) {
         std::cout << "Removing exist variable " << eVar.getId() << std::endl;
         // eliminate from bdd
@@ -163,4 +171,5 @@ bool Solver::solve() {
     }
 
     return formula.isTrue();
+    */
 }

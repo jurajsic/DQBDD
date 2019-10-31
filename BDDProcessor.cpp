@@ -22,6 +22,7 @@ BDDProcessor::~BDDProcessor() {
     if (isInitialized) {
         bdd_done();
     }
+    isInitialized = false;
 }
 
 void BDDProcessor::initialize(int nodeNum, int cacheSize) {
@@ -139,5 +140,7 @@ void BDDProcessor::setNewOrder(BDDPair& replacingPairs) {
     assert(oldVarsIt == oldVars.end() && newVarsIt == newVars.end());
     
     curVarOrder = std::vector<int>(newOrder.begin(),newOrder.end());
+    std::cout << "setting it now for real with " << numOfVars << " variables" << std::endl;
     bdd_setvarorder(curVarOrder.data());
+    // bbd_setvarordernochange(curVarOrder.data()); // does not work
 }

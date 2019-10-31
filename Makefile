@@ -1,7 +1,11 @@
 CXX = g++
-CXXFLAGS = -std=c++17 -pedantic -Wall -Wextra -g
+BUDDYHDS = -I../BuDDy/src/
+CUDDHDS = -I../cudd-release/cudd/ -I../cudd-release/cplusplus/
+CXXFLAGS = -std=c++17 -pedantic -Wall -Wextra -g $(BUDDYHDS)
 RM = rm -f
-LDLIBS = -L./libs/ -lbdd
+BUDDYLIBS = ../BuDDy/src/.libs/libbdd.a #-L../BuDDy/src/.libs/ -lbdd
+CUDDLIBS = ../cudd-release/cplusplus/.libs/libobj.a ../cudd-release/cudd/.libs/libcudd.a #-L../cudd-release/cudd/.libs/ -lcudd -L../cudd-release/cplusplus/.libs/ -lobj
+LDLIBS = $(BUDDYLIBS)
 
 SRCS = Variable.cpp BDDPair.cpp BDDProcessor.cpp Solver.cpp main.cpp Formula.cpp
 OBJS = $(subst .cpp,.o,$(SRCS))
