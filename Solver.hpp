@@ -8,16 +8,12 @@
 
 class Solver {
 private:
-    Formula formula;
-    //BDDProcessor& bddProcessor = BDDProcessor::getInstance();
     Cudd mgr;
+    Formula formula;
     Variable getSomeUnivVar();
-    BDD getVarBDDFromStr(std::string strVar);
 public:
     Solver() = delete;
-    Solver(Cudd mgr);
-    Solver(std::ifstream& file);
-    Solver(Formula formula);
+    Solver(const Cudd &mgr);
     void readFile(std::ifstream& file);
     void setFormula(Formula formula);
     bool solve();

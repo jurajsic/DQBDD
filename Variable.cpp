@@ -2,15 +2,15 @@
 #include "Variable.hpp"
 
 Variable::Variable(int id, Cudd &mgr) : id(id) {
-    mgr.bddVar(id);
+    representation = mgr.bddVar(id);
 }
 
-Variable::Variable(BDD repr) : represantation(repr) {
+Variable::Variable(BDD repr) : representation(repr) {
     id = repr.NodeReadIndex();
 }
 
 Variable::operator BDD() {
-    return represantation;
+    return representation;
 }
 
 unsigned int Variable::getId() const {
@@ -19,10 +19,18 @@ unsigned int Variable::getId() const {
 
 
 BDD Variable::getRepr() const {
-    return represantation;
+    return representation;
 }
 
 
 bool Variable::operator==(const Variable &anotherVariable) const {
     return (id == anotherVariable.id);
+}
+
+BDD Variable::operator&(const BDD& other) const {
+    return representation & other;
+}
+
+BDD Variable::operator|(const BDD& other) const {
+    return representation | other;
 }

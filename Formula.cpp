@@ -1,5 +1,8 @@
 #include "Formula.hpp"
 
+Formula::Formula(const Cudd &mgr) : mgr(mgr) {
+
+}
 
 VariableSet Formula::getUnivVars() const {
     return univVars;
@@ -13,7 +16,10 @@ BDD Formula::getMatrix() const {
     return matrix;
 }
 
-void Formula::setMatrix(BDD matrix) {
+void Formula::setMatrix(const BDD &matrix) {
+    if (mgr.getManager() != matrix.manager()) {
+        throw "Managers are fucking different mate";
+    }
     this->matrix = matrix;
 }
 
@@ -75,6 +81,14 @@ void Formula::removeExistVar(Variable eVar) {
     existVarsDependencies.erase(eVar);
 }
 
+void Formula::removeVar(Variable var) {
+    if (univVars.count(var) != 0) { // var is universal var
+        removeUnivVar(var);
+    } else if (existVars.count(var) != 0) { // var is exist var
+        removeExistVar(var);
+    }
+}
+
 VariableSet Formula::getExistVarDependencies(Variable eVar) {
     return existVarsDependencies[eVar];
 }
@@ -86,6 +100,30 @@ VariableSet Formula::getUnivVarDependencies(Variable uVar) {
 
 bool Formula::dependsOnEverything(Variable eVar) {
     return (existVarsDependencies[eVar].size() == univVars.size());
+}
+
+void Formula::removeUnusedVars() {
+    VariableSet usedVars;
+    for (unsigned int index : matrix.SupportIndices()) {
+        usedVars.insert(Variable(index, mgr));
+    }
+
+    VariableSet varsToRemove;
+    for (Variable uVar : univVars) {
+        if (usedVars.count(uVar) == 0) { // !usedVars.contains(uVar) in c++20
+            varsToRemove.insert(uVar);
+        }
+    }
+
+    for (Variable eVar : existVars) {
+        if (usedVars.count(eVar) == 0) { // !usedVars.contains(eVar) in c++20
+            varsToRemove.insert(eVar);
+        }
+    }
+
+    for (Variable varToRemove : varsToRemove) {
+        removeVar(varToRemove);
+    }
 }
 
 /*

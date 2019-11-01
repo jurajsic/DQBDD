@@ -7,7 +7,7 @@ BUDDYLIBS = ../BuDDy/src/.libs/libbdd.a #-L../BuDDy/src/.libs/ -lbdd
 CUDDLIBS = ../cudd-release/cplusplus/.libs/libobj.a ../cudd-release/cudd/.libs/libcudd.a #-L../cudd-release/cudd/.libs/ -lcudd -L../cudd-release/cplusplus/.libs/ -lobj
 LDLIBS = $(CUDDLIBS)
 
-SRCS = Variable.cpp BDDPair.cpp BDDProcessor.cpp Solver.cpp main.cpp Formula.cpp
+SRCS = Variable.cpp Formula.cpp Solver.cpp main.cpp #BDDPair.cpp BDDProcessor.cpp 
 OBJS = $(subst .cpp,.o,$(SRCS))
 
 all: solver

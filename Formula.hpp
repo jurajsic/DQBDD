@@ -22,13 +22,16 @@ private:
     // propositional predicate inside DQBF formula in BDD form
     BDD matrix;
 
+    Cudd mgr;
+
 public:
-    Formula() = default;
+    Formula() = delete;
+    Formula(const Cudd &mgr);
     Formula(const Formula &f) = default;
     VariableSet getUnivVars() const;
     VariableSet getExistVars() const;
     BDD getMatrix() const;
-    void setMatrix(BDD matrix);
+    void setMatrix(const BDD &matrix);
     void addUnivVar(Variable uVar);
     void addExistVar(Variable eVar);
     void addExistVar(Variable eVar, VariableSet dependencies);
@@ -38,17 +41,11 @@ public:
     void removeDependency(Variable eVar, VariableSet dependencies);
     void removeUnivVar(Variable uVar);
     void removeExistVar(Variable eVar);
+    void removeVar(Variable var);
     VariableSet getExistVarDependencies(Variable eVar);
     VariableSet getUnivVarDependencies(Variable uVar);
     bool dependsOnEverything(Variable eVar);
-    // TODO isMatrixOne/Zero nahradit za toto (treba to vobec, viem asi to zistit aj cez get)
-    /*
-    bool isTrue();
-    bool isFalse();
-    bool isSimple();
-    */
-    // TODO implement this:
-    void cleanUnusedVars();
+    void removeUnusedVars();
 };
 
 #endif

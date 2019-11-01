@@ -8,12 +8,18 @@
 #include "Solver.hpp"
 //#include "BDDPair.hpp"
 
+/*
 Solver::Solver(Formula formula) : {
     this->formula = formula;
 }
 
 Solver::Solver(std::ifstream& file) : {
     readFile(file);
+}
+*/
+
+Solver::Solver(const Cudd &mgr) : mgr(mgr), formula(mgr) {
+
 }
 
 void Solver::setFormula(Formula formula) {
@@ -93,8 +99,8 @@ void Solver::readFile(std::ifstream& file) {
 }
 
 Variable Solver::getSomeUnivVar() {
-    int min = std::numeric_limits<int>::max();
-    Variable minVar(0);
+    Variable minVar = *(formula.getUnivVars().begin());
+    auto min = formula.getUnivVarDependencies(minVar).size();
     for (Variable uVar : formula.getUnivVars()) {
         if (formula.getUnivVarDependencies(uVar).size() < min) {
             minVar = uVar;
@@ -106,21 +112,28 @@ Variable Solver::getSomeUnivVar() {
 
 bool Solver::solve() {
     while (!formula.getUnivVars().empty()) {
+
         // remove existential variables that depend on every universal variable
         auto eVars = formula.getExistVars();
+        BDD eVarsToRemove = mgr.bddOne();
+        std::cout << "Eliminating exist variables ";
         for (Variable eVar : eVars) {
             if (formula.dependsOnEverything(eVar)) {
                 formula.removeExistVar(eVar);
-                std::cout << "Removing exist variable " << eVar.getId() << std::endl;
-                // eliminate from bdd
-                BDD newMatrix = formula.getMatrix().ExistAbstract(eVar.getRepr());
-                if (newMatrix.IsOne() || newMatrix.IsZero()){
-                    return newMatrix.IsOne();
-                }
-                formula.setMatrix(newMatrix);
+                eVarsToRemove = eVarsToRemove & eVar;
+                std::cout << eVar.getId() << " ";
             }
         }
-        
+        std::cout << std::endl;
+        BDD newMatrix = formula.getMatrix().ExistAbstract(eVarsToRemove);
+        formula.setMatrix(newMatrix);
+        formula.removeUnusedVars();
+
+        if (formula.getUnivVars().empty()) {
+            break;
+        }
+
+
         // find the universal variable to remove next
         Variable uVarToEliminate = getSomeUnivVar();
         std::cout << "Processing univ variable " << uVarToEliminate.getId() << std::endl;
@@ -128,16 +141,20 @@ bool Solver::solve() {
         formula.removeUnivVar(uVarToEliminate);
         
         // pair used for replacing existential variables that depend on uVarToEliminate with new ones
-        BDDPair pairToRepl;
+        std::vector<BDD> varsToBeReplaced;
+        std::vector<BDD> varsToReplaceWith;
 
+        std::cout << "Duplicating vars ";
         for (Variable eVarToDuplicate : eVarsToDuplicate) {
-            //std::cout << "Duplicating var " << eVarToDuplicate.getId() << std::endl;
+            std::cout << eVarToDuplicate.getId() << " ";
             int eVarToDuplicateLevel = mgr.ReadPerm(eVarToDuplicate.getId());
             Variable newExistVar = mgr.bddNewVarAtLevel(eVarToDuplicateLevel);
             formula.addExistVar(newExistVar);
             formula.addDependency(newExistVar, formula.getExistVarDependencies(eVarToDuplicate));
-            pairToRepl.addToPair(eVarToDuplicate, newExistVar);
+            varsToBeReplaced.push_back(eVarToDuplicate);
+            varsToReplaceWith.push_back(newExistVar);
         }
+        std::cout << std::endl;
 
 
         // TODO what is the FUCKING difference between constrain and restrict
@@ -149,14 +166,12 @@ bool Solver::solve() {
         // univ_id=1 where we have new existential variables
         BDD f2  = matrix.Restrict(uVarToEliminate);
         std::cout << "Restriction 2 finished" << std::endl;
-        f2 = bdd_replace(f2, pairToRepl.getPair());
+        f2 = f2.SwapVariables(varsToBeReplaced, varsToReplaceWith);
         std::cout << "Replacing finished" << std::endl;
         // get their conjuction and thus remove univ_id from the formula
-        BDD res = f1 & f2;
-        if (res.IsOne() || res.IsOne())
-            return res.IsOne();
-        formula.setMatrix(res);
+        formula.setMatrix(f1 & f2);
         std::cout << "BDD created" << std::endl;
+        formula.removeUnusedVars();
     }
 
     // check if matrix of formula is 0

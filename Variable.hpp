@@ -6,7 +6,7 @@
 class Variable {
 private:
     unsigned int id;
-    BDD represantation;
+    BDD representation;
 
 public:
     operator BDD();
@@ -18,6 +18,10 @@ public:
     // TODO
     //int getLevel();
     bool operator==(const Variable &anotherVariable) const;
+    //BDD operator&(const Variable& other) const;
+    //BDD operator|(const Variable& other) const;
+    BDD operator&(const BDD& other) const;
+    BDD operator|(const BDD& other) const;
 };
 
 namespace std
