@@ -10,7 +10,12 @@ class Solver {
 private:
     Cudd mgr;
     Formula formula;
-    Variable getSomeUnivVar();
+    Variable getSomeUnivVar(int choice=0);
+    void printFormulaStats();
+    void reorder();
+
+    std::vector<Variable> univVarsOrderToRemove;
+    void setUnivVarsOrder();
 public:
     Solver() = delete;
     Solver(const Cudd &mgr);

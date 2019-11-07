@@ -2,11 +2,8 @@
 #include <sstream>
 #include <algorithm>
 #include <vector>
-#include <limits>
 #include <iostream>
-//#include "bdd.h"
 #include "Solver.hpp"
-//#include "BDDPair.hpp"
 
 /*
 Solver::Solver(Formula formula) : {
@@ -98,21 +95,54 @@ void Solver::readFile(std::ifstream& file) {
     formula.setMatrix(matrix);
 }
 
-Variable Solver::getSomeUnivVar() {
-    Variable minVar = *(formula.getUnivVars().begin());
-    auto min = formula.getUnivVarDependencies(minVar).size();
-    for (Variable uVar : formula.getUnivVars()) {
-        if (formula.getUnivVarDependencies(uVar).size() < min) {
-            minVar = uVar;
+Variable Solver::getSomeUnivVar(int choice) {
+    if (choice == 0) {
+        Variable v = univVarsOrderToRemove.back();
+        univVarsOrderToRemove.pop_back();
+        while (formula.getUnivVars().count(v) == 0) {
+            v = univVarsOrderToRemove.back();
+            univVarsOrderToRemove.pop_back();
         }
+        return v;
+    } else if (choice == 1) {
+        Variable minVar = *(formula.getUnivVars().begin());
+        auto min = formula.getUnivVarDependencies(minVar).size();
+        for (Variable uVar : formula.getUnivVars()) {
+            if (formula.getUnivVarDependencies(uVar).size() < min) {
+                minVar = uVar;
+            }
+        }
+        return minVar;
+    } else {
+        return *formula.getUnivVars().begin();
     }
-    return minVar;
-    //return *formula.getUnivVars().begin();
+}
+
+void Solver::printFormulaStats() {
+    std::cout << "Formula BDD have " << formula.getMatrix().nodeCount() 
+                << " nodes with " << formula.getUnivVars().size() << " universal variables and "
+                << formula.getExistVars().size() << " existential variables." << std::endl;
+}
+
+void Solver::reorder() {
+    std::cout << "Reordering" << std::endl;
+    mgr.ReduceHeap();
+    printFormulaStats();
+}
+
+void Solver::setUnivVarsOrder() {
+    univVarsOrderToRemove.assign(formula.getUnivVars().begin(), formula.getUnivVars().end());
+    std::sort(univVarsOrderToRemove.begin(), univVarsOrderToRemove.end(),
+                [&](Variable a, Variable b) {
+                    return (formula.getUnivVarDependencies(a).size() > formula.getUnivVarDependencies(b).size());
+                }
+            );
 }
 
 bool Solver::solve() {
+    setUnivVarsOrder();
     while (!formula.getUnivVars().empty()) {
-
+        printFormulaStats();
         // remove existential variables that depend on every universal variable
         auto eVars = formula.getExistVars();
         BDD eVarsToRemove = mgr.bddOne();
@@ -125,14 +155,14 @@ bool Solver::solve() {
             }
         }
         std::cout << std::endl;
-        BDD newMatrix = formula.getMatrix().ExistAbstract(eVarsToRemove);
-        formula.setMatrix(newMatrix);
+        formula.setMatrix(formula.getMatrix().ExistAbstract(eVarsToRemove));
         formula.removeUnusedVars();
 
         if (formula.getUnivVars().empty()) {
             break;
         }
-
+        printFormulaStats();
+        reorder();
 
         // find the universal variable to remove next
         Variable uVarToEliminate = getSomeUnivVar();
@@ -174,23 +204,12 @@ bool Solver::solve() {
         formula.removeUnusedVars();
     }
 
+    printFormulaStats();
+
     // check if matrix of formula is 0
     // if it is -> UNSAT
     // it it is not -> there exists a way in BDD to get to 1 
     //                   -> because we only have existential variables left
     //                   -> SAT
     return !formula.getMatrix().IsZero();
-    
-    /*
-    for (Variable eVar : formula.getExistVars()) {
-        std::cout << "Removing exist variable " << eVar.getId() << std::endl;
-        // eliminate from bdd
-        bdd newMatrix = bdd_exist(formula.getMatrix(), bddProcessor.getBDDRepr(eVar));
-        formula.setMatrix(newMatrix);
-        if (formula.isTrue() || formula.isFalse())
-            return formula.isTrue();
-    }
-
-    return formula.isTrue();
-    */
 }
