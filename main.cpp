@@ -1,10 +1,11 @@
 #include <fstream>
 #include <iostream>
 //#include "BDDProcessor.hpp"
-#include "Solver.hpp"
+#include "solver.hpp"
 
 Formula getTestFormula1(Cudd &mgr) {
     Formula f(mgr);
+    // TODO constructor variable(BDD) was deleted, can be fixed?
     Variable y1 = mgr.bddVar();
     Variable y2 = mgr.bddVar();
     Variable x1 = mgr.bddVar();
