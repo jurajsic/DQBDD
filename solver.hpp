@@ -9,6 +9,7 @@
 class Solver {
 private:
     Cudd mgr;
+    QuantifiedVariablesManager qvMgr;
     Formula formula;
     Variable getSomeUnivVar(int choice=0);
     void printFormulaStats();
@@ -20,6 +21,7 @@ public:
     Solver() = delete;
     Solver(const Cudd &mgr);
     void readFile(std::ifstream& file);
+    void setTest1Formula();
     void setFormula(Formula formula);
     bool solve();
 };

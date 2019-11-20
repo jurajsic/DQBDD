@@ -68,9 +68,11 @@ VariableSet QuantifiedVariablesManager::getUnivVarDependencies(Variable uVar) {
 /********************************************/
 /********************************************/
 
-QuantifiedVariablesManipulator::QuantifiedVariablesManipulator() : internalQVManager(), qvMgr(&internalQVManager) {}
+//QuantifiedVariablesManipulator::QuantifiedVariablesManipulator() : internalQVManager(), qvMgr(&internalQVManager) {}
 
 QuantifiedVariablesManipulator::QuantifiedVariablesManipulator(QuantifiedVariablesManager &qvMgr) : qvMgr(&qvMgr) {}
+
+//QuantifiedVariablesManipulator::QuantifiedVariablesManipulator(const QuantifiedVariablesManipulator &qvm) {}
 
 VariableSet QuantifiedVariablesManipulator::getUnivVars() const {
     return univVars;
@@ -166,9 +168,8 @@ bool QuantifiedVariablesManipulator::isExistVar(Variable var) {
     return (existVars.contains(var));
 }
 
-/*
+
 // TODO delete this because it does not do what you think it does
 bool QuantifiedVariablesManipulator::dependsOnEverything(Variable eVar) {
-    return (existVarsDependencies[eVar].size() == univVars.size());
+    return (qvMgr->getExistVarDependencies(eVar).size() == univVars.size());
 }
-*/

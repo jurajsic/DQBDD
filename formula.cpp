@@ -1,7 +1,7 @@
 #include <iostream>
 #include "formula.hpp"
 
-Formula::Formula(const Cudd &mgr) : mgr(mgr) {}
+//Formula::Formula(const Cudd &mgr) : mgr(mgr) {}
 
 Formula::Formula(const Cudd &mgr, QuantifiedVariablesManager &qvmgr) : QuantifiedVariablesManipulator(qvmgr), mgr(mgr) {}
 

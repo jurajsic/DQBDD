@@ -47,15 +47,15 @@ private:
     VariableSet existVars;
     
     // internal QVManager that is used if external is not supplied in constructor
-    QuantifiedVariablesManager internalQVManager;
+    //QuantifiedVariablesManager internalQVManager;
 
-    // this either refers to external manager or internal if external is not supplied
+    // this either refers to external manager or internal if external is not supplied -> always to external??
     QuantifiedVariablesManager *qvMgr;
 
 public:
-    QuantifiedVariablesManipulator();
+    QuantifiedVariablesManipulator() = delete;
     QuantifiedVariablesManipulator(QuantifiedVariablesManager &qvMgr);
-    //QuantifiedVariablesManipulator(const QuantifiedVariablesManipulator &qvm) = default;
+    //QuantifiedVariablesManipulator(const QuantifiedVariablesManipulator &qvm);
 
     //TODO!!!!!!!!!!!!!
     //QuantifiedVariablesManipulator& operator=(QuantifiedVariablesManipulator &qvm);

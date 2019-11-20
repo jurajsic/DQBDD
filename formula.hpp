@@ -17,7 +17,7 @@ private:
 
 public:
     Formula() = delete;
-    Formula(const Cudd &mgr);
+    //Formula(const Cudd &mgr);
     Formula(const Cudd &mgr, QuantifiedVariablesManager &qvmgr);
     Formula(const Formula &f) = default;
 
