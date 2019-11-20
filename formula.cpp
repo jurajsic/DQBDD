@@ -1,9 +1,9 @@
 #include <iostream>
 #include "formula.hpp"
 
-Formula::Formula(const Cudd &mgr) : mgr(mgr) {
+Formula::Formula(const Cudd &mgr) : mgr(mgr) {}
 
-}
+Formula::Formula(const Cudd &mgr, QuantifiedVariablesManager &qvmgr) : QuantifiedVariablesManipulator(qvmgr), mgr(mgr) {}
 
 BDD Formula::getMatrix() const {
     return matrix;
@@ -16,16 +16,20 @@ void Formula::setMatrix(const BDD &matrix) {
     this->matrix = matrix;
 }
 
+VariableSet Formula::getSupportSet() {
+    VariableSet supportSet;
+    for (unsigned int index : matrix.SupportIndices()) {
+        supportSet.insert(Variable(index, mgr));
+    }
+    return supportSet;
+}
 
 void Formula::removeUnusedVars() {
-    VariableSet usedVars;
-    for (unsigned int index : matrix.SupportIndices()) {
-        usedVars.insert(Variable(index, mgr));
-    }
+    VariableSet usedVars = getSupportSet();
 
     VariableSet varsToRemove;
     for (Variable uVar : getUnivVars()) {
-        if (usedVars.count(uVar) == 0) { // !usedVars.contains(uVar) in c++20
+        if (!usedVars.contains(uVar)) { // !usedVars.contains(uVar) in c++20
             varsToRemove.insert(uVar);
         }
     }
@@ -43,7 +47,16 @@ void Formula::removeUnusedVars() {
 
 void Formula::eliminateUnivVar(Variable uVarToEliminate) {
     // TODO duplicate only those that are in the bdd????? -> pozri ako som zrobil pushUnivVar ci to fakt treba
-    auto eVarsToDuplicate = getUnivVarDependencies(uVarToEliminate);
+    VariableSet eVarsToDuplicate;
+    VariableSet supportSet = getSupportSet();
+    VariableSet dependentVars = getUnivVarDependencies(uVarToEliminate);
+    for (Variable dependentVar : dependentVars) {
+        if (supportSet.contains(dependentVar)) {
+            eVarsToDuplicate.insert(dependentVar);
+            removeDependency(dependentVar, uVarToEliminate);
+        }
+    }
+
     removeUnivVar(uVarToEliminate);
     
     // pair used for replacing existential variables that depend on uVarToEliminate with new ones
@@ -54,8 +67,7 @@ void Formula::eliminateUnivVar(Variable uVarToEliminate) {
     for (Variable eVarToDuplicate : eVarsToDuplicate) {
         std::cout << eVarToDuplicate.getId() << " ";
         Variable newExistVar = eVarToDuplicate.newVarAtSameLevel();
-        addExistVar(newExistVar);
-        addDependency(newExistVar, getExistVarDependencies(eVarToDuplicate));
+        addExistVar(newExistVar, getExistVarDependencies(eVarToDuplicate));
         varsToBeReplaced.push_back(eVarToDuplicate);
         varsToReplaceWith.push_back(newExistVar);
     }
@@ -64,11 +76,10 @@ void Formula::eliminateUnivVar(Variable uVarToEliminate) {
 
     // TODO what is the FUCKING difference between constrain and restrict
     std::cout << "Creating BDDs" << std::endl;
-    //BDD matrix = getMatrix();
-    // univ_id=0 where we have old existential variables
+    // uVarToEliminate=false where we have old existential variables
     BDD f1 = matrix.Restrict(!uVarToEliminate.getBDD());
     std::cout << "Restriction 1 finished" << std::endl;
-    // univ_id=1 where we have new existential variables
+    // uVarToEliminate=true where we have new existential variables
     BDD f2 = matrix.Restrict(uVarToEliminate);
     std::cout << "Restriction 2 finished" << std::endl;
     f2 = f2.SwapVariables(varsToBeReplaced, varsToReplaceWith);

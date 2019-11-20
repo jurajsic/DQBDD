@@ -1,5 +1,11 @@
 #include "quantifiertree.hpp"
 
+void QuantifierTree::renameVar(Variable oldVar, Variable newVar) {
+    for (QuantifierTreeNode *child : children) {
+        child->renameVar(oldVar, newVar);
+    }
+}
+
 void QuantifierTree::pushExistVar(Variable var) {
     addExistVar(var);
 }
@@ -14,6 +20,7 @@ void QuantifierTree::pushUnivVar(Variable var) {
             addDependency(eVar,newUniVar);
         }
     }
+    renameVar(var, newUniVar);
 }
 
 void QuantifierTree::localise() {

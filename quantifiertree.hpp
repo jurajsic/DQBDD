@@ -16,6 +16,7 @@ public:
     virtual void localise() = 0; // TODO ake parametre a return???
     virtual void pushExistVar(Variable var) = 0;
     virtual void pushUnivVar(Variable var) = 0;
+    virtual void renameVar(Variable oldVar, Variable newVar) = 0;
 };
 
 
@@ -32,6 +33,7 @@ public:
     void localise();
     void pushExistVar(Variable var);
     void pushUnivVar(Variable var);
+    void renameVar(Variable oldVar, Variable newVar) = 0;
 };
 
 #endif

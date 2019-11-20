@@ -6,10 +6,10 @@
 Formula getTestFormula1(Cudd &mgr) {
     Formula f(mgr);
     // TODO constructor variable(BDD) was deleted, can be fixed?
-    Variable y1 = mgr.bddVar();
-    Variable y2 = mgr.bddVar();
-    Variable x1 = mgr.bddVar();
-    Variable x2 = mgr.bddVar();
+    Variable y1(0,mgr);
+    Variable y2(1,mgr);
+    Variable x1(2,mgr);
+    Variable x2(3,mgr);
     f.addExistVar(y1);
     f.addExistVar(y2);
     f.addUnivVar(x1);
@@ -17,7 +17,7 @@ Formula getTestFormula1(Cudd &mgr) {
     f.addUnivVar(x2);
     f.addDependency(y2, x2);
     BDD m = x1 & x2;
-    m = m.Xnor(y1.getRepr().Xnor(y2));
+    m = m.Xnor(y1.getBDD().Xnor(y2));
     f.setMatrix(m);
     return f;
 }

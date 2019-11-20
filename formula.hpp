@@ -18,8 +18,11 @@ private:
 public:
     Formula() = delete;
     Formula(const Cudd &mgr);
+    Formula(const Cudd &mgr, QuantifiedVariablesManager &qvmgr);
     Formula(const Formula &f) = default;
 
+    // TODO implement
+    VariableSet getSupportSet();
 
     BDD getMatrix() const;
     void setMatrix(const BDD &matrix);
@@ -28,6 +31,7 @@ public:
 
     void eliminateUnivVar(Variable uVarToEliminate);
 
+    // TODO:
     void eliminateExistVar(Variable existVarToEliminate);
     void eliminateExistVars(std::vector<Variable> existVarsToEliminate);
     void eliminatePossibleExistVars();

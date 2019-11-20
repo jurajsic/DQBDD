@@ -20,7 +20,7 @@ Solver::Solver(const Cudd &mgr) : mgr(mgr), formula(mgr) {
 }
 
 void Solver::setFormula(Formula formula) {
-    this->formula = formula;
+    this->formula = Formula(formula);
 }
 
 void Solver::readFile(std::ifstream& file) {
