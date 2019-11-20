@@ -160,21 +160,11 @@ bool Solver::solve() {
     setUnivVarsOrder();
     while (!formula.getUnivVars().empty()) {
         printFormulaStats();
-        // remove existential variables that depend on every universal variable
-        auto eVars = formula.getExistVars();
-        BDD eVarsToRemove = mgr.bddOne();
-        std::cout << "Eliminating exist variables ";
-        for (Variable eVar : eVars) {
-            if (formula.dependsOnEverything(eVar)) {
-                formula.removeExistVar(eVar);
-                eVarsToRemove = eVarsToRemove & eVar;
-                std::cout << eVar.getId() << " ";
-            }
+        
+        while (formula.eliminatePossibleExistVars() !=0) { // while something was eliminated
+            formula.removeUnusedVars();
         }
-        std::cout << std::endl;
-        formula.setMatrix(formula.getMatrix().ExistAbstract(eVarsToRemove));
-        formula.removeUnusedVars();
-
+        
         if (formula.getUnivVars().empty()) {
             break;
         }

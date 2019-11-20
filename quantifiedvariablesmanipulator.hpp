@@ -39,6 +39,9 @@ public:
 
     VariableSet getExistVarDependencies(Variable eVar);
     VariableSet getUnivVarDependencies(Variable uVar);
+    
+    bool isVarUniv(Variable var);
+    bool isVarExist(Variable var);
 };
 
 class QuantifiedVariablesManipulator {
@@ -81,10 +84,11 @@ public:
     VariableSet getExistVarDependencies(Variable eVar);
     VariableSet getUnivVarDependencies(Variable uVar);
 
-    bool isUnivVar(Variable var);
-    bool isExistVar(Variable var);
+    bool isVarHere(Variable var);
+    bool isVarUniv(Variable var);
+    bool isVarExist(Variable var);
 
-    bool dependsOnEverything(Variable eVar);
+    //bool dependsOnEverything(Variable eVar);
 };
 
 #endif

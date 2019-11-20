@@ -11,7 +11,7 @@ Variable::Variable(BDD repr) : representation(repr) {
 }
 */
 
-int Variable::getLevel() {
+int Variable::getLevel() const {
     return mgr.ReadPerm(id);
 }
 
@@ -19,7 +19,7 @@ Variable Variable::newVarAtSameLevel() {
     return Variable(mgr.bddNewVarAtLevel(getLevel()).NodeReadIndex(), mgr);
 }
 
-Variable::operator BDD() {
+Variable::operator BDD() const {
     return getBDD();
 }
 

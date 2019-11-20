@@ -24,12 +24,13 @@ VariableSet Formula::getSupportSet() {
     return supportSet;
 }
 
+// removes variables that are not in the support set of matrix (we can do this because 3a) rule )
 void Formula::removeUnusedVars() {
     VariableSet usedVars = getSupportSet();
 
     VariableSet varsToRemove;
     for (Variable uVar : getUnivVars()) {
-        if (!usedVars.contains(uVar)) { // !usedVars.contains(uVar) in c++20
+        if (!usedVars.contains(uVar)) {
             varsToRemove.insert(uVar);
         }
     }
@@ -87,6 +88,51 @@ void Formula::eliminateUnivVar(Variable uVarToEliminate) {
     // get their conjuction and thus remove univ_id from the formula
     setMatrix(f1 & f2);
     std::cout << "BDD created" << std::endl;
+}
+
+void Formula::eliminateExistVar(Variable existVarToEliminate) {
+    matrix = matrix.ExistAbstract(existVarToEliminate);
+    removeExistVar(existVarToEliminate);
+}
+
+void Formula::eliminateExistVars(VariableSet existVarsToEliminate) {
+    if (existVarsToEliminate.empty())
+        return;
+    
+    std::cout << "Eliminating exist variables ";
+    BDD CubeToRemove = mgr.bddOne();
+    for (const Variable &eVarToEliminate : existVarsToEliminate) {
+        CubeToRemove = CubeToRemove & eVarToEliminate;
+        removeExistVar(eVarToEliminate);
+        std::cout << eVarToEliminate.getId() << " ";
+    }
+    std::cout << std::endl;
+    matrix = matrix.ExistAbstract(CubeToRemove);
+}
+
+int Formula::eliminatePossibleExistVars() {
+    VariableSet supportSet = getSupportSet();
+    VariableSet univVarsNeededToDependOn;
+    VariableSet existVarsToEliminate;
+    for (const Variable &var : supportSet) {
+        if (isVarUniv(var)) {
+            if (univVarsNeededToDependOn.insert(var).second) { // if var was not in univVarsNeededToDependOn
+                existVarsToEliminate.clear();
+            }
+        } else if (isVarExist(var)) {
+            for (const Variable &uVar : getExistVarDependencies(var)) {
+                if (univVarsNeededToDependOn.insert(uVar).second) { // if uVar was not in univVarsNeededToDependOn
+                    existVarsToEliminate.clear();
+                }
+            }
+            if (getExistVarDependencies(var).size() == univVarsNeededToDependOn.size()) {
+                existVarsToEliminate.insert(var);
+            }
+        }
+    }
+
+    eliminateExistVars(existVarsToEliminate);
+    return existVarsToEliminate.size();
 }
 
 /*

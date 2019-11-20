@@ -11,15 +11,15 @@ private:
     Cudd mgr;
 
 public:
-    operator BDD();
+    operator BDD() const;
     Variable() = delete;
     Variable(int id, Cudd &mgr);
     //Variable(BDD repr);
     unsigned int getId() const;
     BDD getBDD() const;
-    // get Variable that
+    // get Variable that is at the same level as this variable
     Variable newVarAtSameLevel();
-    int getLevel();
+    int getLevel() const;
     bool operator==(const Variable &anotherVariable) const;
     //BDD operator&(const Variable& other) const;
     //BDD operator|(const Variable& other) const;

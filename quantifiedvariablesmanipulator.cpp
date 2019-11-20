@@ -60,6 +60,13 @@ VariableSet QuantifiedVariablesManager::getUnivVarDependencies(Variable uVar) {
     return univVarsDependencies[uVar];
 }
 
+bool QuantifiedVariablesManager::isVarUniv(Variable var) {
+    return (univVarsDependencies.find(var) != univVarsDependencies.end());
+}
+
+bool QuantifiedVariablesManager::isVarExist(Variable var) {
+    return (existVarsDependencies.find(var) != existVarsDependencies.end());
+}
 
 
 /********************************************/
@@ -95,7 +102,6 @@ void QuantifiedVariablesManipulator::addExistVar(Variable eVar) {
     addExistVar(eVar, VariableSet());
 }
 
-
 void QuantifiedVariablesManipulator::addExistVar(Variable eVar, VariableSet dependencies) {
     existVars.insert(eVar);
     qvMgr->addExistVarInstance(eVar);
@@ -111,7 +117,6 @@ void QuantifiedVariablesManipulator::addDependency(Variable eVar, Variable uVar)
 }
 
 void QuantifiedVariablesManipulator::removeDependency(Variable eVar, VariableSet dependencies) {
-    //existVarsDependencies[eVar].erase(dependencies.begin(),dependencies.end());
     qvMgr->removeDependency(eVar, dependencies);
 }
 
@@ -120,56 +125,48 @@ void QuantifiedVariablesManipulator::removeDependency(Variable eVar, Variable uV
 }
 
 void QuantifiedVariablesManipulator::removeUnivVar(Variable uVar) {
-    if (!isUnivVar(uVar))
-        return;
-    
-    univVars.erase(uVar);
-    qvMgr->removeUnivVarInstance(uVar);
+    if (univVars.erase(uVar) != 0) { // if uVar was in univVars before erasing
+        qvMgr->removeUnivVarInstance(uVar);
+    }
 }
 
 void QuantifiedVariablesManipulator::removeExistVar(Variable eVar) {
-    if (!isExistVar(eVar))
-        return;
-
-    existVars.erase(eVar);
-    qvMgr->removeExistVarInstance(eVar);
+    if (existVars.erase(eVar) != 0) { // if eVar was in existVars before erasing
+        qvMgr->removeExistVarInstance(eVar);
+    }
 }
 
 void QuantifiedVariablesManipulator::removeVar(Variable var) {
-    /*auto result = vars.erase(var);
-    if (result == 0) { // if var was not part of this manipulator
+    if (!isVarHere(var))
         return;
-    }*/
 
-    if (isUnivVar(var)) { // var is universal var
+    if (isVarUniv(var)) { // var is universal var
         removeUnivVar(var);
-    } else if (isExistVar(var)) { // var is exist var
+    } else if (isVarExist(var)) { // var is exist var
         removeExistVar(var);
     }
 }
 
 VariableSet QuantifiedVariablesManipulator::getExistVarDependencies(Variable eVar) {
-    if (!isExistVar(eVar))
-        throw "This manipualtor does not have this variable as existential";
+    if (!isVarExist(eVar))
+        throw "Variable is not existential";
     return qvMgr->getExistVarDependencies(eVar);
 }
 
 VariableSet QuantifiedVariablesManipulator::getUnivVarDependencies(Variable uVar) {
-    if (!isUnivVar(uVar))
-        throw "This manipualtor does not have this variable as universal";
+    if (!isVarUniv(uVar))
+        throw "Variable is not universal";
     return qvMgr->getUnivVarDependencies(uVar);
 }
 
-bool QuantifiedVariablesManipulator::isUnivVar(Variable var) {
-    return (univVars.contains(var));
+bool QuantifiedVariablesManipulator::isVarHere(Variable var) {
+    return (univVars.contains(var) || existVars.contains(var));
 }
 
-bool QuantifiedVariablesManipulator::isExistVar(Variable var) {
-    return (existVars.contains(var));
+bool QuantifiedVariablesManipulator::isVarUniv(Variable var) {
+    return qvMgr->isVarUniv(var);
 }
 
-
-// TODO delete this because it does not do what you think it does
-bool QuantifiedVariablesManipulator::dependsOnEverything(Variable eVar) {
-    return (qvMgr->getExistVarDependencies(eVar).size() == univVars.size());
+bool QuantifiedVariablesManipulator::isVarExist(Variable var) {
+    return qvMgr->isVarExist(var);
 }

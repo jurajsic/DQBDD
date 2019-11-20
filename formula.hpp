@@ -31,10 +31,11 @@ public:
 
     void eliminateUnivVar(Variable uVarToEliminate);
 
-    // TODO:
     void eliminateExistVar(Variable existVarToEliminate);
-    void eliminateExistVars(std::vector<Variable> existVarsToEliminate);
-    void eliminatePossibleExistVars();
+    void eliminateExistVars(VariableSet existVarsToEliminate);
+    // eliminates all existential variables that are possible to eliminate based on Theorem 5 from DQBF localization paper
+    // returns number of eliminated existential variables
+    int eliminatePossibleExistVars();
 };
 
 #endif
