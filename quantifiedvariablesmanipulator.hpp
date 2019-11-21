@@ -37,8 +37,8 @@ public:
     void addDependency(Variable eVar, VariableSet dependencies);
     void removeDependency(Variable eVar, VariableSet dependencies);
 
-    VariableSet getExistVarDependencies(Variable eVar);
-    VariableSet getUnivVarDependencies(Variable uVar);
+    VariableSet const &getExistVarDependencies(Variable eVar);
+    VariableSet const &getUnivVarDependencies(Variable uVar);
     
     bool isVarUniv(Variable var);
     bool isVarExist(Variable var);
@@ -63,8 +63,8 @@ public:
     //TODO!!!!!!!!!!!!!
     //QuantifiedVariablesManipulator& operator=(QuantifiedVariablesManipulator &qvm);
 
-    VariableSet getUnivVars() const;
-    VariableSet getExistVars() const;
+    VariableSet const &getUnivVars() const;
+    VariableSet const &getExistVars() const;
     //VariableSet getVars() const;
 
     void addUnivVar(Variable uVar);
@@ -81,8 +81,8 @@ public:
     void removeExistVar(Variable eVar);
     void removeVar(Variable var);
 
-    VariableSet getExistVarDependencies(Variable eVar);
-    VariableSet getUnivVarDependencies(Variable uVar);
+    VariableSet const &getExistVarDependencies(Variable eVar);
+    VariableSet const &getUnivVarDependencies(Variable uVar);
 
     bool isVarHere(Variable var);
     bool isVarUniv(Variable var);

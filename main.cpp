@@ -17,7 +17,7 @@ int main(int argc, char **argw)
         }
         solver.readFile(input_file);
     } else {
-        solver.setTest1Formula();
+        solver.setTest2Formula();
     }
     
     if (solver.solve()) {

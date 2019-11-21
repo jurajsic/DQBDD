@@ -40,6 +40,26 @@ void Solver::setTest1Formula() {
     setFormula(f);
 }
 
+void Solver::setTest2Formula() {
+    Formula f(mgr, qvMgr);
+    // TODO constructor variable(BDD) was deleted, can be fixed?
+    Variable y1(0,mgr);
+    Variable y2(1,mgr);
+    Variable x1(2,mgr);
+    Variable x2(3,mgr);
+    f.addExistVar(y1);
+    f.addExistVar(y2);
+    f.addUnivVar(x1);
+    f.addDependency(y1, x1);
+    f.addUnivVar(x2);
+    f.addDependency(y2, x1);
+    f.addDependency(y2, x2);
+    BDD m = x1 & x2;
+    m = m.Xnor(y1.getBDD().Xnor(y2));
+    f.setMatrix(m);
+    setFormula(f);
+}
+
 void Solver::readFile(std::ifstream& file) {
     std::string line;
     BDD matrix = mgr.bddOne();

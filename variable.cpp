@@ -1,4 +1,5 @@
 #include <functional>
+#include <iostream>
 #include "variable.hpp"
 
 Variable::Variable(int id, Cudd &mgr) : id(id), mgr(mgr) {

@@ -21,7 +21,6 @@ public:
     Formula(const Cudd &mgr, QuantifiedVariablesManager &qvmgr);
     Formula(const Formula &f) = default;
 
-    // TODO implement
     VariableSet getSupportSet();
 
     BDD getMatrix() const;

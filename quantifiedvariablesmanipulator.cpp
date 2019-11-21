@@ -52,11 +52,11 @@ void QuantifiedVariablesManager::removeDependency(Variable eVar, VariableSet dep
     }
 }
 
-VariableSet QuantifiedVariablesManager::getExistVarDependencies(Variable eVar) {
+VariableSet const &QuantifiedVariablesManager::getExistVarDependencies(Variable eVar) {
     return existVarsDependencies[eVar];
 }
 
-VariableSet QuantifiedVariablesManager::getUnivVarDependencies(Variable uVar) {
+VariableSet const &QuantifiedVariablesManager::getUnivVarDependencies(Variable uVar) {
     return univVarsDependencies[uVar];
 }
 
@@ -81,11 +81,11 @@ QuantifiedVariablesManipulator::QuantifiedVariablesManipulator(QuantifiedVariabl
 
 //QuantifiedVariablesManipulator::QuantifiedVariablesManipulator(const QuantifiedVariablesManipulator &qvm) {}
 
-VariableSet QuantifiedVariablesManipulator::getUnivVars() const {
+VariableSet const &QuantifiedVariablesManipulator::getUnivVars() const {
     return univVars;
 }
 
-VariableSet QuantifiedVariablesManipulator::getExistVars() const {
+VariableSet const &QuantifiedVariablesManipulator::getExistVars() const {
     return existVars;
 }
 /*
@@ -94,8 +94,8 @@ VariableSet QuantifiedVariablesManipulator::getVars() const{
 }
 */
 void QuantifiedVariablesManipulator::addUnivVar(Variable uVar) {
-    univVars.insert(uVar);
-    qvMgr->addUnivVarInstance(uVar);
+    if (univVars.insert(uVar).second == true)
+        qvMgr->addUnivVarInstance(uVar);
 }
 
 void QuantifiedVariablesManipulator::addExistVar(Variable eVar) {
@@ -103,8 +103,8 @@ void QuantifiedVariablesManipulator::addExistVar(Variable eVar) {
 }
 
 void QuantifiedVariablesManipulator::addExistVar(Variable eVar, VariableSet dependencies) {
-    existVars.insert(eVar);
-    qvMgr->addExistVarInstance(eVar);
+    if (existVars.insert(eVar).second == true)
+        qvMgr->addExistVarInstance(eVar);
     addDependency(eVar, dependencies);
 }
 
@@ -147,13 +147,13 @@ void QuantifiedVariablesManipulator::removeVar(Variable var) {
     }
 }
 
-VariableSet QuantifiedVariablesManipulator::getExistVarDependencies(Variable eVar) {
+VariableSet const &QuantifiedVariablesManipulator::getExistVarDependencies(Variable eVar) {
     if (!isVarExist(eVar))
         throw "Variable is not existential";
     return qvMgr->getExistVarDependencies(eVar);
 }
 
-VariableSet QuantifiedVariablesManipulator::getUnivVarDependencies(Variable uVar) {
+VariableSet const &QuantifiedVariablesManipulator::getUnivVarDependencies(Variable uVar) {
     if (!isVarUniv(uVar))
         throw "Variable is not universal";
     return qvMgr->getUnivVarDependencies(uVar);
