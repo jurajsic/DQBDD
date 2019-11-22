@@ -1,14 +1,13 @@
 #include <fstream>
 #include <iostream>
-//#include "BDDProcessor.hpp"
-#include "solver.hpp"
+#include "simplesolver.hpp"
 
 int main(int argc, char **argw)
 {
     Cudd mgr;
     //mgr.AutodynDisable();
     std::ifstream input_file;
-    Solver solver(mgr);
+    SimpleSolver solver(mgr);
     if (argc > 1) {
         input_file.open(argw[1]);
         if (!input_file.is_open()) {

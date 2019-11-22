@@ -314,6 +314,10 @@ Formula* QuantifierTree::getFormula(Cudd &mgr) {
     return f;
 }
 
+void QuantifierTree::addChild(QuantifierTreeNode *child) {
+    children.push_back(child);
+}
+
 /*********************************************************/
 /*********************************************************/
 /************    QUANTIFIERTREEVARIABLE    ***************/

@@ -16,12 +16,6 @@ public:
     //virtual void renameVar(Variable oldVar, Variable newVar) = 0;
 };
 
-
-// TODO zrobit bud ako samostatnu class kde si budem ukladat dependencies a nechat reference na to nejak v strome
-class QuantifierTreeRoot : public QuantifierTreeNode {
-private:
-};
-
 class QuantifierTree : public QuantifierTreeNode, public QuantifiedVariablesManipulator {
 private:
     std::list<QuantifierTreeNode*> children;
@@ -44,6 +38,8 @@ public:
 
     Formula* getFormula(Cudd &mgr);
     //void renameVar(Variable oldVar, Variable newVar);
+
+    void addChild(QuantifierTreeNode *child);
 };
 
 class QuantifierTreeVariable : public QuantifierTreeNode, public Variable {
