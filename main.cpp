@@ -1,6 +1,7 @@
 #include <fstream>
 #include <iostream>
 #include "simplesolver.hpp"
+#include "treesolver.hpp"
 
 int main(int argc, char **argw)
 {

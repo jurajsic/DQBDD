@@ -5,7 +5,7 @@ RM = rm -f
 CUDDLIBS = ../cudd-release/cplusplus/.libs/libobj.a ../cudd-release/cudd/.libs/libcudd.a #-L../cudd-release/cudd/.libs/ -lcudd -L../cudd-release/cplusplus/.libs/ -lobj
 LDLIBS = $(CUDDLIBS)
 
-SRCS = variable.cpp quantifiedvariablesmanipulator.cpp formula.cpp solver.cpp simplesolver.cpp main.cpp
+SRCS = variable.cpp quantifiedvariablesmanipulator.cpp formula.cpp solver.cpp simplesolver.cpp quantifiertree.cpp treesolver.cpp main.cpp
 OBJS = $(subst .cpp,.o,$(SRCS))
 
 all: solver
@@ -19,6 +19,10 @@ formula.o: formula.hpp formula.cpp
 solver.o: solver.hpp solver.cpp
 
 simplesolver.o: simplesolver.hpp simplesolver.cpp
+
+quantifiertree.o: quantifiertree.hpp quantifiertree.cpp
+
+treesolver.o: treesolver.hpp treesolver.cpp
 
 solver: $(OBJS)
 	$(CXX) $(CXXFLAGS) -o solver $(OBJS) $(LDLIBS)

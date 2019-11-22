@@ -1,7 +1,6 @@
 #ifndef SIMPLESOLVER_HPP
 #define SIMPLESOLVER_HPP
 
-#include <fstream>
 #include "formula.hpp"
 #include "solver.hpp"
 

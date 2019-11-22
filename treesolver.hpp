@@ -8,9 +8,10 @@ class TreeSolver : public Solver {
 private:
     QuantifiedVariablesManager qvMgr;
 
-    QuantifierTree  *qt = nullptr;
+    QuantifierTreeNode *root = nullptr;
 public:
     TreeSolver(const Cudd &mgr);
+    ~TreeSolver();
     void readFile(std::ifstream& file);
     bool solve();
     //void runTests();

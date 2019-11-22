@@ -190,3 +190,25 @@ void QuantifiedVariablesManipulator::clear() {
         removeExistVar(eVar);
     }
 }
+
+// removes variables that are not in the support set of matrix (we can do this because 3a) rule )
+void QuantifiedVariablesManipulator::removeUnusedVars() {
+    VariableSet usedVars = getSupportSet();
+
+    VariableSet varsToRemove;
+    for (Variable uVar : getUnivVars()) {
+        if (!usedVars.contains(uVar)) {
+            varsToRemove.insert(uVar);
+        }
+    }
+
+    for (Variable eVar : getExistVars()) {
+        if (usedVars.contains(eVar)) {
+            varsToRemove.insert(eVar);
+        }
+    }
+
+    for (Variable varToRemove : varsToRemove) {
+        removeVar(varToRemove);
+    }
+}

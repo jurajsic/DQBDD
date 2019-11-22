@@ -7,7 +7,7 @@
 #include "quantifiedvariablesmanipulator.hpp"
 #include "cuddObj.hh"
 
-class Formula : public QuantifiedVariablesManipulator {
+class Formula : public virtual QuantifiedVariablesManipulator {
 private:
 
     // propositional predicate inside DQBF formula in BDD form
@@ -25,8 +25,6 @@ public:
 
     BDD getMatrix() const;
     void setMatrix(const BDD &matrix);
-
-    void removeUnusedVars();
 
     void eliminateUnivVar(Variable uVarToEliminate);
 

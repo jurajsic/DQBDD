@@ -24,28 +24,6 @@ VariableSet Formula::getSupportSet() {
     return supportSet;
 }
 
-// removes variables that are not in the support set of matrix (we can do this because 3a) rule )
-void Formula::removeUnusedVars() {
-    VariableSet usedVars = getSupportSet();
-
-    VariableSet varsToRemove;
-    for (Variable uVar : getUnivVars()) {
-        if (!usedVars.contains(uVar)) {
-            varsToRemove.insert(uVar);
-        }
-    }
-
-    for (Variable eVar : getExistVars()) {
-        if (usedVars.count(eVar) == 0) { // !usedVars.contains(eVar) in c++20
-            varsToRemove.insert(eVar);
-        }
-    }
-
-    for (Variable varToRemove : varsToRemove) {
-        removeVar(varToRemove);
-    }
-}
-
 void Formula::eliminateUnivVar(Variable uVarToEliminate) {
     // TODO duplicate only those that are in the bdd????? -> pozri ako som zrobil pushUnivVar ci to fakt treba
     VariableSet eVarsToDuplicate;

@@ -4,6 +4,10 @@
 
 TreeSolver::TreeSolver(const Cudd &mgr) : Solver(mgr) {}
 
+TreeSolver::~TreeSolver() {
+    delete root;
+}
+
 void TreeSolver::readFile(std::ifstream& file) {
     std::string line;
 
@@ -58,25 +62,30 @@ void TreeSolver::readFile(std::ifstream& file) {
             // -n -> returns negated BDD variable with index n
             auto getVarFromStr = [&](std::string tok) {
                 int i = std::stoi(tok);
+                QuantifierTreeFormula *qtf = new QuantifierTreeFormula(mgr, qvMgr);
                 if (i < 0) {
-                    return !mgr.bddVar(-i);
+                    qtf->setMatrix(Variable(-i, mgr));
                 } else {
-                    return mgr.bddVar(i);
+                    qtf->setMatrix(Variable(i, mgr));
                 }
+                return qtf;
             };
-            BDD disj = getVarFromStr(token);
+            QuantifierTree *clause = new QuantifierTree(false, {}, qvMgr);
+            clause->addChild(getVarFromStr(token));
             while (streamline >> token) {
                 if (token == "0") {
                     continue;
                 }
-                disj = disj | getVarFromStr(token);
+                clause->addChild(getVarFromStr(token));
             }
-            matrix = matrix & disj;
+            root->addChild(clause);
         }
     }
-    formula.setMatrix(matrix);
+    this->root = root;
 }
 
 bool TreeSolver::solve() {
-
+    QuantifierTreeFormula *f = root->getFormula(mgr);
+    root = f;
+    return (f->getMatrix().IsOne());
 }

@@ -1,7 +1,29 @@
 #include <algorithm>
 #include "quantifiertree.hpp"
 
-QuantifierTree::QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> children, QuantifiedVariablesManager &qvMgr) : QuantifiedVariablesManipulator(qvMgr), isConj(isConj), children(children) {
+
+void QuantifierTreeNode::pushExistVar(Variable var) {
+    if (getSupportSet().contains(var)) {
+        addExistVar(var);
+    }
+}
+
+// TODO no need for renaming new univ vars???
+void QuantifierTreeNode::pushUnivVar(Variable var) {
+    // no renaming??? should work
+    VariableSet supportSet = getSupportSet();
+    if (supportSet.contains(var)) {
+        addUnivVar(var);
+    } else { // we delete dependencies if var is not in support set??? hopefully no problem
+        for (const Variable &dependentExistVar : getUnivVarDependencies(var)) {
+            if (supportSet.contains(dependentExistVar)) { // we assume this is the only tree that contains dependentExistVar, shoudl work
+                removeDependency(dependentExistVar,var);
+            }
+        }
+    }
+}
+
+QuantifierTree::QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> children, QuantifiedVariablesManager &qvMgr) : QuantifiedVariablesManipulator(qvMgr), children(children), isConj(isConj) {
     if (children.size() == 0) {
         throw "QuantifierTree has to have some children";
     }
@@ -23,47 +45,6 @@ VariableSet QuantifierTree::getSupportSet() {
     return supportSet;
 }
 
-/*
-void QuantifierTree::renameVar(Variable oldVar, Variable newVar) {
-    for (QuantifierTreeNode *child : children) {
-        child->renameVar(oldVar, newVar);
-    }
-}
-*/
-
-void QuantifierTree::pushExistVar(Variable var) {
-    if (getSupportSet().contains(var)) {
-        addExistVar(var);
-    }
-}
-
-// TODO no need for renaming new univ vars???
-void QuantifierTree::pushUnivVar(Variable var) {
-    // no renaming??? should work
-    VariableSet supportSet = getSupportSet();
-    if (supportSet.contains(var)) {
-        addUnivVar(var);
-    } else { // we delete dependencies if var is not in support set??? hopefully no problem
-        for (const Variable &dependentExistVar : getUnivVarDependencies(var)) {
-            if (supportSet.contains(dependentExistVar)) { // we assume this is the only tree that contains dependentExistVar, shoudl work
-                removeDependency(dependentExistVar,var);
-            }
-        }
-    }
-    /*
-    Variable newUniVar = var.newVarAtSameLevel();
-    addUnivVar(newUniVar);
-    VariableSet supportSet = getSupportSet();
-    for (Variable eVar : getUnivVarDependencies(var)) {
-        if (supportSet.contains(eVar)) {
-            removeDependency(eVar, var);
-            addDependency(eVar,newUniVar);
-        }
-    }
-    renameVar(var, newUniVar);
-    */
-}
-
 // TODO implement ME!!!!
 // removes from one list another one where both are in the same order (the order is based on the order of children)
 // returns true if something was removed
@@ -73,10 +54,14 @@ bool QuantifierTree::removeFromOrderedListOtherOrderedListUsingChildrenOrder(std
     auto listToRemoveFromIter = listToRemoveFrom.begin();
     auto listOfItemsToRemoveIter = listOfItemsToRemove.begin();
 
+    bool somethingWasDeleted = false;
+
     while (orderIter != childrenCopy.end() || listToRemoveFromIter != listToRemoveFrom.end() || listOfItemsToRemoveIter != listOfItemsToRemove.end()) {
-        auto iterToDelete = listToRemoveFrom.end();
         if (*listToRemoveFromIter == *listOfItemsToRemoveIter) {
-            iterToDelete == listToRemoveFromIter;
+            auto iterToDelete = listToRemoveFromIter;
+            ++listToRemoveFromIter;
+            listToRemoveFrom.erase(iterToDelete);
+            somethingWasDeleted = true;
         }
 
         if (*orderIter == *listToRemoveFromIter) {
@@ -88,11 +73,8 @@ bool QuantifierTree::removeFromOrderedListOtherOrderedListUsingChildrenOrder(std
         }
 
         ++orderIter;
-
-        if (iterToDelete != listToRemoveFrom.end()) {
-            listToRemoveFrom.erase(iterToDelete);
-        }
     }
+    return somethingWasDeleted;
 }
 
 void QuantifierTree::localise() {
@@ -249,8 +231,7 @@ void QuantifierTree::localise() {
     }
 }
 
-Formula* QuantifierTree::getFormula(Cudd &mgr) {
-    Formula *f = nullptr;
+QuantifierTreeFormula* QuantifierTree::getFormula(Cudd &mgr) {
     auto childIter = children.begin();
     BDD matrix;
     if (isConj) {
@@ -259,12 +240,13 @@ Formula* QuantifierTree::getFormula(Cudd &mgr) {
         matrix = mgr.bddZero();
     }
     while (childIter != children.end()) {
-        Formula *childFormula = (*childIter)->getFormula(mgr);
+        QuantifierTreeFormula *childFormula = (*childIter)->getFormula(mgr);
 
         // remove the child 
         auto childToRemoveIter = childIter;
         ++childIter;
-        delete (*childToRemoveIter);
+        // TODO maybe change to shared_ptr so I don't have to this shit
+        //delete (*childToRemoveIter);
         children.erase(childToRemoveIter);
 
         // TODO implement this
@@ -276,13 +258,13 @@ Formula* QuantifierTree::getFormula(Cudd &mgr) {
                 break;
             }
         } else {
-            matrix |= childFormula->getMatrix;
+            matrix |= childFormula->getMatrix();
             if (matrix.IsOne()) {
                 break;
             }
         }
 
-        // move all exists var up (univ vars are all eliminated)
+        // move all exist vars up (univ vars are not moved, because they were eliminated)
         for (const Variable &eVar : childFormula->getExistVars()) {
             addExistVar(eVar);
             childFormula->removeExistVar(eVar);
@@ -300,7 +282,7 @@ Formula* QuantifierTree::getFormula(Cudd &mgr) {
         children.erase(childToRemoveIter);
     }
 
-    Formula* f = new Formula(mgr, *qvMgr);
+    QuantifierTreeFormula* f = new QuantifierTreeFormula(mgr, *qvMgr);
     f->setMatrix(matrix);
     for (const Variable &uVar : getUnivVars()) {
         f->addUnivVar(uVar);
@@ -311,6 +293,7 @@ Formula* QuantifierTree::getFormula(Cudd &mgr) {
         removeExistVar(eVar);
     }
     f->removeUnusedVars();
+    delete this;
     return f;
 }
 
@@ -320,39 +303,16 @@ void QuantifierTree::addChild(QuantifierTreeNode *child) {
 
 /*********************************************************/
 /*********************************************************/
-/************    QUANTIFIERTREEVARIABLE    ***************/
+/************     QUANTIFIERTREEFORMULA     **************/
 /*********************************************************/
 /*********************************************************/
 
-QuantifierTreeVariable::QuantifierTreeVariable(int id, Cudd &mgr, QuantifiedVariablesManager &qvMgr) : Variable(id,mgr), qvMgr(&qvMgr) {}
+QuantifierTreeFormula::QuantifierTreeFormula(const Cudd &mgr, QuantifiedVariablesManager &qvmgr) : QuantifiedVariablesManipulator(qvmgr), Formula(mgr, qvmgr) {}
 
-// TODO check if this works
-VariableSet QuantifierTreeVariable::getSupportSet() {
-    return VariableSet{*this};
+void QuantifierTreeFormula::localise() {
+    removeUnusedVars();
 }
 
-void QuantifierTreeVariable::localise() {}
-
-void QuantifierTreeVariable::pushExistVar(Variable var) {
-    if (var == *this) {
-        isExistential = true;
-    }
-}
-
-void QuantifierTreeVariable::pushUnivVar(Variable var) {
-    if (var == *this) {
-        isUniversal = true;
-    }
-}
-
-Formula* QuantifierTreeVariable::getFormula(Cudd &mgr) {
-    Formula *f = new Formula(mgr, *qvMgr);
-    if (isExistential) {
-        f->setMatrix(mgr.bddOne());
-    } else if (isUniversal) {
-        f->setMatrix(mgr.bddZero());
-    } else {
-        f->setMatrix(*this);
-    }
-    return f;
+QuantifierTreeFormula* QuantifierTreeFormula::getFormula(Cudd &mgr) {
+    return this;
 }

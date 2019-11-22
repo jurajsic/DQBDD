@@ -95,6 +95,9 @@ public:
 
     void clear();
 
+    void removeUnusedVars();
+    virtual VariableSet getSupportSet() = 0;
+
     //bool dependsOnEverything(Variable eVar);
 };
 

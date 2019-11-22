@@ -1,6 +1,7 @@
 #ifndef SOLVER_HPP
 #define SOLVER_HPP
 
+#include <fstream>
 #include "cuddObj.hh"
 
 class Solver {
