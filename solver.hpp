@@ -7,8 +7,18 @@
 //#include "BDDProcessor.hpp"
 
 class Solver {
-private:
+protected:
     Cudd mgr;
+public:
+    Solver() = delete;
+    Solver(const Cudd &mgr);
+    virtual void readFile(std::ifstream& file) = 0;
+    virtual bool solve() = 0;
+    virtual void runTests() = 0;
+};
+
+class SimpleSolver : Solver {
+private:
     QuantifiedVariablesManager qvMgr;
     Formula formula;
     Variable getSomeUnivVar(int choice=0);
@@ -18,8 +28,8 @@ private:
     std::vector<Variable> univVarsOrderToRemove;
     void setUnivVarsOrder();
 public:
-    Solver() = delete;
-    Solver(const Cudd &mgr);
+    SimpleSolver() = delete;
+    SimpleSolver(const Cudd &mgr);
     void readFile(std::ifstream& file);
     void setTest1Formula();
     void setTest2Formula();

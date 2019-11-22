@@ -6,24 +6,26 @@
 #include "solver.hpp"
 
 /*
-Solver::Solver(Formula formula) : {
+SimpleSolver::SimpleSolver(Formula formula) : {
     this->formula = formula;
 }
 
-Solver::Solver(std::ifstream& file) : {
+SimpleSolver::SimpleSolver(std::ifstream& file) : {
     readFile(file);
 }
 */
 
-Solver::Solver(const Cudd &mgr) : mgr(mgr), qvMgr(), formula(mgr, qvMgr) {}
+Solver::Solver(const Cudd &mgr) : mgr(mgr) {}
+
+SimpleSolver::SimpleSolver(const Cudd &mgr) : Solver(mgr), qvMgr(), formula(mgr, qvMgr) {}
 
 /*
-void Solver::setFormula(Formula formula) {
+void SimpleSolver::setFormula(Formula formula) {
     this->formula = Formula(formula);
 }
 */
 
-void Solver::setTest1Formula() {
+void SimpleSolver::setTest1Formula() {
     formula.clear();
     // TODO constructor variable(BDD) was deleted, can be fixed?
     Variable y1(0,mgr);
@@ -41,7 +43,7 @@ void Solver::setTest1Formula() {
     formula.setMatrix(m);
 }
 
-void Solver::setTest2Formula() {
+void SimpleSolver::setTest2Formula() {
     formula.clear();
     // TODO constructor variable(BDD) was deleted, can be fixed?
     Variable y1(0,mgr);
@@ -60,7 +62,7 @@ void Solver::setTest2Formula() {
     formula.setMatrix(m);
 }
 
-void Solver::readFile(std::ifstream& file) {
+void SimpleSolver::readFile(std::ifstream& file) {
     std::string line;
     BDD matrix = mgr.bddOne();
 
@@ -132,7 +134,7 @@ void Solver::readFile(std::ifstream& file) {
     formula.setMatrix(matrix);
 }
 
-Variable Solver::getSomeUnivVar(int choice) {
+Variable SimpleSolver::getSomeUnivVar(int choice) {
     if (choice == 0) {
         Variable v = univVarsOrderToRemove.back();
         univVarsOrderToRemove.pop_back();
@@ -155,19 +157,19 @@ Variable Solver::getSomeUnivVar(int choice) {
     }
 }
 
-void Solver::printFormulaStats() {
+void SimpleSolver::printFormulaStats() {
     std::cout << "Formula BDD have " << formula.getMatrix().nodeCount() 
                 << " nodes with " << formula.getUnivVars().size() << " universal variables and "
                 << formula.getExistVars().size() << " existential variables." << std::endl;
 }
 
-void Solver::reorder() {
+void SimpleSolver::reorder() {
     std::cout << "Reordering" << std::endl;
     mgr.ReduceHeap();
     printFormulaStats();
 }
 
-void Solver::setUnivVarsOrder() {
+void SimpleSolver::setUnivVarsOrder() {
     univVarsOrderToRemove.assign(formula.getUnivVars().begin(), formula.getUnivVars().end());
     std::sort(univVarsOrderToRemove.begin(), univVarsOrderToRemove.end(),
                 [&](Variable a, Variable b) {
@@ -176,11 +178,11 @@ void Solver::setUnivVarsOrder() {
             );
 }
 
-bool Solver::solve() {
+bool SimpleSolver::solve() {
     formula.eliminatePossibleVars();
     return (formula.getMatrix().IsOne());
 
-    
+
     setUnivVarsOrder();
     while (!formula.getUnivVars().empty()) {
         printFormulaStats();
