@@ -52,12 +52,14 @@ private:
     // internal QVManager that is used if external is not supplied in constructor
     //QuantifiedVariablesManager internalQVManager;
 
+protected:
     // this either refers to external manager or internal if external is not supplied -> always to external??
     QuantifiedVariablesManager *qvMgr;
 
 public:
     QuantifiedVariablesManipulator() = delete;
     QuantifiedVariablesManipulator(QuantifiedVariablesManager &qvMgr);
+    ~QuantifiedVariablesManipulator();
     //QuantifiedVariablesManipulator(const QuantifiedVariablesManipulator &qvm);
 
     //TODO!!!!!!!!!!!!!
@@ -87,6 +89,8 @@ public:
     bool isVarHere(Variable var);
     bool isVarUniv(Variable var);
     bool isVarExist(Variable var);
+
+    void clear();
 
     //bool dependsOnEverything(Variable eVar);
 };

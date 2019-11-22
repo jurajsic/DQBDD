@@ -2,13 +2,9 @@
 #define QUANTIFIERTREE_HPP
 
 #include <list>
-//#include <unordered_set>
-//#include <unordered_map>
 #include "variable.hpp"
 #include "formula.hpp"
 
-//typedef std::unordered_set<Variable> VariableSet;
-//typedef std::unordered_map<Variable, VariableSet> DependencyMap;
 
 class QuantifierTreeNode {
 public:    
@@ -16,6 +12,7 @@ public:
     virtual void localise() = 0; // TODO ake parametre a return???
     virtual void pushExistVar(Variable var) = 0;
     virtual void pushUnivVar(Variable var) = 0;
+    virtual Formula* getFormula(Cudd &mgr) = 0;
     //virtual void renameVar(Variable oldVar, Variable newVar) = 0;
 };
 
@@ -29,18 +26,37 @@ class QuantifierTree : public QuantifierTreeNode, public QuantifiedVariablesMani
 private:
     std::list<QuantifierTreeNode*> children;
     bool isConj; // TODO change to operator, will have to learn how to do that tho
-public:
-    // TODO implement this
-    QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> children);
 
-    // TODO destructor deleting children
-    // TODO delete unneeded operators so it does not fuck me up later
+    VariableSet supportSet;
+
+    bool removeFromOrderedListOtherOrderedListUsingChildrenOrder(std::list<QuantifierTreeNode*> &listToRemoveFrom, std::list<QuantifierTreeNode*> &listOfItemsToRemove);
+public:
+    QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> children, QuantifiedVariablesManager &qvMgr);
+    QuantifierTree(const QuantifierTree&) = delete;
+    QuantifierTree& operator=(const QuantifierTree&) = delete;
+
+    ~QuantifierTree();
 
     void localise();
     void pushExistVar(Variable var);
     void pushUnivVar(Variable var);
     VariableSet getSupportSet();
+
+    Formula* getFormula(Cudd &mgr);
     //void renameVar(Variable oldVar, Variable newVar);
+};
+
+class QuantifierTreeVariable : public QuantifierTreeNode, public Variable {
+    bool isExistential = false;
+    bool isUniversal = false;
+    QuantifiedVariablesManager *qvMgr;
+public:
+    QuantifierTreeVariable(int id, Cudd &mgr, QuantifiedVariablesManager &qvMgr);
+    VariableSet getSupportSet();
+    void localise();
+    void pushExistVar(Variable var);
+    void pushUnivVar(Variable var);
+    Formula* getFormula(Cudd &mgr);
 };
 
 #endif

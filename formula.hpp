@@ -19,7 +19,7 @@ public:
     Formula() = delete;
     //Formula(const Cudd &mgr);
     Formula(const Cudd &mgr, QuantifiedVariablesManager &qvmgr);
-    Formula(const Formula &f) = default;
+    Formula(const Formula &f) = delete;
 
     VariableSet getSupportSet();
 
@@ -35,6 +35,9 @@ public:
     // eliminates all existential variables that are possible to eliminate based on Theorem 5 from DQBF localization paper
     // returns number of eliminated existential variables
     int eliminatePossibleExistVars();
+
+    // TODO implemenet -> should eliminate all universal variables and all possible exist (can add new exist)
+    void eliminatePossibleVars();
 };
 
 #endif

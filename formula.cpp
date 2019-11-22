@@ -110,29 +110,51 @@ void Formula::eliminateExistVars(VariableSet existVarsToEliminate) {
     matrix = matrix.ExistAbstract(CubeToRemove);
 }
 
+// TODO recreate it to getter of possible exist vars to eliminate
 int Formula::eliminatePossibleExistVars() {
     VariableSet supportSet = getSupportSet();
     VariableSet univVarsNeededToDependOn;
     VariableSet existVarsToEliminate;
+
+    bool isUnivVarInSupportSet = false;
+    bool isFreeVarInSupportSet = false;
+
     for (const Variable &var : supportSet) {
         if (isVarUniv(var)) {
             if (univVarsNeededToDependOn.insert(var).second) { // if var was not in univVarsNeededToDependOn
                 existVarsToEliminate.clear();
             }
+            isUnivVarInSupportSet = true;
         } else if (isVarExist(var)) {
             for (const Variable &uVar : getExistVarDependencies(var)) {
                 if (univVarsNeededToDependOn.insert(uVar).second) { // if uVar was not in univVarsNeededToDependOn
                     existVarsToEliminate.clear();
                 }
             }
-            if (getExistVarDependencies(var).size() == univVarsNeededToDependOn.size()) {
-                existVarsToEliminate.insert(var);
+            if (isVarHere(var)) {
+                if (getExistVarDependencies(var).size() == univVarsNeededToDependOn.size()) {
+                    existVarsToEliminate.insert(var);
+                }
+            } else {
+                isFreeVarInSupportSet = true;
             }
+        } else {
+            isFreeVarInSupportSet = true;
         }
     }
 
-    eliminateExistVars(existVarsToEliminate);
-    return existVarsToEliminate.size();
+    if (!isUnivVarInSupportSet || !isFreeVarInSupportSet) { // if matrix contains only existential variables that are in this formula
+        // we can just look if bbd is Zero, if it is not, then eliminating all exist variables would just leave us with One
+        if (!matrix.IsZero()) {
+            matrix = mgr.bddOne();
+        }
+        int numberOfExistVars = getExistVars().size();
+        clear();
+        return numberOfExistVars;
+    } else {
+        eliminateExistVars(existVarsToEliminate);
+        return existVarsToEliminate.size();
+    }    
 }
 
 /*

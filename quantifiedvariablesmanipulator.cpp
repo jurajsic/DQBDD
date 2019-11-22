@@ -81,6 +81,16 @@ QuantifiedVariablesManipulator::QuantifiedVariablesManipulator(QuantifiedVariabl
 
 //QuantifiedVariablesManipulator::QuantifiedVariablesManipulator(const QuantifiedVariablesManipulator &qvm) {}
 
+QuantifiedVariablesManipulator::~QuantifiedVariablesManipulator() {
+    for (const Variable &uVar : getUnivVars()) {
+        qvMgr->removeUnivVarInstance(uVar);
+    }
+
+    for (const Variable &eVar : getExistVars()) {
+        qvMgr->removeExistVarInstance(eVar);
+    }
+}
+
 VariableSet const &QuantifiedVariablesManipulator::getUnivVars() const {
     return univVars;
 }
@@ -169,4 +179,14 @@ bool QuantifiedVariablesManipulator::isVarUniv(Variable var) {
 
 bool QuantifiedVariablesManipulator::isVarExist(Variable var) {
     return qvMgr->isVarExist(var);
+}
+
+void QuantifiedVariablesManipulator::clear() {
+    for (const Variable &uVar : getUnivVars()) {
+        removeUnivVar(uVar);
+    }
+
+    for (const Variable &eVar : getExistVars()) {
+        removeExistVar(eVar);
+    }
 }

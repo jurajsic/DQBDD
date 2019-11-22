@@ -23,7 +23,7 @@ public:
     void readFile(std::ifstream& file);
     void setTest1Formula();
     void setTest2Formula();
-    void setFormula(Formula formula);
+    //void setFormula(Formula formula);
     bool solve();
 };
 
