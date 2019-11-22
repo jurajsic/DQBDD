@@ -42,6 +42,9 @@ public:
     
     bool isVarUniv(Variable var);
     bool isVarExist(Variable var);
+
+    VariableSet getAllUnivVars();
+    VariableSet getAllExistVars();
 };
 
 class QuantifiedVariablesManipulator {

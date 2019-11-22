@@ -16,13 +16,16 @@ int main(int argc, char **argw)
             return -1;
         }
         solver.readFile(input_file);
+        if (solver.solve()) {
+            std::cout << "SAT" << std::endl;
+        } else {
+            std::cout << "UNSAT" << std::endl;
+        }
     } else {
+        solver.setTest1Formula();
+        std::cout << solver.solve() << std::endl;
         solver.setTest2Formula();
+        std::cout << solver.solve() << std::endl;
     }
     
-    if (solver.solve()) {
-        std::cout << "SAT" << std::endl;
-    } else {
-        std::cout << "UNSAT" << std::endl;
-    }
 }

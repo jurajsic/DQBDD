@@ -32,9 +32,10 @@ public:
 
     void eliminateExistVar(Variable existVarToEliminate);
     void eliminateExistVars(VariableSet existVarsToEliminate);
+    VariableSet getPossibleExistVarsToEliminate();
     // eliminates all existential variables that are possible to eliminate based on Theorem 5 from DQBF localization paper
     // returns number of eliminated existential variables
-    int eliminatePossibleExistVars();
+    //int eliminatePossibleExistVars();
 
     // TODO implemenet -> should eliminate all universal variables and all possible exist (can add new exist)
     void eliminatePossibleVars();

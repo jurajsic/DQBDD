@@ -177,12 +177,19 @@ void Solver::setUnivVarsOrder() {
 }
 
 bool Solver::solve() {
+    formula.eliminatePossibleVars();
+    return (formula.getMatrix().IsOne());
+
+    
     setUnivVarsOrder();
     while (!formula.getUnivVars().empty()) {
         printFormulaStats();
         
-        while (formula.eliminatePossibleExistVars() !=0) { // while something was eliminated
+        VariableSet existVarsToEliminate = formula.getPossibleExistVarsToEliminate();
+        while (existVarsToEliminate.size() !=0) {
+            formula.eliminateExistVars(existVarsToEliminate);
             formula.removeUnusedVars();
+            existVarsToEliminate = formula.getPossibleExistVarsToEliminate();
         }
         
         if (formula.getUnivVars().empty()) {

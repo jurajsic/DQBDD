@@ -110,7 +110,73 @@ void Formula::eliminateExistVars(VariableSet existVarsToEliminate) {
     matrix = matrix.ExistAbstract(CubeToRemove);
 }
 
-// TODO recreate it to getter of possible exist vars to eliminate
+// TODO recreate it to getter of possible exist vars to eliminat
+
+VariableSet Formula::getPossibleExistVarsToEliminate() {
+    VariableSet supportSet = getSupportSet();
+    VariableSet univVarsNeededToDependOn;
+    VariableSet possibleExistVarsToEliminate;
+
+    for (const Variable &var : supportSet) {
+        if (isVarUniv(var)) {
+            if (univVarsNeededToDependOn.insert(var).second) { // if var was not in univVarsNeededToDependOn
+                possibleExistVarsToEliminate.clear();
+            }
+        } else if (isVarExist(var)) {
+            for (const Variable &uVar : getExistVarDependencies(var)) {
+                if (univVarsNeededToDependOn.insert(uVar).second) { // if uVar was not in univVarsNeededToDependOn
+                    possibleExistVarsToEliminate.clear();
+                }
+            }
+            if (isVarHere(var) && getExistVarDependencies(var).size() == univVarsNeededToDependOn.size()) {
+                possibleExistVarsToEliminate.insert(var);
+            }
+        }
+    }
+
+    return possibleExistVarsToEliminate;
+}
+
+void Formula::eliminatePossibleVars() {
+    //setUnivVarsOrder();
+    removeUnusedVars();
+    while (!getUnivVars().empty()) {
+        //printFormulaStats();
+        
+        VariableSet existVarsToEliminate = getPossibleExistVarsToEliminate();
+        while (existVarsToEliminate.size() !=0) {
+            eliminateExistVars(existVarsToEliminate);
+            removeUnusedVars();
+            existVarsToEliminate = getPossibleExistVarsToEliminate();
+        }
+        
+        if (getUnivVars().empty()) {
+            break;
+        }
+        //printFormulaStats();
+        //reorder();
+
+        // find the universal variable to remove next
+        Variable uVarToEliminate = *getUnivVars().begin();//getSomeUnivVar();
+        std::cout << "Processing univ variable " << uVarToEliminate.getId() << std::endl;
+        eliminateUnivVar(uVarToEliminate);
+        
+        removeUnusedVars();
+    }
+
+    // TODO add logic for deleting all exist vars (just check if matrix == 0 in that case)
+
+    VariableSet existVarsToEliminate = getPossibleExistVarsToEliminate();
+    while (existVarsToEliminate.size() !=0) {
+        eliminateExistVars(existVarsToEliminate);
+        removeUnusedVars();
+        existVarsToEliminate = getPossibleExistVarsToEliminate();
+    }
+
+    //printFormulaStats();
+}
+
+/*
 int Formula::eliminatePossibleExistVars() {
     VariableSet supportSet = getSupportSet();
     VariableSet univVarsNeededToDependOn;
@@ -156,6 +222,7 @@ int Formula::eliminatePossibleExistVars() {
         return existVarsToEliminate.size();
     }    
 }
+*/
 
 /*
 bool Formula::isMatrixOne() {
