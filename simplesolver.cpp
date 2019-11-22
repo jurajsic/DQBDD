@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <vector>
 #include <iostream>
-#include "solver.hpp"
+#include "simplesolver.hpp"
 
 /*
 SimpleSolver::SimpleSolver(Formula formula) : {
@@ -14,8 +14,6 @@ SimpleSolver::SimpleSolver(std::ifstream& file) : {
     readFile(file);
 }
 */
-
-Solver::Solver(const Cudd &mgr) : mgr(mgr) {}
 
 SimpleSolver::SimpleSolver(const Cudd &mgr) : Solver(mgr), qvMgr(), formula(mgr, qvMgr) {}
 

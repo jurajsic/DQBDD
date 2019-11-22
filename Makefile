@@ -1,28 +1,24 @@
 CXX = g++
-BUDDYHDS = -I../BuDDy/src/
 CUDDHDS = -I../cudd-release/cplusplus/ -I../cudd-release/cudd/
 CXXFLAGS = -std=c++17 -pedantic -Wall -Wextra -g $(CUDDHDS)
 RM = rm -f
-BUDDYLIBS = ../BuDDy/src/.libs/libbdd.a #-L../BuDDy/src/.libs/ -lbdd
 CUDDLIBS = ../cudd-release/cplusplus/.libs/libobj.a ../cudd-release/cudd/.libs/libcudd.a #-L../cudd-release/cudd/.libs/ -lcudd -L../cudd-release/cplusplus/.libs/ -lobj
 LDLIBS = $(CUDDLIBS)
 
-SRCS = variable.cpp quantifiedvariablesmanipulator.cpp formula.cpp solver.cpp main.cpp #BDDPair.cpp BDDProcessor.cpp 
+SRCS = variable.cpp quantifiedvariablesmanipulator.cpp formula.cpp solver.cpp simplesolver.cpp main.cpp
 OBJS = $(subst .cpp,.o,$(SRCS))
 
 all: solver
 
 main.o: main.cpp
 
-Variable.o: Variable.hpp Variable.cpp
+variable.o: variable.hpp variable.cpp
 
-Formula.o: Formula.hpp Formula.cpp
+formula.o: formula.hpp formula.cpp
 
-BDDPair.o: BDDPair.hpp BDDPair.cpp
+solver.o: solver.hpp solver.cpp
 
-BDDProcessor.o: BDDProcessor.hpp BDDProcessor.cpp
-
-Solver.o: Solver.hpp Solver.cpp
+simplesolver.o: simplesolver.hpp simplesolver.cpp
 
 solver: $(OBJS)
 	$(CXX) $(CXXFLAGS) -o solver $(OBJS) $(LDLIBS)

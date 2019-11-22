@@ -1,21 +1,9 @@
-#ifndef SOLVER_HPP
-#define SOLVER_HPP
+#ifndef SIMPLESOLVER_HPP
+#define SIMPLESOLVER_HPP
 
 #include <fstream>
-#include "cuddObj.hh"
 #include "formula.hpp"
-//#include "BDDProcessor.hpp"
-
-class Solver {
-protected:
-    Cudd mgr;
-public:
-    Solver() = delete;
-    Solver(const Cudd &mgr);
-    virtual void readFile(std::ifstream& file) = 0;
-    virtual bool solve() = 0;
-    virtual void runTests() = 0;
-};
+#include "solver.hpp"
 
 class SimpleSolver : Solver {
 private:
