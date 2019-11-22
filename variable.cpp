@@ -47,3 +47,7 @@ BDD Variable::operator&(const BDD& other) const {
 BDD Variable::operator|(const BDD& other) const {
     return getBDD() | other;
 }
+
+BDD Variable::operator!() const {
+    return !getBDD();
+}

@@ -64,7 +64,7 @@ void TreeSolver::readFile(std::ifstream& file) {
                 int i = std::stoi(tok);
                 QuantifierTreeFormula *qtf = new QuantifierTreeFormula(mgr, qvMgr);
                 if (i < 0) {
-                    qtf->setMatrix(Variable(-i, mgr));
+                    qtf->setMatrix(!Variable(-i, mgr));
                 } else {
                     qtf->setMatrix(Variable(i, mgr));
                 }
@@ -84,7 +84,20 @@ void TreeSolver::readFile(std::ifstream& file) {
     this->root = root;
 }
 
+void TreeSolver::setTest1Formula() {
+    delete root;
+    QuantifierTreeFormula *f1 = new QuantifierTreeFormula(mgr, qvMgr);
+    f1->setMatrix(Variable(0,mgr));
+    QuantifierTreeFormula *f2 = new QuantifierTreeFormula(mgr, qvMgr);
+    f2->setMatrix(!Variable(1,mgr));
+
+    root = new QuantifierTree(true, std::list<QuantifierTreeNode*>{ f1, f2 }, qvMgr);
+    root->addExistVar(Variable(0,mgr));
+    root->addExistVar(Variable(1,mgr));
+}
+
 bool TreeSolver::solve() {
+    root->localise();
     QuantifierTreeFormula *f = root->getFormula(mgr);
     root = f;
     return (f->getMatrix().IsOne());

@@ -8,7 +8,7 @@ int main(int argc, char **argw)
     Cudd mgr;
     //mgr.AutodynDisable();
     std::ifstream input_file;
-    SimpleSolver solver(mgr);
+    TreeSolver solver(mgr);
     if (argc > 1) {
         input_file.open(argw[1]);
         if (!input_file.is_open()) {
@@ -24,8 +24,8 @@ int main(int argc, char **argw)
     } else {
         solver.setTest1Formula();
         std::cout << solver.solve() << std::endl;
-        solver.setTest2Formula();
-        std::cout << solver.solve() << std::endl;
+        //solver.setTest2Formula();
+        //std::cout << solver.solve() << std::endl;
     }
     
 }

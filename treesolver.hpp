@@ -15,6 +15,7 @@ public:
     void readFile(std::ifstream& file);
     bool solve();
     //void runTests();
+    void setTest1Formula();
 };
 
 #endif

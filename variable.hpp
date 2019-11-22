@@ -25,6 +25,7 @@ public:
     //BDD operator|(const Variable& other) const;
     BDD operator&(const BDD& other) const;
     BDD operator|(const BDD& other) const;
+    BDD operator!() const;
 };
 
 namespace std
