@@ -14,8 +14,10 @@ public:
     ~TreeSolver();
     void readFile(std::ifstream& file);
     bool solve();
-    //void runTests();
     void setTest1Formula();
+    void setTest2Formula();
+    void setTest3Formula();
+    void runTests();
 };
 
 #endif

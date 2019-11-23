@@ -28,6 +28,8 @@ public:
     BDD operator!() const;
 };
 
+std::ostream& operator<<(std::ostream& os, const Variable& obj);
+
 namespace std
 {
     template <>

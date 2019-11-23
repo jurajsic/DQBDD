@@ -16,6 +16,7 @@ void Formula::setMatrix(const BDD &matrix) {
     this->matrix = matrix;
 }
 
+// TODO add needToRecomputeSupportSet which is set to true whenever new matrix is set
 VariableSet Formula::getSupportSet() {
     VariableSet supportSet;
     for (unsigned int index : matrix.SupportIndices()) {
@@ -152,6 +153,11 @@ void Formula::eliminatePossibleVars() {
     }
 
     //printFormulaStats();
+}
+
+std::ostream& Formula::printInner(std::ostream& out) const {
+    out << getMatrix();
+    return out;
 }
 
 /*

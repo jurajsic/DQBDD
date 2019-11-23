@@ -10,10 +10,10 @@
 class Formula : public virtual QuantifiedVariablesManipulator {
 private:
 
-    // propositional predicate inside DQBF formula in BDD form
-    BDD matrix;
-
     Cudd mgr;
+    // propositional predicate inside DQBF formula in BDD form
+    BDD matrix = mgr.bddZero();
+
 
 public:
     Formula() = delete;
@@ -21,7 +21,7 @@ public:
     Formula(const Cudd &mgr, QuantifiedVariablesManager &qvmgr);
     Formula(const Formula &f) = delete;
 
-    VariableSet getSupportSet();
+    VariableSet getSupportSet() override;
 
     BDD getMatrix() const;
     void setMatrix(const BDD &matrix);
@@ -37,6 +37,8 @@ public:
 
     // TODO implemenet -> should eliminate all universal variables and all possible exist (can add new exist)
     void eliminatePossibleVars();
+
+    std::ostream& printInner(std::ostream& out) const override;
 };
 
 #endif

@@ -1,5 +1,9 @@
 #include "quantifiedvariablesmanipulator.hpp"
 
+bool VariableSet::contains(Variable const &var) const {
+    return (this->count(var) != 0);
+}
+
 /********************************************/
 /********************************************/
 /***************** MANAGER ******************/
@@ -157,27 +161,27 @@ void QuantifiedVariablesManipulator::removeVar(Variable var) {
     }
 }
 
-VariableSet const &QuantifiedVariablesManipulator::getExistVarDependencies(Variable eVar) {
+VariableSet const &QuantifiedVariablesManipulator::getExistVarDependencies(Variable eVar) const {
     if (!isVarExist(eVar))
         throw "Variable is not existential";
     return qvMgr->getExistVarDependencies(eVar);
 }
 
-VariableSet const &QuantifiedVariablesManipulator::getUnivVarDependencies(Variable uVar) {
+VariableSet const &QuantifiedVariablesManipulator::getUnivVarDependencies(Variable uVar) const {
     if (!isVarUniv(uVar))
         throw "Variable is not universal";
     return qvMgr->getUnivVarDependencies(uVar);
 }
 
-bool QuantifiedVariablesManipulator::isVarHere(Variable var) {
+bool QuantifiedVariablesManipulator::isVarHere(Variable var) const {
     return (univVars.contains(var) || existVars.contains(var));
 }
 
-bool QuantifiedVariablesManipulator::isVarUniv(Variable var) {
+bool QuantifiedVariablesManipulator::isVarUniv(Variable var) const {
     return qvMgr->isVarUniv(var);
 }
 
-bool QuantifiedVariablesManipulator::isVarExist(Variable var) {
+bool QuantifiedVariablesManipulator::isVarExist(Variable var) const {
     return qvMgr->isVarExist(var);
 }
 
@@ -203,7 +207,7 @@ void QuantifiedVariablesManipulator::removeUnusedVars() {
     }
 
     for (Variable eVar : getExistVars()) {
-        if (usedVars.contains(eVar)) {
+        if (!usedVars.contains(eVar)) {
             varsToRemove.insert(eVar);
         }
     }
@@ -211,4 +215,20 @@ void QuantifiedVariablesManipulator::removeUnusedVars() {
     for (Variable varToRemove : varsToRemove) {
         removeVar(varToRemove);
     }
+}
+
+std::ostream& operator<<(std::ostream& os, const QuantifiedVariablesManipulator& qvm)
+{
+    for (const Variable &uVar : qvm.getUnivVars()) {
+        os << std::string("∀ ") << uVar << std::string(" ");       
+    }
+    for (const Variable &eVar : qvm.getExistVars()) {
+        os << std::string("∃ ") << eVar << std::string("{");
+        for (const Variable &uVar : qvm.getExistVarDependencies(eVar)) {
+            os << uVar << std::string(",");
+        }
+        os << std::string("}");
+    }
+    qvm.printInner(os);
+    return os;
 }

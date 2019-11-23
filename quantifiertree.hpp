@@ -42,7 +42,8 @@ public:
     ~QuantifierTree();
 
     void localise();
-    VariableSet getSupportSet();
+    VariableSet getSupportSet() override;
+    std::ostream& printInner(std::ostream& out) const override;
 
     QuantifierTreeFormula* getFormula(Cudd &mgr);
     //void renameVar(Variable oldVar, Variable newVar);

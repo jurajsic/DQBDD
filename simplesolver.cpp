@@ -60,6 +60,10 @@ void SimpleSolver::setTest2Formula() {
     formula.setMatrix(m);
 }
 
+void SimpleSolver::runTests() {
+    throw "implement me!!";
+}
+
 void SimpleSolver::readFile(std::ifstream& file) {
     std::string line;
     BDD matrix = mgr.bddOne();
@@ -177,6 +181,7 @@ void SimpleSolver::setUnivVarsOrder() {
 }
 
 bool SimpleSolver::solve() {
+    std::cout << formula << std::endl;
     formula.eliminatePossibleVars();
     return (formula.getMatrix().IsOne());
 

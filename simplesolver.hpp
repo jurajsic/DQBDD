@@ -4,7 +4,7 @@
 #include "formula.hpp"
 #include "solver.hpp"
 
-class SimpleSolver : Solver {
+class SimpleSolver : public Solver {
 private:
     QuantifiedVariablesManager qvMgr;
     Formula formula;
@@ -22,6 +22,7 @@ public:
     void setTest2Formula();
     //void setFormula(Formula formula);
     bool solve();
+    void runTests();
 };
 
 #endif

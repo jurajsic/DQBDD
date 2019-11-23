@@ -24,9 +24,6 @@ void QuantifierTreeNode::pushUnivVar(Variable var) {
 }
 
 QuantifierTree::QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> children, QuantifiedVariablesManager &qvMgr) : QuantifiedVariablesManipulator(qvMgr), children(children), isConj(isConj) {
-    if (children.size() == 0) {
-        throw "QuantifierTree has to have some children";
-    }
     supportSet = {};
     for (QuantifierTreeNode *child : children) {
         for (const Variable var : child->getSupportSet()) {
@@ -141,8 +138,9 @@ void QuantifierTree::localise() {
 
         // TODO delete dependencies for children that do not contain univ var
         // push possible univ vars
-        for (const Variable &univVarToPush : getUnivVars()) {
-            if (dependentUnivVars.contains(univVarToPush)) { // no leftover existential variable depends on univVarToPush --> can be pushed
+        VariableSet univVars = getUnivVars();
+        for (const Variable &univVarToPush : univVars) {
+            if (!dependentUnivVars.contains(univVarToPush)) { // no leftover existential variable depends on univVarToPush --> can be pushed
                 for (QuantifierTreeNode *child : children) {
                     // TODO for push universal variables the function pushVar should rename it
                     child->pushUnivVar(univVarToPush);
@@ -151,7 +149,8 @@ void QuantifierTree::localise() {
             }
         }
     } else {
-        for (const Variable &existVarToPush : getExistVars()) {
+        VariableSet existVars = getExistVars();
+        for (const Variable &existVarToPush : existVars) {
             for (QuantifierTreeNode *child : children) {
                 // there is no need to rename them, because universal vars on which this exist var depends will either stay as ancestor/same level
                 // or will be pushed into some sibling and then we can say that this exist var is not there????
@@ -299,6 +298,24 @@ QuantifierTreeFormula* QuantifierTree::getFormula(Cudd &mgr) {
 
 void QuantifierTree::addChild(QuantifierTreeNode *child) {
     children.push_back(child);
+}
+
+std::ostream& QuantifierTree::printInner(std::ostream& out) const {
+    std::string op;
+    if (isConj) {
+        op = '&';
+    } else {
+        op = '|';
+    }
+
+    for (auto iter = children.begin(); iter != (--children.end()); ++iter) {
+        out << std::string("(");
+        (*iter)->printInner(out);
+        out << std::string(")") << op;
+    }
+    // print the last element without operator
+    (*(--children.end()))->printInner(out);
+    return out;
 }
 
 /*********************************************************/

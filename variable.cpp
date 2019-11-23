@@ -51,3 +51,9 @@ BDD Variable::operator|(const BDD& other) const {
 BDD Variable::operator!() const {
     return !getBDD();
 }
+
+std::ostream& operator<<(std::ostream& os, const Variable& obj)
+{
+    os << obj.getBDD();
+    return os;
+}

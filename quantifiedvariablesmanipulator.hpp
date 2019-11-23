@@ -9,9 +9,7 @@ public:
     // TODO check if this works 
     using std::unordered_set<Variable>::unordered_set;
 
-    bool contains(Variable const &var) {
-        return (this->count(var) != 0);
-    }
+    bool contains(Variable const &var) const;
 };
 
 //typedef std::unordered_set<Variable> VariableSet;
@@ -86,19 +84,23 @@ public:
     void removeExistVar(Variable eVar);
     void removeVar(Variable var);
 
-    VariableSet const &getExistVarDependencies(Variable eVar);
-    VariableSet const &getUnivVarDependencies(Variable uVar);
+    VariableSet const &getExistVarDependencies(Variable eVar) const;
+    VariableSet const &getUnivVarDependencies(Variable uVar) const;
 
-    bool isVarHere(Variable var);
-    bool isVarUniv(Variable var);
-    bool isVarExist(Variable var);
+    bool isVarHere(Variable var) const;
+    bool isVarUniv(Variable var) const;
+    bool isVarExist(Variable var) const;
 
     void clear();
 
     void removeUnusedVars();
     virtual VariableSet getSupportSet() = 0;
 
+    virtual std::ostream& printInner(std::ostream& out) const = 0;
+
     //bool dependsOnEverything(Variable eVar);
 };
+
+std::ostream& operator<<(std::ostream& os, const QuantifiedVariablesManipulator& qvm);
 
 #endif

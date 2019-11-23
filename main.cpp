@@ -8,24 +8,30 @@ int main(int argc, char **argw)
     Cudd mgr;
     //mgr.AutodynDisable();
     std::ifstream input_file;
-    TreeSolver solver(mgr);
-    if (argc > 1) {
-        input_file.open(argw[1]);
+    Solver *solver;
+    if (argc > 2) {
+        if (std::stoi(argw[1]) == 0) {
+            solver = new SimpleSolver(mgr);
+        } else {
+            solver = new TreeSolver(mgr);
+        }
+        input_file.open(argw[2]);
         if (!input_file.is_open()) {
             std::cerr << "Could not open input file." << std::endl;
             return -1;
         }
-        solver.readFile(input_file);
-        if (solver.solve()) {
+        solver->readFile(input_file);
+        if (solver->solve()) {
             std::cout << "SAT" << std::endl;
         } else {
             std::cout << "UNSAT" << std::endl;
         }
     } else {
-        solver.setTest1Formula();
-        std::cout << solver.solve() << std::endl;
+        solver = new TreeSolver(mgr);
+        solver->runTests();
         //solver.setTest2Formula();
         //std::cout << solver.solve() << std::endl;
     }
-    
+    delete solver;
+    return 0;
 }
