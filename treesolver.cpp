@@ -155,10 +155,16 @@ void TreeSolver::runTests() {
 }
 
 bool TreeSolver::solve() {
+    root->removeUnusedVars();
     std::cout << *root << std::endl;
     root->localise();
+    std::cout << *root << std::endl;
+    return false;
     QuantifierTreeFormula *f = root->getFormula(mgr);
     root = f;
-    std::cout << *f << std::endl;
+    //std::cout << *f << std::endl;
+    // TODO implement something similar to simpleSOlver in Formula, where it assumes formula contains all univ and exist vars + just checks if exist vars depend on everything + at the end it does not eliminate leftover exist vars
+    f->eliminatePossibleVars();
+    //std::cout << *f << std::endl;
     return (f->getMatrix().IsOne());
 }

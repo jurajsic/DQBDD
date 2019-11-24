@@ -126,16 +126,20 @@ void Formula::eliminatePossibleVars() {
         while (existVarsToEliminate.size() !=0) {
             eliminateExistVars(existVarsToEliminate);
             removeUnusedVars();
+            if (getUnivVars().empty()) {
+                break;
+            }
             existVarsToEliminate = getPossibleExistVarsToEliminate();
         }
         
         if (getUnivVars().empty()) {
             break;
         }
+
         //printFormulaStats();
         //reorder();
 
-        // find the universal variable to remove next
+        // TODO!!!!!!!!!-what logic? find the universal variable to remove next
         Variable uVarToEliminate = *getUnivVars().begin();//getSomeUnivVar();
         std::cout << "Processing univ variable " << uVarToEliminate.getId() << std::endl;
         eliminateUnivVar(uVarToEliminate);
@@ -155,7 +159,8 @@ void Formula::eliminatePossibleVars() {
     //printFormulaStats();
 }
 
-std::ostream& Formula::printInner(std::ostream& out) const {
+std::ostream& Formula::print(std::ostream& out) const {
+    QuantifiedVariablesManipulator::print(out);
     out << getMatrix();
     return out;
 }

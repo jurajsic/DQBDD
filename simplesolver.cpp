@@ -181,7 +181,7 @@ void SimpleSolver::setUnivVarsOrder() {
 }
 
 bool SimpleSolver::solve() {
-    std::cout << formula << std::endl;
+    //std::cout << formula << std::endl;
     formula.eliminatePossibleVars();
     return (formula.getMatrix().IsOne());
 
@@ -194,12 +194,16 @@ bool SimpleSolver::solve() {
         while (existVarsToEliminate.size() !=0) {
             formula.eliminateExistVars(existVarsToEliminate);
             formula.removeUnusedVars();
+            if (formula.getUnivVars().empty()) {
+                break;
+            }
             existVarsToEliminate = formula.getPossibleExistVarsToEliminate();
         }
-        
+
         if (formula.getUnivVars().empty()) {
             break;
         }
+        
         printFormulaStats();
         reorder();
 

@@ -23,12 +23,10 @@ void QuantifierTreeNode::pushUnivVar(Variable var) {
     }
 }
 
-QuantifierTree::QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> children, QuantifiedVariablesManager &qvMgr) : QuantifiedVariablesManipulator(qvMgr), children(children), isConj(isConj) {
+QuantifierTree::QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> children, QuantifiedVariablesManager &qvMgr) : QuantifiedVariablesManipulator(qvMgr), isConj(isConj) {
     supportSet = {};
     for (QuantifierTreeNode *child : children) {
-        for (const Variable var : child->getSupportSet()) {
-            supportSet.insert(var);
-        }
+        addChild(child);
     }
 }
 
@@ -54,18 +52,15 @@ bool QuantifierTree::removeFromOrderedListOtherOrderedListUsingChildrenOrder(std
     bool somethingWasDeleted = false;
 
     while (orderIter != childrenCopy.end() || listToRemoveFromIter != listToRemoveFrom.end() || listOfItemsToRemoveIter != listOfItemsToRemove.end()) {
-        if (*listToRemoveFromIter == *listOfItemsToRemoveIter) {
+        if (*orderIter == *listToRemoveFromIter && *listToRemoveFromIter == *listOfItemsToRemoveIter) {
             auto iterToDelete = listToRemoveFromIter;
             ++listToRemoveFromIter;
+            ++listOfItemsToRemoveIter;
             listToRemoveFrom.erase(iterToDelete);
             somethingWasDeleted = true;
-        }
-
-        if (*orderIter == *listToRemoveFromIter) {
+        } else if (*orderIter == *listToRemoveFromIter) {
             ++listToRemoveFromIter;
-        }
-
-        if (*orderIter == *listOfItemsToRemoveIter) {
+        } else if (*orderIter == *listOfItemsToRemoveIter) {
             ++listOfItemsToRemoveIter;
         }
 
@@ -75,6 +70,7 @@ bool QuantifierTree::removeFromOrderedListOtherOrderedListUsingChildrenOrder(std
 }
 
 void QuantifierTree::localise() {
+    removeUnusedVars();
     if (isConj) {
         // TODO for each exist var find set of children that contain it 
         // and merge them into new QuantifierTree with same operator
@@ -113,7 +109,7 @@ void QuantifierTree::localise() {
             }
             
             // create a new child to which this existential variable is pushed
-            QuantifierTree *newChild = new QuantifierTree(true, childrenToCombine, *qvMgr);
+            QuantifierTree *newChild = new QuantifierTree(isConj, childrenToCombine, *qvMgr);
             newChild->pushExistVar(*eVarToPushIter);
             removeExistVar(*eVarToPushIter);
 
@@ -207,7 +203,7 @@ void QuantifierTree::localise() {
             
             
             // create a new child to which this universal variable is pushed
-            QuantifierTree *newChild = new QuantifierTree(true, childrenToCombine, *qvMgr);
+            QuantifierTree *newChild = new QuantifierTree(isConj, childrenToCombine, *qvMgr);
             newChild->pushUnivVar(*uVarToPushIter);
             removeUnivVar(*uVarToPushIter);
 
@@ -266,7 +262,8 @@ QuantifierTreeFormula* QuantifierTree::getFormula(Cudd &mgr) {
         // move all exist vars up (univ vars are not moved, because they were eliminated)
         for (const Variable &eVar : childFormula->getExistVars()) {
             addExistVar(eVar);
-            childFormula->removeExistVar(eVar);
+            // no need for this because we delete childFormula after and it is done automatically (and it wouldnt work because childFormula->getExistVars() returns reference)
+            //childFormula->removeExistVar(eVar);
         }
 
         delete childFormula;
@@ -285,22 +282,27 @@ QuantifierTreeFormula* QuantifierTree::getFormula(Cudd &mgr) {
     f->setMatrix(matrix);
     for (const Variable &uVar : getUnivVars()) {
         f->addUnivVar(uVar);
-        removeUnivVar(uVar);
+        //removeUnivVar(uVar);
     }
     for (const Variable &eVar : getExistVars()) {
         f->addExistVar(eVar);
-        removeExistVar(eVar);
+        //removeExistVar(eVar);
     }
+    delete this; // removing is done here
     f->removeUnusedVars();
-    delete this;
     return f;
 }
 
 void QuantifierTree::addChild(QuantifierTreeNode *child) {
     children.push_back(child);
+    for (const Variable var : child->getSupportSet()) {
+        supportSet.insert(var);
+    }
 }
 
-std::ostream& QuantifierTree::printInner(std::ostream& out) const {
+std::ostream& QuantifierTree::print(std::ostream& out) const {
+    QuantifiedVariablesManipulator::print(out);
+
     std::string op;
     if (isConj) {
         op = '&';
@@ -308,13 +310,17 @@ std::ostream& QuantifierTree::printInner(std::ostream& out) const {
         op = '|';
     }
 
-    for (auto iter = children.begin(); iter != (--children.end()); ++iter) {
+    auto size = children.size();
+    for (QuantifierTreeNode *child : children) {
         out << std::string("(");
-        (*iter)->printInner(out);
-        out << std::string(")") << op;
+        child->print(out);
+        out << std::string(")");
+        // print the last element without operator
+        if (size != 1) {
+            out << std::string(" ") << op << std::string(" ");
+        }
+        --size;
     }
-    // print the last element without operator
-    (*(--children.end()))->printInner(out);
     return out;
 }
 

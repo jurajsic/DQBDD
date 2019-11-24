@@ -96,7 +96,7 @@ public:
     void removeUnusedVars();
     virtual VariableSet getSupportSet() = 0;
 
-    virtual std::ostream& printInner(std::ostream& out) const = 0;
+    virtual std::ostream& print(std::ostream& out) const;
 
     //bool dependsOnEverything(Variable eVar);
 };

@@ -150,6 +150,7 @@ void QuantifiedVariablesManipulator::removeExistVar(Variable eVar) {
     }
 }
 
+//TODO check this
 void QuantifiedVariablesManipulator::removeVar(Variable var) {
     if (!isVarHere(var))
         return;
@@ -200,35 +201,50 @@ void QuantifiedVariablesManipulator::removeUnusedVars() {
     VariableSet usedVars = getSupportSet();
 
     VariableSet varsToRemove;
-    for (Variable uVar : getUnivVars()) {
+    for (const Variable &uVar : getUnivVars()) {
         if (!usedVars.contains(uVar)) {
             varsToRemove.insert(uVar);
         }
     }
 
-    for (Variable eVar : getExistVars()) {
+    for (const Variable &eVar : getExistVars()) {
         if (!usedVars.contains(eVar)) {
             varsToRemove.insert(eVar);
         }
     }
 
-    for (Variable varToRemove : varsToRemove) {
+    for (const Variable &varToRemove : varsToRemove) {
         removeVar(varToRemove);
     }
 }
 
-std::ostream& operator<<(std::ostream& os, const QuantifiedVariablesManipulator& qvm)
-{
-    for (const Variable &uVar : qvm.getUnivVars()) {
-        os << std::string("∀ ") << uVar << std::string(" ");       
+std::ostream& QuantifiedVariablesManipulator::print(std::ostream& out) const {
+    // print all univ variables
+    for (const Variable &uVar : getUnivVars()) {
+        out << std::string("∀") << uVar << std::string(" ");       
     }
-    for (const Variable &eVar : qvm.getExistVars()) {
-        os << std::string("∃ ") << eVar << std::string("{");
-        for (const Variable &uVar : qvm.getExistVarDependencies(eVar)) {
-            os << uVar << std::string(",");
+
+    //print all exist variables
+    for (const Variable &eVar : getExistVars()) {
+        out << std::string("∃") << eVar << std::string("{");
+        // print the set of dependencies of exist variable
+        auto size = getExistVarDependencies(eVar).size();
+        for (const Variable &uVar : getExistVarDependencies(eVar)) {
+            out << uVar;
+            // the last dependency does not have ',' after it
+            if (size != 1) {
+                out << std::string(",");
+            }
+            --size;
         }
-        os << std::string("}");
+        out << std::string("} ");
     }
-    qvm.printInner(os);
-    return os;
+    
+    // print the inner formula
+    return out;
+}
+
+std::ostream& operator<<(std::ostream& out, const QuantifiedVariablesManipulator& qvm)
+{
+    return qvm.print(out);
 }

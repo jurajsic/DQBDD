@@ -3,6 +3,9 @@
 #include "simplesolver.hpp"
 #include "treesolver.hpp"
 
+// TODO add some sort of checking (maybe creating dependency graph -> in manager but what 
+// to do with tree) of whether formula is in QBF form??
+
 int main(int argc, char **argw)
 {
     Cudd mgr;

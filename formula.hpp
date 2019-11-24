@@ -38,7 +38,7 @@ public:
     // TODO implemenet -> should eliminate all universal variables and all possible exist (can add new exist)
     void eliminatePossibleVars();
 
-    std::ostream& printInner(std::ostream& out) const override;
+    std::ostream& print(std::ostream& out) const override;
 };
 
 #endif
