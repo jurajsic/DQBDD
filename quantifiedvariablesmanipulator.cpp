@@ -83,7 +83,7 @@ bool QuantifiedVariablesManager::isVarExist(Variable var) {
 
 // TODO remove calls to getSupportSet and replace with isVarHere where possible
 // fuck no don't do that, isVarHere returns variable that is in manager, not support set
-
+// renamed to isVarHereQuantified - maybe just add isVarInSupportSet
 
 //QuantifiedVariablesManipulator::QuantifiedVariablesManipulator() : internalQVManager(), qvMgr(&internalQVManager) {}
 
@@ -158,7 +158,7 @@ void QuantifiedVariablesManipulator::removeExistVar(Variable eVar) {
 
 //TODO check this
 void QuantifiedVariablesManipulator::removeVar(Variable var) {
-    if (!isVarHere(var))
+    if (!isVarHereQuantified(var))
         return;
 
     if (isVarUniv(var)) { // var is universal var
@@ -180,7 +180,7 @@ VariableSet const &QuantifiedVariablesManipulator::getUnivVarDependencies(Variab
     return qvMgr->getUnivVarDependencies(uVar);
 }
 
-bool QuantifiedVariablesManipulator::isVarHere(Variable var) const {
+bool QuantifiedVariablesManipulator::isVarHereQuantified(Variable var) const {
     return (univVars.contains(var) || existVars.contains(var));
 }
 

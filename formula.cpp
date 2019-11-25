@@ -110,7 +110,7 @@ VariableSet Formula::getPossibleExistVarsToEliminate() {
                     possibleExistVarsToEliminate.clear();
                 }
             }
-            if (isVarHere(var) && getExistVarDependencies(var).size() == univVarsNeededToDependOn.size()) {
+            if (isVarHereQuantified(var) && getExistVarDependencies(var).size() == univVarsNeededToDependOn.size()) {
                 possibleExistVarsToEliminate.insert(var);
             }
         }

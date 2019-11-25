@@ -91,7 +91,7 @@ public:
     VariableSet const &getExistVarDependencies(Variable eVar) const;
     VariableSet const &getUnivVarDependencies(Variable uVar) const;
 
-    bool isVarHere(Variable var) const;
+    bool isVarHereQuantified(Variable var) const;
     bool isVarUniv(Variable var) const;
     bool isVarExist(Variable var) const;
 
