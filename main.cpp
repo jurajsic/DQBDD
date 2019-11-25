@@ -26,8 +26,12 @@ int main(int argc, char **argw)
         solver->readFile(input_file);
         if (solver->solve()) {
             std::cout << "SAT" << std::endl;
+            delete solver;
+            return 1;
         } else {
             std::cout << "UNSAT" << std::endl;
+            delete solver;
+            return 0;
         }
     } else {
         solver = new TreeSolver(mgr);

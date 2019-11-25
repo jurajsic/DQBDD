@@ -14,6 +14,7 @@ void TreeSolver::readFile(std::ifstream& file) {
 
     QuantifierTree *root = new QuantifierTree(true, std::list<QuantifierTreeNode*>{}, qvMgr);
 
+
     while(std::getline(file, line)) {
         if (line == "") {
             continue;
