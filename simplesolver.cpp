@@ -69,12 +69,15 @@ void SimpleSolver::readFile(std::ifstream& file) {
     BDD matrix = mgr.bddOne();
 
     while(std::getline(file, line)) {
+        if (line == "") {
+            continue;
+        }
         std::istringstream streamline(line);
         std::string token;
         streamline >> token;
-        if (token == "p") {
+        if (token == "p" || token == "c") {
             continue;
-            // TODO maybe initialize manager here based on the size??
+            // TODO maybe initialize manager here based on the size?? - dont forget to ignore comment then
             /*
             streamline >> token; // ignore "cnf"
             streamline >> token; // number of variables

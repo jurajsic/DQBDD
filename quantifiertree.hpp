@@ -29,9 +29,10 @@ private:
     std::list<QuantifierTreeNode*> children;
     bool isConj; // TODO change to operator, will have to learn how to do that tho
 
-    VariableSet supportSet;
 
     bool removeFromOrderedListOtherOrderedListUsingChildrenOrder(std::list<QuantifierTreeNode*> &listToRemoveFrom, std::list<QuantifierTreeNode*> &listOfItemsToRemove);
+
+    std::ostream& print(std::ostream& out) const override;
 
     //void changeChildWithFormula(std::list<QuantifierTreeNode*>::iterator childToChange, Cudd &mgr);
 public:
@@ -42,8 +43,6 @@ public:
     ~QuantifierTree();
 
     void localise();
-    VariableSet getSupportSet() override;
-    std::ostream& print(std::ostream& out) const override;
 
     QuantifierTreeFormula* getFormula(Cudd &mgr);
     //void renameVar(Variable oldVar, Variable newVar);

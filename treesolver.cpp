@@ -15,10 +15,13 @@ void TreeSolver::readFile(std::ifstream& file) {
     QuantifierTree *root = new QuantifierTree(true, std::list<QuantifierTreeNode*>{}, qvMgr);
 
     while(std::getline(file, line)) {
+        if (line == "") {
+            continue;
+        }
         std::istringstream streamline(line);
         std::string token;
         streamline >> token;
-        if (token == "p") {
+        if (token == "p" || token == "c") {
             continue;
             // TODO maybe initialize manager here based on the size??
             /*
@@ -156,10 +159,9 @@ void TreeSolver::runTests() {
 
 bool TreeSolver::solve() {
     root->removeUnusedVars();
-    std::cout << *root << std::endl;
+    std::cout << "Pushing quantificators" << std::endl;
     root->localise();
-    std::cout << *root << std::endl;
-    return false;
+    std::cout << "Processing" << std::endl;
     QuantifierTreeFormula *f = root->getFormula(mgr);
     root = f;
     //std::cout << *f << std::endl;

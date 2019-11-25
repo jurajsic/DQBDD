@@ -53,9 +53,13 @@ private:
     // internal QVManager that is used if external is not supplied in constructor
     //QuantifiedVariablesManager internalQVManager;
 
+    virtual std::ostream& print(std::ostream& out) const = 0;
+    friend std::ostream& operator<<(std::ostream& out, const QuantifiedVariablesManipulator& qvm);
+
 protected:
     // this either refers to external manager or internal if external is not supplied -> always to external??
     QuantifiedVariablesManager *qvMgr;
+    VariableSet supportSet;
 
 public:
     QuantifiedVariablesManipulator() = delete;
@@ -94,9 +98,7 @@ public:
     void clear();
 
     void removeUnusedVars();
-    virtual VariableSet getSupportSet() = 0;
-
-    virtual std::ostream& print(std::ostream& out) const;
+    virtual VariableSet const &getSupportSet();
 
     //bool dependsOnEverything(Variable eVar);
 };

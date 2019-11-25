@@ -14,24 +14,27 @@ void Formula::setMatrix(const BDD &matrix) {
         throw "Managers are fucking different mate";
     }
     this->matrix = matrix;
+    needToRecomputeSupportSet = true;
 }
 
 // TODO add needToRecomputeSupportSet which is set to true whenever new matrix is set
-VariableSet Formula::getSupportSet() {
-    VariableSet supportSet;
-    for (unsigned int index : matrix.SupportIndices()) {
-        supportSet.insert(Variable(index, mgr));
+VariableSet const &Formula::getSupportSet() {
+    if (needToRecomputeSupportSet) {
+        supportSet.clear();
+        for (unsigned int index : matrix.SupportIndices()) {
+            supportSet.insert(Variable(index, mgr));
+        }
     }
+    needToRecomputeSupportSet = false;
     return supportSet;
 }
 
 void Formula::eliminateUnivVar(Variable uVarToEliminate) {
     // TODO duplicate only those that are in the bdd????? -> pozri ako som zrobil pushUnivVar ci to fakt treba
     VariableSet eVarsToDuplicate;
-    VariableSet supportSet = getSupportSet();
     VariableSet dependentVars = getUnivVarDependencies(uVarToEliminate);
-    for (Variable dependentVar : dependentVars) {
-        if (supportSet.contains(dependentVar)) {
+    for (const Variable &dependentVar : dependentVars) {
+        if (getSupportSet().contains(dependentVar)) {
             eVarsToDuplicate.insert(dependentVar);
             removeDependency(dependentVar, uVarToEliminate);
         }
@@ -43,34 +46,34 @@ void Formula::eliminateUnivVar(Variable uVarToEliminate) {
     std::vector<BDD> varsToBeReplaced;
     std::vector<BDD> varsToReplaceWith;
 
-    std::cout << "Duplicating vars ";
+    //std::cout << "Duplicating vars ";
     for (Variable eVarToDuplicate : eVarsToDuplicate) {
-        std::cout << eVarToDuplicate.getId() << " ";
+        //std::cout << eVarToDuplicate.getId() << " ";
         Variable newExistVar = eVarToDuplicate.newVarAtSameLevel();
         addExistVar(newExistVar, getExistVarDependencies(eVarToDuplicate));
         varsToBeReplaced.push_back(eVarToDuplicate);
         varsToReplaceWith.push_back(newExistVar);
     }
-    std::cout << std::endl;
+    //std::cout << std::endl;
 
 
     // TODO what is the FUCKING difference between constrain and restrict
-    std::cout << "Creating BDDs" << std::endl;
+    //std::cout << "Creating BDDs" << std::endl;
     // uVarToEliminate=false where we have old existential variables
     BDD f1 = matrix.Restrict(!uVarToEliminate.getBDD());
-    std::cout << "Restriction 1 finished" << std::endl;
+    //std::cout << "Restriction 1 finished" << std::endl;
     // uVarToEliminate=true where we have new existential variables
     BDD f2 = matrix.Restrict(uVarToEliminate);
-    std::cout << "Restriction 2 finished" << std::endl;
+    //std::cout << "Restriction 2 finished" << std::endl;
     f2 = f2.SwapVariables(varsToBeReplaced, varsToReplaceWith);
-    std::cout << "Replacing finished" << std::endl;
+    //std::cout << "Replacing finished" << std::endl;
     // get their conjuction and thus remove univ_id from the formula
     setMatrix(f1 & f2);
-    std::cout << "BDD created" << std::endl;
+    //std::cout << "BDD created" << std::endl;
 }
 
 void Formula::eliminateExistVar(Variable existVarToEliminate) {
-    matrix = matrix.ExistAbstract(existVarToEliminate);
+    setMatrix(matrix.ExistAbstract(existVarToEliminate));
     removeExistVar(existVarToEliminate);
 }
 
@@ -78,15 +81,15 @@ void Formula::eliminateExistVars(VariableSet existVarsToEliminate) {
     if (existVarsToEliminate.empty())
         return;
     
-    std::cout << "Eliminating exist variables ";
+    //std::cout << "Eliminating exist variables ";
     BDD CubeToRemove = mgr.bddOne();
     for (const Variable &eVarToEliminate : existVarsToEliminate) {
         CubeToRemove = CubeToRemove & eVarToEliminate;
         removeExistVar(eVarToEliminate);
-        std::cout << eVarToEliminate.getId() << " ";
+        //std::cout << eVarToEliminate.getId() << " ";
     }
-    std::cout << std::endl;
-    matrix = matrix.ExistAbstract(CubeToRemove);
+    //std::cout << std::endl;
+    setMatrix(matrix.ExistAbstract(CubeToRemove));
 }
 
 // TODO recreate it to getter of possible exist vars to eliminat
@@ -160,7 +163,6 @@ void Formula::eliminatePossibleVars() {
 }
 
 std::ostream& Formula::print(std::ostream& out) const {
-    QuantifiedVariablesManipulator::print(out);
     out << getMatrix();
     return out;
 }

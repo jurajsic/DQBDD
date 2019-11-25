@@ -79,6 +79,12 @@ bool QuantifiedVariablesManager::isVarExist(Variable var) {
 /********************************************/
 /********************************************/
 
+
+
+// TODO remove calls to getSupportSet and replace with isVarHere where possible
+// fuck no don't do that, isVarHere returns variable that is in manager, not support set
+
+
 //QuantifiedVariablesManipulator::QuantifiedVariablesManipulator() : internalQVManager(), qvMgr(&internalQVManager) {}
 
 QuantifiedVariablesManipulator::QuantifiedVariablesManipulator(QuantifiedVariablesManager &qvMgr) : qvMgr(&qvMgr) {}
@@ -196,6 +202,10 @@ void QuantifiedVariablesManipulator::clear() {
     }
 }
 
+VariableSet const &QuantifiedVariablesManipulator::getSupportSet() {
+    return supportSet;
+}
+
 // removes variables that are not in the support set of matrix (we can do this because 3a) rule )
 void QuantifiedVariablesManipulator::removeUnusedVars() {
     VariableSet usedVars = getSupportSet();
@@ -218,18 +228,19 @@ void QuantifiedVariablesManipulator::removeUnusedVars() {
     }
 }
 
-std::ostream& QuantifiedVariablesManipulator::print(std::ostream& out) const {
+std::ostream& operator<<(std::ostream& out, const QuantifiedVariablesManipulator& qvm)
+{
     // print all univ variables
-    for (const Variable &uVar : getUnivVars()) {
+    for (const Variable &uVar : qvm.getUnivVars()) {
         out << std::string("∀") << uVar << std::string(" ");       
     }
 
     //print all exist variables
-    for (const Variable &eVar : getExistVars()) {
+    for (const Variable &eVar : qvm.getExistVars()) {
         out << std::string("∃") << eVar << std::string("{");
         // print the set of dependencies of exist variable
-        auto size = getExistVarDependencies(eVar).size();
-        for (const Variable &uVar : getExistVarDependencies(eVar)) {
+        auto size = qvm.getExistVarDependencies(eVar).size();
+        for (const Variable &uVar : qvm.getExistVarDependencies(eVar)) {
             out << uVar;
             // the last dependency does not have ',' after it
             if (size != 1) {
@@ -241,10 +252,5 @@ std::ostream& QuantifiedVariablesManipulator::print(std::ostream& out) const {
     }
     
     // print the inner formula
-    return out;
-}
-
-std::ostream& operator<<(std::ostream& out, const QuantifiedVariablesManipulator& qvm)
-{
     return qvm.print(out);
 }

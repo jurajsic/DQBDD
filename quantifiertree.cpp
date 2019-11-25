@@ -36,10 +36,6 @@ QuantifierTree::~QuantifierTree() {
     }
 }
 
-VariableSet QuantifierTree::getSupportSet() {
-    return supportSet;
-}
-
 // TODO implement ME!!!!
 // removes from one list another one where both are in the same order (the order is based on the order of children)
 // returns true if something was removed
@@ -301,8 +297,6 @@ void QuantifierTree::addChild(QuantifierTreeNode *child) {
 }
 
 std::ostream& QuantifierTree::print(std::ostream& out) const {
-    QuantifiedVariablesManipulator::print(out);
-
     std::string op;
     if (isConj) {
         op = '&';
@@ -312,9 +306,7 @@ std::ostream& QuantifierTree::print(std::ostream& out) const {
 
     auto size = children.size();
     for (QuantifierTreeNode *child : children) {
-        out << std::string("(");
-        child->print(out);
-        out << std::string(")");
+        out << std::string("(") << *child << std::string(")");
         // print the last element without operator
         if (size != 1) {
             out << std::string(" ") << op << std::string(" ");
