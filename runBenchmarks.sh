@@ -4,7 +4,7 @@ benchmarkFiles="../benchmarks/dqbf18/*"
 
 timeLength="30s"
 
-for pathTofile in $benchmarkFiles; do
+for pathToFile in $benchmarkFiles; do
     fileName=$(basename $pathToFile)
     echo $fileName
     lineFormat=$fileName",%e,%x"

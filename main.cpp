@@ -24,14 +24,15 @@ int main(int argc, char **argw)
             return -1;
         }
         solver->readFile(input_file);
-        if (solver->solve()) {
+        bool isSat =  solver->solve();
+        if (isSat) {
             std::cout << "SAT" << std::endl;
             delete solver;
-            return 1;
+            return 10;
         } else {
             std::cout << "UNSAT" << std::endl;
             delete solver;
-            return 0;
+            return 20;
         }
     } else {
         solver = new TreeSolver(mgr);
