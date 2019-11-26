@@ -222,7 +222,7 @@ void QuantifierTree::localise() {
     }
 }
 
-QuantifierTreeFormula* QuantifierTree::getFormula(Cudd &mgr) {
+QuantifierTreeFormula* QuantifierTree::changeToFormula(Cudd &mgr) {
     auto childIter = children.begin();
     BDD matrix;
     if (isConj) {
@@ -231,7 +231,7 @@ QuantifierTreeFormula* QuantifierTree::getFormula(Cudd &mgr) {
         matrix = mgr.bddZero();
     }
     while (childIter != children.end()) {
-        QuantifierTreeFormula *childFormula = (*childIter)->getFormula(mgr);
+        QuantifierTreeFormula *childFormula = (*childIter)->changeToFormula(mgr);
 
         // remove the child 
         auto childToRemoveIter = childIter;
@@ -246,11 +246,13 @@ QuantifierTreeFormula* QuantifierTree::getFormula(Cudd &mgr) {
         if (isConj) {
             matrix &= childFormula->getMatrix();
             if (matrix.IsZero()) {
+                delete childFormula;
                 break;
             }
         } else {
             matrix |= childFormula->getMatrix();
             if (matrix.IsOne()) {
+                delete childFormula;
                 break;
             }
         }
@@ -328,6 +330,6 @@ void QuantifierTreeFormula::localise() {
     removeUnusedVars();
 }
 
-QuantifierTreeFormula* QuantifierTreeFormula::getFormula(Cudd &mgr) {
+QuantifierTreeFormula* QuantifierTreeFormula::changeToFormula(Cudd &mgr) {
     return this;
 }

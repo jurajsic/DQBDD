@@ -138,33 +138,35 @@ void TreeSolver::runTests() {
     int numOfCorrect = 0;
     int numOfAll = 0;
     ++numOfAll;
-    std::cout << "Test number :" << numOfAll << std::endl;
+    std::cout << "Test " << numOfAll << std::endl;
     setTest1Formula();
     if (solve() == true) {
         ++numOfCorrect;
     }
     ++numOfAll;
-    std::cout << "Test number :" << numOfAll << std::endl;
+    std::cout << "Test " << numOfAll << std::endl;
     setTest3Formula();
     if (solve() == false) {
         ++numOfCorrect;
     }
     ++numOfAll;
-    std::cout << "Test number :" << numOfAll << std::endl;
+    std::cout << "Test " << numOfAll << std::endl;
     setTest2Formula();
     if (solve() == true) {
         ++numOfCorrect;
     }
-    std::cout << numOfCorrect << "/" << numOfAll << std::endl;
+    std::cout << "Test results: " << numOfCorrect << "/" << numOfAll << " tests finished correctly." << std::endl;
 }
 
 bool TreeSolver::solve() {
     root->removeUnusedVars();
     std::cout << "Pushing quantificators" << std::endl;
     root->localise();
+    //std::cout << *root << std::endl;
     std::cout << "Processing" << std::endl;
-    QuantifierTreeFormula *f = root->getFormula(mgr);
+    QuantifierTreeFormula *f = root->changeToFormula(mgr);
     root = f;
+    std::cout << *root << std::endl;
     //std::cout << *f << std::endl;
     // TODO implement something similar to simpleSOlver in Formula, where it assumes formula contains all univ and exist vars + just checks if exist vars depend on everything + at the end it does not eliminate leftover exist vars
     f->eliminatePossibleVars();

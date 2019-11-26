@@ -13,7 +13,7 @@ public:
     virtual void localise() = 0; // TODO ake parametre a return???
     void pushExistVar(Variable var);
     void pushUnivVar(Variable var);
-    virtual QuantifierTreeFormula* getFormula(Cudd &mgr) = 0;
+    virtual QuantifierTreeFormula* changeToFormula(Cudd &mgr) = 0;
     //virtual void renameVar(Variable oldVar, Variable newVar) = 0;
 };
 
@@ -21,7 +21,7 @@ class QuantifierTreeFormula : public QuantifierTreeNode, public Formula {
 public:
     QuantifierTreeFormula(const Cudd &mgr, QuantifiedVariablesManager &qvmgr);
     void localise();
-    QuantifierTreeFormula* getFormula(Cudd &mgr);
+    QuantifierTreeFormula* changeToFormula(Cudd &mgr);
 };
 
 class QuantifierTree : public QuantifierTreeNode {
@@ -44,7 +44,15 @@ public:
 
     void localise();
 
-    QuantifierTreeFormula* getFormula(Cudd &mgr);
+    /**
+     * @brief Changes this instance of QuantifierTree to the instance of Formula,
+     * it is assumed that this instance was created by new, after calling this function 
+     * the pointer to the QuantifierTree is invalidated (do NOT delete it!)
+     * 
+     * @param mgr The Cudd manager used for creating matrix of Formula
+     * @return Pointer to the resulting instance of Formula, needs to be deleted after it was used
+     */
+    QuantifierTreeFormula* changeToFormula(Cudd &mgr);
     //void renameVar(Variable oldVar, Variable newVar);
 
     void addChild(QuantifierTreeNode *child);

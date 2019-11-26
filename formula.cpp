@@ -1,4 +1,5 @@
 #include <iostream>
+#include <algorithm>
 #include "formula.hpp"
 
 //Formula::Formula(const Cudd &mgr) : mgr(mgr) {}
@@ -95,11 +96,10 @@ void Formula::eliminateExistVars(VariableSet existVarsToEliminate) {
 // TODO recreate it to getter of possible exist vars to eliminat
 
 VariableSet Formula::getPossibleExistVarsToEliminate() {
-    VariableSet supportSet = getSupportSet();
     VariableSet univVarsNeededToDependOn;
     VariableSet possibleExistVarsToEliminate;
 
-    for (const Variable &var : supportSet) {
+    for (const Variable &var : getSupportSet()) {
         if (isVarUniv(var)) {
             if (univVarsNeededToDependOn.insert(var).second) { // if var was not in univVarsNeededToDependOn
                 possibleExistVarsToEliminate.clear();
@@ -120,8 +120,29 @@ VariableSet Formula::getPossibleExistVarsToEliminate() {
 }
 
 void Formula::eliminatePossibleVars() {
-    //setUnivVarsOrder();
     removeUnusedVars();
+
+    // the order of removal of univ vars is based on the number of depending existential variables
+    std::vector<Variable> univVarsOrderToRemove(getUnivVars().begin(), getUnivVars().end());
+    std::sort(univVarsOrderToRemove.begin(), univVarsOrderToRemove.end(),
+                [&](Variable a, Variable b) {
+                    return (getUnivVarDependencies(a).size() > getUnivVarDependencies(b).size());
+                }
+            );
+    /* lambda function that gives us the next universal variable to remove (the one 
+     * that had the least amount of depending existential variables at the beginning 
+     * of removal)
+     */
+    auto getNextUnivVarToRemove = [&]() {
+        Variable v = univVarsOrderToRemove.back();
+        univVarsOrderToRemove.pop_back();
+        while (!getUnivVars().contains(v)) {
+            v = univVarsOrderToRemove.back();
+            univVarsOrderToRemove.pop_back();
+        }
+        return v;
+    };
+
     while (!getUnivVars().empty()) {
         //printFormulaStats();
         
@@ -143,7 +164,8 @@ void Formula::eliminatePossibleVars() {
         //reorder();
 
         // TODO!!!!!!!!!-what logic? find the universal variable to remove next
-        Variable uVarToEliminate = *getUnivVars().begin();//getSomeUnivVar();
+        //Variable uVarToEliminate = *getUnivVars().begin();
+        Variable uVarToEliminate = getNextUnivVarToRemove();
         std::cout << "Processing univ variable " << uVarToEliminate.getId() << std::endl;
         eliminateUnivVar(uVarToEliminate);
         
@@ -163,8 +185,13 @@ void Formula::eliminatePossibleVars() {
 }
 
 std::ostream& Formula::print(std::ostream& out) const {
-    out << getMatrix();
-    return out;
+    return out << getMatrix();
+}
+
+void Formula::printStats() {
+    std::cout << "Formula BDD have " << matrix.nodeCount() 
+                << " nodes with " << getUnivVars().size() << " universal variables and "
+                << getExistVars().size() << " existential variables." << std::endl;
 }
 
 /*

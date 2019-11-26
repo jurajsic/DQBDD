@@ -61,7 +61,21 @@ void SimpleSolver::setTest2Formula() {
 }
 
 void SimpleSolver::runTests() {
-    throw "implement me!!";
+    int numOfCorrect = 0;
+    int numOfAll = 0;
+    ++numOfAll;
+    std::cout << "Test " << numOfAll << std::endl;
+    setTest1Formula();
+    if (solve() == false) {
+        ++numOfCorrect;
+    }
+    ++numOfAll;
+    std::cout << "Test " << numOfAll << std::endl;
+    setTest2Formula();
+    if (solve() == true) {
+        ++numOfCorrect;
+    }
+    std::cout << numOfCorrect << "/" << numOfAll << std::endl;
 }
 
 void SimpleSolver::readFile(std::ifstream& file) {
@@ -162,16 +176,10 @@ Variable SimpleSolver::getSomeUnivVar(int choice) {
     }
 }
 
-void SimpleSolver::printFormulaStats() {
-    std::cout << "Formula BDD have " << formula.getMatrix().nodeCount() 
-                << " nodes with " << formula.getUnivVars().size() << " universal variables and "
-                << formula.getExistVars().size() << " existential variables." << std::endl;
-}
-
 void SimpleSolver::reorder() {
     std::cout << "Reordering" << std::endl;
     mgr.ReduceHeap();
-    printFormulaStats();
+    formula.printStats();
 }
 
 void SimpleSolver::setUnivVarsOrder() {
@@ -185,13 +193,13 @@ void SimpleSolver::setUnivVarsOrder() {
 
 bool SimpleSolver::solve() {
     //std::cout << formula << std::endl;
-    formula.eliminatePossibleVars();
-    return (formula.getMatrix().IsOne());
+    //formula.eliminatePossibleVars();
+    //return (formula.getMatrix().IsOne());
 
 
     setUnivVarsOrder();
     while (!formula.getUnivVars().empty()) {
-        printFormulaStats();
+        //formula.printStats();
         
         VariableSet existVarsToEliminate = formula.getPossibleExistVarsToEliminate();
         while (existVarsToEliminate.size() !=0) {
@@ -207,8 +215,8 @@ bool SimpleSolver::solve() {
             break;
         }
         
-        printFormulaStats();
-        reorder();
+        //formula.printStats();
+        //reorder();
 
         // find the universal variable to remove next
         Variable uVarToEliminate = getSomeUnivVar();
@@ -218,7 +226,7 @@ bool SimpleSolver::solve() {
         formula.removeUnusedVars();
     }
 
-    printFormulaStats();
+    //formula.printStats();
 
     // check if matrix of formula is 0
     // if it is -> UNSAT

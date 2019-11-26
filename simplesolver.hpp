@@ -9,7 +9,6 @@ private:
     QuantifiedVariablesManager qvMgr;
     Formula formula;
     Variable getSomeUnivVar(int choice=0);
-    void printFormulaStats();
     void reorder();
 
     std::vector<Variable> univVarsOrderToRemove;

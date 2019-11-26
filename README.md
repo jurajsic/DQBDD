@@ -5,9 +5,14 @@ DQBF (Dependency quantifier boolean formulas) solver using BDDs (binary decision
 ## Usage
 
 ```
-./solve
+./solve 0
 ```
-runs test examples
+runs test examples using simple solver
+
+```
+./solve 1
+```
+runs test examples using solver that pushes quantifiers inside formula
 
 ```
 ./solve 0 "name of file in .dqdimacs format"
