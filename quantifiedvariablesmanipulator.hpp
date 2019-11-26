@@ -24,6 +24,9 @@ private:
 
     std::unordered_map<Variable,int> numberOfUsedExistVars;
     std::unordered_map<Variable,int> numberOfUsedUnivVars;
+
+    unsigned numberOfUnivVars;
+    unsigned numberOfExistVars;
 public:
     void addExistVarInstance(Variable eVar);
     void removeExistVarInstance(Variable eVar);
@@ -41,8 +44,10 @@ public:
     bool isVarUniv(Variable var);
     bool isVarExist(Variable var);
 
-    VariableSet getAllUnivVars();
-    VariableSet getAllExistVars();
+    unsigned getNumberOfUnivVars();
+    unsigned getNumberOfExistVars();
+    //VariableSet getAllUnivVars();
+    //VariableSet getAllExistVars();
 };
 
 class QuantifiedVariablesManipulator {

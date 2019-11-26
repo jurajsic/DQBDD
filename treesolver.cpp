@@ -166,7 +166,7 @@ bool TreeSolver::solve() {
     std::cout << "Processing" << std::endl;
     QuantifierTreeFormula *f = root->changeToFormula(mgr);
     root = f;
-    std::cout << *root << std::endl;
+    //std::cout << *root << std::endl;
     //std::cout << *f << std::endl;
     // TODO implement something similar to simpleSOlver in Formula, where it assumes formula contains all univ and exist vars + just checks if exist vars depend on everything + at the end it does not eliminate leftover exist vars
     f->eliminatePossibleVars();

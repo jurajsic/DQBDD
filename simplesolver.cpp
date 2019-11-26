@@ -193,9 +193,10 @@ void SimpleSolver::setUnivVarsOrder() {
 
 bool SimpleSolver::solve() {
     //std::cout << formula << std::endl;
-    //formula.eliminatePossibleVars();
-    //return (formula.getMatrix().IsOne());
+    formula.eliminatePossibleVars();
+    return (formula.getMatrix().IsOne());
 
+    //TODO delete this:
 
     setUnivVarsOrder();
     while (!formula.getUnivVars().empty()) {

@@ -12,13 +12,16 @@ bool VariableSet::contains(Variable const &var) const {
 
 void QuantifiedVariablesManager::addExistVarInstance(Variable eVar) {
     ++numberOfUsedExistVars[eVar];
-    if (numberOfUsedExistVars[eVar] == 1)
+    if (numberOfUsedExistVars[eVar] == 1) {
+        ++numberOfExistVars;
         existVarsDependencies[eVar] = {};
+    }
 }
 
 void QuantifiedVariablesManager::removeExistVarInstance(Variable eVar) {
     --numberOfUsedExistVars[eVar];
     if (numberOfUsedExistVars[eVar] == 0) {
+        --numberOfExistVars;
         removeDependency(eVar, existVarsDependencies[eVar]);
         existVarsDependencies.erase(eVar);
     }
@@ -26,14 +29,17 @@ void QuantifiedVariablesManager::removeExistVarInstance(Variable eVar) {
 
 void QuantifiedVariablesManager::addUnivVarInstance(Variable uVar) {
     ++numberOfUsedUnivVars[uVar];
-    if (numberOfUsedUnivVars[uVar] == 1)
+    if (numberOfUsedUnivVars[uVar] == 1) {
+        ++numberOfUnivVars;
         univVarsDependencies[uVar] = {};
+    }
     
 }
 
 void QuantifiedVariablesManager::removeUnivVarInstance(Variable uVar) {
     --numberOfUsedUnivVars[uVar];
     if (numberOfUsedUnivVars[uVar] == 0) {
+        --numberOfUnivVars;
         auto existVarsToUpdate = univVarsDependencies[uVar];
         for (Variable existVarToUpdate : existVarsToUpdate) {
             removeDependency(existVarToUpdate, VariableSet{uVar});
@@ -71,6 +77,30 @@ bool QuantifiedVariablesManager::isVarUniv(Variable var) {
 bool QuantifiedVariablesManager::isVarExist(Variable var) {
     return (existVarsDependencies.find(var) != existVarsDependencies.end());
 }
+
+unsigned QuantifiedVariablesManager::getNumberOfUnivVars() {
+    return numberOfUnivVars;
+}
+
+unsigned QuantifiedVariablesManager::getNumberOfExistVars() {
+    return numberOfExistVars;
+}
+
+/*
+// TODO probably add variables sets as members
+VariableSet QuantifiedVariablesManager::getAllUnivVars() {
+    VariableSet univVars;
+    for (const auto &var : univVarsDependencies) {
+        univVars.insert(var.first);
+    }
+    return univVars;
+}
+
+// TODO implement
+VariableSet QuantifiedVariablesManager::getAllExistVars() { 
+    throw "Not implemented";
+}
+*/
 
 
 /********************************************/
@@ -193,11 +223,13 @@ bool QuantifiedVariablesManipulator::isVarExist(Variable var) const {
 }
 
 void QuantifiedVariablesManipulator::clear() {
-    for (const Variable &uVar : getUnivVars()) {
+    VariableSet varsCopy = getUnivVars();
+    for (const Variable &uVar : varsCopy) {
         removeUnivVar(uVar);
     }
 
-    for (const Variable &eVar : getExistVars()) {
+    varsCopy = getExistVars();
+    for (const Variable &eVar : varsCopy) {
         removeExistVar(eVar);
     }
 }

@@ -96,24 +96,43 @@ void Formula::eliminateExistVars(VariableSet existVarsToEliminate) {
 // TODO recreate it to getter of possible exist vars to eliminat
 
 VariableSet Formula::getPossibleExistVarsToEliminate() {
+    // TODO if (getUnivVars().size() == qvMgr->getNumberOfUnivVars() // this is prob unimportant && getExistVars().size() == ...)
+    // TODO     we can just do some easier stuff here???
+
+    // the set of univ vars on which exist vars that are possible to eliminate need to depend on
     VariableSet univVarsNeededToDependOn;
-    VariableSet possibleExistVarsToEliminate;
+
+    // only exist vars in support set need to be eliminated (assume that other will be removed by removeUnusedVars())
+    VariableSet existVarsInSupportSet;
 
     for (const Variable &var : getSupportSet()) {
         if (isVarUniv(var)) {
-            if (univVarsNeededToDependOn.insert(var).second) { // if var was not in univVarsNeededToDependOn
-                possibleExistVarsToEliminate.clear();
-            }
+            // exist vars possible to eliminate have to depend on all univ vars in support set
+            univVarsNeededToDependOn.insert(var);
         } else if (isVarExist(var)) {
-            for (const Variable &uVar : getExistVarDependencies(var)) {
-                if (univVarsNeededToDependOn.insert(uVar).second) { // if uVar was not in univVarsNeededToDependOn
+            existVarsInSupportSet.insert(var);
+        }
+    }
+
+    VariableSet possibleExistVarsToEliminate;
+
+    for (const Variable &eVar : existVarsInSupportSet) {
+        // check if support set does not contain all universal variables
+        if (univVarsNeededToDependOn.size() != qvMgr->getNumberOfUnivVars()) {
+            // if it does not there can be some univ vars on which some exist var in support set depends on
+            for (const Variable &uVar : getExistVarDependencies(eVar)) {
+                // if uVar was not in univVarsNeededToDependOn
+                if (univVarsNeededToDependOn.insert(uVar).second) {
+                    // all exist vars we went trough already do not depend on this uVar and so they are not possible to eliminate
                     possibleExistVarsToEliminate.clear();
                 }
             }
-            if (isVarHereQuantified(var) && getExistVarDependencies(var).size() == univVarsNeededToDependOn.size()) {
-                possibleExistVarsToEliminate.insert(var);
-            }
         }
+        // only those exist vars that are quantified in this subformula and depend on all univ vars we already went can possibly be eliminated
+        if (isVarHereQuantified(eVar) && getExistVarDependencies(eVar).size() == univVarsNeededToDependOn.size()) {
+            possibleExistVarsToEliminate.insert(eVar);
+        }
+        
     }
 
     return possibleExistVarsToEliminate;
@@ -166,19 +185,31 @@ void Formula::eliminatePossibleVars() {
         // TODO!!!!!!!!!-what logic? find the universal variable to remove next
         //Variable uVarToEliminate = *getUnivVars().begin();
         Variable uVarToEliminate = getNextUnivVarToRemove();
-        std::cout << "Processing univ variable " << uVarToEliminate.getId() << std::endl;
+        std::cout << "Eliminating univ variable " << uVarToEliminate.getId() << std::endl;
         eliminateUnivVar(uVarToEliminate);
         
         removeUnusedVars();
     }
 
     // TODO add logic for deleting all exist vars (just check if matrix == 0 in that case)
-
-    VariableSet existVarsToEliminate = getPossibleExistVarsToEliminate();
-    while (existVarsToEliminate.size() !=0) {
-        eliminateExistVars(existVarsToEliminate);
-        removeUnusedVars();
-        existVarsToEliminate = getPossibleExistVarsToEliminate();
+    // If all exist vars are quantified here -> it means we just need to check if BDD != 0
+    // because otherwise there is a path to 1 resulting in assignment which satisfies this formula.
+    // But we also have to check if there are no universal vars in support set.
+    // If size of support set is larger than the number of quantified exist vars
+    // then some univ var that is earlier in formula is in support set.
+    if (getExistVars().size() == qvMgr->getNumberOfExistVars() && getSupportSet().size() == getExistVars().size()) {
+        if (!getMatrix().IsZero()) {
+            setMatrix(mgr.bddOne());
+            clear();
+        }
+    } else {
+        // we need to properly check if there are some leftover exist vars possible to eliminate
+        VariableSet existVarsToEliminate = getPossibleExistVarsToEliminate();
+        while (existVarsToEliminate.size() !=0) {
+            eliminateExistVars(existVarsToEliminate);
+            removeUnusedVars();
+            existVarsToEliminate = getPossibleExistVarsToEliminate();
+        }
     }
 
     //printFormulaStats();
