@@ -1,5 +1,5 @@
-#ifndef TREESOLVER_HPP
-#define TREESOLVER_HPP
+#ifndef DQBF_BDD_TREESOLVER_HPP
+#define DQBF_BDD_TREESOLVER_HPP
 
 #include "solver.hpp"
 #include "quantifiertree.hpp"

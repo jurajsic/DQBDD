@@ -1,5 +1,5 @@
-#ifndef SIMPLESOLVER_HPP
-#define SIMPLESOLVER_HPP
+#ifndef DQBF_BDD_SIMPLESOLVER_HPP
+#define DQBF_BDD_SIMPLESOLVER_HPP
 
 #include "formula.hpp"
 #include "solver.hpp"

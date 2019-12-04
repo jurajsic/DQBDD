@@ -1,5 +1,5 @@
-#ifndef SOLVER_HPP
-#define SOLVER_HPP
+#ifndef DQBF_BDD_SOLVER_HPP
+#define DQBF_BDD_SOLVER_HPP
 
 #include <fstream>
 #include "cuddObj.hh"

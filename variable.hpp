@@ -1,5 +1,5 @@
-#ifndef VARIABLE_HPP
-#define VARIABLE_HPP
+#ifndef DQBF_BDD_VARIABLE_HPP
+#define DQBF_BDD_VARIABLE_HPP
 
 #include <unordered_set>
 #include "cuddObj.hh"

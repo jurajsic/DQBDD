@@ -1,5 +1,5 @@
-#ifndef QUANTIFIERTREE_HPP
-#define QUANTIFIERTREE_HPP
+#ifndef DQBF_BDD_QUANTIFIERTREE_HPP
+#define DQBF_BDD_QUANTIFIERTREE_HPP
 
 #include <list>
 #include "variable.hpp"

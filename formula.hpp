@@ -1,5 +1,5 @@
-#ifndef FORMULA_HPP
-#define FORMULA_HPP
+#ifndef DQBF_BDD_FORMULA_HPP
+#define DQBF_BDD_FORMULA_HPP
 
 #include <unordered_map>
 #include <unordered_set>
