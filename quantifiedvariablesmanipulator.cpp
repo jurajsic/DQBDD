@@ -143,7 +143,7 @@ QuantifiedVariablesManipulator::~QuantifiedVariablesManipulator() {
     }
 }
 
-QuantifiedVariablesManipulator::QuantifiedVariablesManager* getManager() {
+QuantifiedVariablesManager* QuantifiedVariablesManipulator::getManager() {
     return qvMgr;
 }
 
@@ -276,7 +276,7 @@ void QuantifiedVariablesManipulator::removeUnusedVars() {
     }
 }
 
-std::ostream& print(std::ostream& out) {
+std::ostream& QuantifiedVariablesManipulator::print(std::ostream& out) const {
     return out;
 }
 
