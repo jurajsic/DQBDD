@@ -119,7 +119,19 @@ VariableSet QuantifiedVariablesManager::getAllExistVars() {
 
 QuantifiedVariablesManipulator::QuantifiedVariablesManipulator(QuantifiedVariablesManager &qvMgr) : qvMgr(&qvMgr) {}
 
-//QuantifiedVariablesManipulator::QuantifiedVariablesManipulator(const QuantifiedVariablesManipulator &qvm) {}
+QuantifiedVariablesManipulator::QuantifiedVariablesManipulator(const QuantifiedVariablesManipulator &qvm) {
+    qvMgr = qvm.qvMgr;
+    for (Variable uVar : qvm.getUnivVars()) {
+        addUnivVar(uVar);
+    }
+
+    for (Variable eVar : qvm.getExistVars()) {
+        addExistVar(eVar, qvm.getExistVarDependencies(eVar));
+    }
+
+    supportSet = qvm.supportSet;
+}
+
 
 QuantifiedVariablesManipulator::~QuantifiedVariablesManipulator() {
     for (const Variable &uVar : getUnivVars()) {
@@ -129,6 +141,10 @@ QuantifiedVariablesManipulator::~QuantifiedVariablesManipulator() {
     for (const Variable &eVar : getExistVars()) {
         qvMgr->removeExistVarInstance(eVar);
     }
+}
+
+QuantifiedVariablesManipulator::QuantifiedVariablesManager* getManager() {
+    return qvMgr;
 }
 
 VariableSet const &QuantifiedVariablesManipulator::getUnivVars() const {
@@ -258,6 +274,10 @@ void QuantifiedVariablesManipulator::removeUnusedVars() {
     for (const Variable &varToRemove : varsToRemove) {
         removeVar(varToRemove);
     }
+}
+
+std::ostream& print(std::ostream& out) {
+    return out;
 }
 
 std::ostream& operator<<(std::ostream& out, const QuantifiedVariablesManipulator& qvm)

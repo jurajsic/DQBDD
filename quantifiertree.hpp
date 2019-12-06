@@ -14,14 +14,17 @@ public:
     void pushExistVar(Variable var);
     void pushUnivVar(Variable var);
     virtual QuantifierTreeFormula* changeToFormula(Cudd &mgr) = 0;
+    virtual void negate() = 0;
     //virtual void renameVar(Variable oldVar, Variable newVar) = 0;
 };
 
 class QuantifierTreeFormula : public QuantifierTreeNode, public Formula {
 public:
     QuantifierTreeFormula(const Cudd &mgr, QuantifiedVariablesManager &qvmgr);
+    QuantifierTreeFormula(const Cudd &mgr, QuantifiedVariablesManipulator &qvManipulator);
     void localise();
     QuantifierTreeFormula* changeToFormula(Cudd &mgr);
+    void negate();
 };
 
 class QuantifierTree : public QuantifierTreeNode {
@@ -53,6 +56,7 @@ public:
      * @return Pointer to the resulting instance of Formula, needs to be deleted after it was used
      */
     QuantifierTreeFormula* changeToFormula(Cudd &mgr);
+    void negate();
     //void renameVar(Variable oldVar, Variable newVar);
 
     void addChild(QuantifierTreeNode *child);

@@ -22,6 +22,7 @@ public:
     Formula() = delete;
     //Formula(const Cudd &mgr);
     Formula(const Cudd &mgr, QuantifiedVariablesManager &qvmgr);
+    Formula(const Cudd &mgr, QuantifiedVariablesManipulator &qvManipulator);
     Formula(const Formula &f) = delete;
 
     VariableSet const &getSupportSet() override;

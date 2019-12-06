@@ -291,6 +291,13 @@ QuantifierTreeFormula* QuantifierTree::changeToFormula(Cudd &mgr) {
     return f;
 }
 
+void QuantifierTree::negate() {
+    isConj = !isConj;
+    for (QuantifierTreeNode *child : children) {
+        child->negate();
+    }
+}
+
 void QuantifierTree::addChild(QuantifierTreeNode *child) {
     children.push_back(child);
     for (const Variable var : child->getSupportSet()) {
@@ -324,7 +331,11 @@ std::ostream& QuantifierTree::print(std::ostream& out) const {
 /*********************************************************/
 /*********************************************************/
 
-QuantifierTreeFormula::QuantifierTreeFormula(const Cudd &mgr, QuantifiedVariablesManager &qvmgr) : QuantifiedVariablesManipulator(qvmgr), Formula(mgr, qvmgr) {}
+QuantifierTreeFormula::QuantifierTreeFormula(const Cudd &mgr, QuantifiedVariablesManager &qvmgr)
+                            : QuantifiedVariablesManipulator(qvmgr), Formula(mgr, qvmgr) {}
+
+QuantifierTreeFormula::QuantifierTreeFormula(const Cudd &mgr, QuantifiedVariablesManipulator &qvManipulator)
+                            : QuantifiedVariablesManipulator(qvManipulator), Formula(mgr, qvManipulator) {}
 
 void QuantifierTreeFormula::localise() {
     removeUnusedVars();
@@ -332,4 +343,8 @@ void QuantifierTreeFormula::localise() {
 
 QuantifierTreeFormula* QuantifierTreeFormula::changeToFormula(Cudd &mgr) {
     return this;
+}
+
+void QuantifierTreeFormula::negate() {
+    setMatrix(!getMatrix());
 }

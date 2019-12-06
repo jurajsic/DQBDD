@@ -1,5 +1,8 @@
 .vscode/*
 results/*
+hqspre/*
 
+HQSpreinterface.*
+parser.*
 *.o
 solver

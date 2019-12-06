@@ -58,7 +58,7 @@ private:
     // internal QVManager that is used if external is not supplied in constructor
     //QuantifiedVariablesManager internalQVManager;
 
-    virtual std::ostream& print(std::ostream& out) const = 0;
+    virtual std::ostream& print(std::ostream& out) const;
     friend std::ostream& operator<<(std::ostream& out, const QuantifiedVariablesManipulator& qvm);
 
 protected:
@@ -70,7 +70,7 @@ public:
     QuantifiedVariablesManipulator() = delete;
     QuantifiedVariablesManipulator(QuantifiedVariablesManager &qvMgr);
     ~QuantifiedVariablesManipulator();
-    //QuantifiedVariablesManipulator(const QuantifiedVariablesManipulator &qvm);
+    QuantifiedVariablesManipulator(const QuantifiedVariablesManipulator &qvm);
 
     //TODO!!!!!!!!!!!!!
     //QuantifiedVariablesManipulator& operator=(QuantifiedVariablesManipulator &qvm);
@@ -78,6 +78,8 @@ public:
     VariableSet const &getUnivVars() const;
     VariableSet const &getExistVars() const;
     //VariableSet getVars() const;
+
+    QuantifiedVariablesManager* getManager();
 
     void addUnivVar(Variable uVar);
     void addExistVar(Variable eVar);
