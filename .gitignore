@@ -2,7 +2,7 @@
 results/*
 hqspre/*
 
-HQSpreinterface.*
-parser.*
+#HQSpreinterface.*
+parser.cpp
 *.o
 solver

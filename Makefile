@@ -1,13 +1,15 @@
 CXX = g++
 CUDDHDS = -Icudd/
+#HQSPREHDS = -Ihqspre/
 #CUDDHDS = -I../cudd-release/cplusplus/ -I../cudd-release/cudd/
-CXXFLAGS = -std=c++17 -pedantic -Wall -Wextra $(CUDDHDS)
+CXXFLAGS = -std=c++17 -pedantic -Wall -Wextra $(CUDDHDS) #$(HQSPREHDS)
 RM = rm -f
 CUDDLIBS = cudd/libs/libobj.a cudd/libs/libcudd.a
+HQSPRELIBS = hqspre/libs/libantom.a hqspre/libs/libeasylogging.a hqspre/libs/libhqspre.a hqspre/libs/libpicosat.a
 #CUDDLIBS = ../cudd-release/cplusplus/.libs/libobj.a ../cudd-release/cudd/.libs/libcudd.a #-L../cudd-release/cudd/.libs/ -lcudd -L../cudd-release/cplusplus/.libs/ -lobj
-LDLIBS = $(CUDDLIBS)
+LDLIBS = $(CUDDLIBS) $(HQSPRELIBS)
 
-SRCS = variable.cpp quantifiedvariablesmanipulator.cpp formula.cpp solver.cpp simplesolver.cpp quantifiertree.cpp treesolver.cpp main.cpp
+SRCS = variable.cpp quantifiedvariablesmanipulator.cpp formula.cpp solver.cpp simplesolver.cpp quantifiertree.cpp treesolver.cpp HQSpreinterface.cpp main.cpp
 OBJS = $(subst .cpp,.o,$(SRCS))
 
 all: CXXFLAGS += -o3

@@ -1,0 +1,288 @@
+#include "hqspre/easylogging++.hpp"
+#include "hqspre/formula.hpp"
+
+#include "HQSpreinterface.hpp"
+
+// TODO define exceptions
+// TODO univ expand - 0 or 2?
+
+INITIALIZE_EASYLOGGINGPP
+
+class HQSPreInterface::HQSPreFormulaWrapper {
+public:
+    hqspre::Formula formula;
+    bool isSat = false;
+    bool isUnSat = false;
+    HQSPreFormulaWrapper() {}
+    ~HQSPreFormulaWrapper() {}
+
+    // following stuff is based on similar functions for AIGs from HQS
+
+    /**
+     * @brief gate table mapping HQSpre vars to BDDs (either variables or BDDs representing extracted gates)
+     */
+    std::vector<BDD> gate_table;
+
+    BDD convertLiteral(const hqspre::Literal lit)
+    {
+        const hqspre::Variable var = hqspre::lit2var(lit);
+        BDD res = gate_table[var];
+        return (hqspre::isNegative(lit) ? !res : res);
+    }
+
+    BDD gateToBDD(const Cudd &mgr, const hqspre::Gate &g) {
+        BDD result;
+
+        switch (g._type) {
+            case hqspre::GateType::AND_GATE:
+            {
+                result = mgr.bddOne();
+                
+                for (const hqspre::Literal lit : g._input_literals) {
+                    result &= convertLiteral(lit);
+                }
+                break;
+            }
+
+            case hqspre::GateType::XOR_GATE:
+            {
+                result = convertLiteral(g._input_literals[0]).Xor(convertLiteral(g._input_literals[1]));
+                break;
+            }
+
+            default:
+            {
+                throw "Invalid gate type encountered!";
+                break;
+            }
+        }
+
+        return (hqspre::isNegative(g._output_literal) ? !result : result);
+    }
+
+    // stuff for transforming to 
+
+    std::vector<const hqspre::Gate*> outputvarToGate;
+
+    QuantifierTreeNode* literalToTree(Cudd &mgr, const hqspre::Literal lit, QuantifiedVariablesManager &qvm) {
+        const hqspre::Variable var = hqspre::lit2var(lit);
+
+        QuantifierTreeNode *result;
+
+        if (formula.isGateOutput(var)) {
+            result = gateToTree(mgr, *outputvarToGate[var], qvm);
+        } else {
+            QuantifierTreeFormula *varFormula = new QuantifierTreeFormula(mgr, qvm);
+            varFormula->setMatrix(Variable(var, mgr));
+            result = varFormula;
+        }
+
+        if (hqspre::isNegative(lit)) {
+            result->negate();
+        }
+        return result;
+    }
+
+    QuantifierTreeNode* gateToTree(Cudd &mgr, const hqspre::Gate &g, QuantifiedVariablesManager &qvm) {
+        QuantifierTreeNode* result;
+        switch (g._type) {
+            case hqspre::GateType::AND_GATE:
+            {
+                std::list<QuantifierTreeNode*> operands;
+                for (const hqspre::Literal lit : g._input_literals) {
+                    operands.push_back(literalToTree(mgr, lit, qvm));
+                }
+
+                if (operands.size() == 1) {
+                    result = *operands.begin();
+                } else {
+                    result = new QuantifierTree(true, operands, qvm);
+                }
+
+                break;
+            }
+
+            case hqspre::GateType::XOR_GATE:
+            {
+                // A XOR B = (A AND !B) OR (!A AND B)
+                QuantifierTreeNode *firstOp = literalToTree(mgr, g._input_literals[0], qvm);
+                QuantifierTreeNode *firstOpNeg = literalToTree(mgr, g._input_literals[0], qvm);
+                firstOpNeg->negate();
+                QuantifierTreeNode *secondOp = literalToTree(mgr, g._input_literals[1], qvm);
+                QuantifierTreeNode *secondOpNeg = literalToTree(mgr, g._input_literals[1], qvm);
+                secondOpNeg->negate();
+                QuantifierTreeNode *firstConj = new QuantifierTree(true, std::list<QuantifierTreeNode*>{firstOp, secondOpNeg}, qvm);
+                QuantifierTreeNode *secondConj = new QuantifierTree(true, std::list<QuantifierTreeNode*>{firstOpNeg, secondOp}, qvm);
+                result = new QuantifierTree(false, std::list<QuantifierTreeNode*>{firstConj, secondConj}, qvm);
+                break;
+            }
+
+            default:
+            {
+                throw "Invalid gate type encountered!";
+                break;
+            }
+        }
+
+        if (hqspre::isNegative(g._output_literal)) {
+            result->negate();
+        }
+        return result;
+    }
+};
+
+HQSPreInterface::HQSPreInterface(Cudd &mgr, QuantifiedVariablesManager &qvmgr) : formulaPtr(nullptr), mgr(mgr), DQBFPrefix(qvmgr) {}
+
+// code based on hqspre version 1.4 code of main.cpp
+void HQSPreInterface::parse(std::string fileName) {
+    formulaPtr.reset(new HQSPreFormulaWrapper());
+
+    // Configure logging
+    el::Configurations defaultConf;
+    defaultConf.setToDefault();
+    defaultConf.setGlobally(el::ConfigurationType::Enabled, "true");
+    defaultConf.setGlobally(el::ConfigurationType::Format, "[%level] %msg");
+    defaultConf.set(el::Level::Verbose, el::ConfigurationType::Format, "[%level-%vlevel] %msg");
+    defaultConf.setGlobally(el::ConfigurationType::ToFile, "false");
+    defaultConf.setGlobally(el::ConfigurationType::ToStandardOutput, "true");
+    el::Loggers::reconfigureAllLoggers(defaultConf);
+    el::Loggers::setVerboseLevel(1);
+
+
+    // Parse the file
+    std::string in_name(fileName);
+    if (in_name == "") {
+        throw "No input file given.";
+    }
+    std::ifstream in(in_name);
+    if (!in) {
+        throw std::string("Could not open input file '") + in_name + std::string("'!");
+    }
+    in >> formulaPtr->formula;
+    in.close();
+
+    // do the preprocessing magic
+    try {
+        formulaPtr->formula.settings().bla = false;
+        formulaPtr->formula.settings().ble = false;
+        formulaPtr->formula.settings().preserve_gates = true;
+        formulaPtr->formula.settings().substitution = false;
+        formulaPtr->formula.settings().rewrite = false;
+        formulaPtr->formula.settings().max_loops = 20;
+        formulaPtr->formula.settings().univ_expand = 2;
+        formulaPtr->formula.preprocess();
+        formulaPtr->formula.printStatistics();
+    } catch (hqspre::SATException&) {
+        formulaPtr->isSat = true;
+        return;
+    } catch (hqspre::UNSATException&) {
+        formulaPtr->isUnSat = true;
+        return;
+    }
+
+    // do gate extraction
+    formulaPtr->formula.enforceDQBF(true);
+    formulaPtr->formula.unitPropagation();
+    formulaPtr->formula.determineGates(true, true, false, false);
+
+    const auto gates = formulaPtr->formula.getGates();
+
+    formulaPtr->gate_table = std::vector<BDD>(formulaPtr->formula.maxVarIndex() + 1);
+
+    // Create the proper problem variables (without Tseitin variables)
+    // First all universal variables, then the existential ones (as the universal occur in the dependency sets)
+    for (hqspre::Variable var = formulaPtr->formula.minVarIndex(); var <= formulaPtr->formula.maxVarIndex(); ++var) {
+        if (formulaPtr->formula.isUniversal(var)) {
+            Variable uVar = Variable(var, mgr);
+            DQBFPrefix.addUnivVar(uVar);
+            formulaPtr->gate_table[var] = uVar;
+        } else if (formulaPtr->formula.isExistential(var) && !formulaPtr->formula.isGateOutput(var)) { // TODO copy files from HQSfork
+            Variable eVar = Variable(var, mgr);
+            DQBFPrefix.addExistVar(eVar);
+            for (auto dep : formulaPtr->formula.getDependencies(var)) {
+                DQBFPrefix.addDependency(eVar, Variable(dep, mgr));
+            }
+            formulaPtr->gate_table[var] = eVar;
+        } 
+    }
+
+    for (auto &gate : formulaPtr->formula.getGates()) {
+        formulaPtr->outputvarToGate[hqspre::lit2var(gate._output_literal)] = &gate;
+    }
+}
+
+Formula* HQSPreInterface::getFormula() {
+    if (formulaPtr == nullptr) {
+        throw "A file must be parsed first!";
+    }
+
+    Formula *DQBFformula = new Formula(mgr, DQBFPrefix);
+    DQBFPrefix.clear();
+
+    if (formulaPtr->isSat) {
+        DQBFformula->setMatrix(mgr.bddOne());
+        return DQBFformula;
+    }
+    if (formulaPtr->isUnSat) {
+        DQBFformula->setMatrix(mgr.bddZero());
+        return DQBFformula;
+    }
+
+    // Create the gates
+    for (const hqspre::Gate& g: formulaPtr->formula.getGates()) {
+        const hqspre::Variable out_var = hqspre::lit2var(g._output_literal);
+        formulaPtr->gate_table[out_var] = formulaPtr->gateToBDD(mgr, g);
+        for (const auto c_nr: g._encoding_clauses) formulaPtr->formula.removeClause(c_nr);
+    }
+
+    // Convert the clauses
+    BDD matrix = mgr.bddOne();
+    for (hqspre::ClauseID c_nr = 0; c_nr <= formulaPtr->formula.maxClauseIndex(); c_nr++) {
+        if (!formulaPtr->formula.clauseDeleted(c_nr)) {
+            BDD clauseBDD = mgr.bddZero();
+            const auto& clause = formulaPtr->formula.getClause(c_nr);
+            for (const hqspre::Literal lit: clause) {
+                clauseBDD |= formulaPtr->convertLiteral(lit);
+            }
+            matrix &= clauseBDD;
+        }
+    }
+
+    DQBFformula->setMatrix(matrix);
+    return DQBFformula;
+}
+
+QuantifierTreeNode* HQSPreInterface::getQuantifierTree() {
+    if (formulaPtr == nullptr) {
+        throw "A file must be parsed first!";
+    }
+
+    if (formulaPtr->isSat || formulaPtr->isUnSat) {
+        QuantifierTreeFormula *DQBFformula = new QuantifierTreeFormula(mgr, DQBFPrefix);
+        DQBFPrefix.clear();
+        if (formulaPtr->isSat) {
+            DQBFformula->setMatrix(mgr.bddOne());
+            return DQBFformula;
+        }
+        if (formulaPtr->isUnSat) {
+            DQBFformula->setMatrix(mgr.bddZero());
+            return DQBFformula;
+        }
+    }
+
+    std::list<QuantifierTreeNode*> clauses;
+
+    for (hqspre::ClauseID c_nr = 0; c_nr <= formulaPtr->formula.maxClauseIndex(); c_nr++) {
+        if (!formulaPtr->formula.clauseDeleted(c_nr)) {
+            const auto& clause = formulaPtr->formula.getClause(c_nr);
+            std::list<QuantifierTreeNode*> literals;
+            for (const hqspre::Literal lit: clause) {
+                literals.push_back(formulaPtr->literalToTree(mgr, lit, *DQBFPrefix.getManager()));
+            }
+            QuantifierTree *clauseTree = new QuantifierTree(false, literals, *DQBFPrefix.getManager());
+            clauses.push_back(clauseTree);
+        }
+    }
+
+    return new QuantifierTree(true, clauses, *DQBFPrefix.getManager());  
+}
