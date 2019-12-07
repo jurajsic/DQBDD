@@ -1,6 +1,7 @@
 .vscode/*
 results/*
 hqspre/*
+libs/*
 
 #HQSpreinterface.*
 parser.cpp
