@@ -23,7 +23,20 @@ void QuantifierTreeNode::pushUnivVar(Variable var) {
     }
 }
 
+/*******************************************/
+/*******************************************/
+/************ QUANTIFIER TREE **************/
+/*******************************************/
+/*******************************************/ 
+
 QuantifierTree::QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> children, QuantifiedVariablesManager &qvMgr) : QuantifiedVariablesManipulator(qvMgr), isConj(isConj) {
+    supportSet = {};
+    for (QuantifierTreeNode *child : children) {
+        addChild(child);
+    }
+}
+
+QuantifierTree::QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> children, QuantifiedVariablesManipulator &qvManipulator) : QuantifiedVariablesManipulator(qvManipulator), isConj(isConj) {
     supportSet = {};
     for (QuantifierTreeNode *child : children) {
         addChild(child);

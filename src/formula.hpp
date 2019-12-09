@@ -25,6 +25,8 @@ public:
     Formula(const Cudd &mgr, QuantifiedVariablesManipulator &qvManipulator);
     Formula(const Formula &f) = delete;
 
+    virtual ~Formula() = default;
+
     VariableSet const &getSupportSet() override;
 
     BDD getMatrix() const;

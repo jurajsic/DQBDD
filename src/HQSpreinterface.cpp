@@ -285,5 +285,5 @@ QuantifierTreeNode* HQSPreInterface::getQuantifierTree() {
         }
     }
 
-    return new QuantifierTree(true, clauses, *DQBFPrefix.getManager());  
+    return new QuantifierTree(true, clauses, DQBFPrefix);  
 }

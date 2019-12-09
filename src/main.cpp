@@ -7,6 +7,13 @@
 // TODO add some sort of checking (maybe creating dependency graph -> in manager but what 
 // to do with tree) of whether formula is in QBF form??
 
+enum ReturnCode {
+    SAT = 10,
+    UNSAT = 20,
+    SATPRE = 30, // solved by HQSpre
+    UNSATPRE = 40, // solved by HQSpre
+};
+
 int main(int argc, char **argw)
 {
     Cudd mgr;
@@ -24,6 +31,8 @@ int main(int argc, char **argw)
         }
     }
 
+    
+
     if (argc > 2) {
 
 /**************************/
@@ -32,17 +41,34 @@ int main(int argc, char **argw)
         Parser *parser = new HQSPreInterface(mgr, qvMgr);
         parser->parse(argw[2]);
         std::cout << "Parsing finished" << std::endl;
-        Formula *f = parser->getFormula();
+        Formula *f;
+        if (std::stoi(argw[1]) == 0) {
+            f = parser->getFormula();
+        } else {
+            f = parser->getQuantifierTree()->changeToFormula(mgr);
+        }
+        
         std::cout << "FOrmula got" << std::endl;
+        ReturnCode rc;
         delete parser;
-        f->eliminatePossibleVars();
         if (f->getMatrix().IsOne()) {
             std::cout << "SAT" << std::endl;
-        } else {
+            rc = ReturnCode::SATPRE;
+        } else if (f->getMatrix().IsZero()) {
             std::cout << "UNSAT" << std::endl;
+            rc = ReturnCode::UNSATPRE;
+        } else {
+            f->eliminatePossibleVars();
+            if (f->getMatrix().IsOne()) {
+                std::cout << "SAT" << std::endl;
+                rc = ReturnCode::SAT;
+            } else {
+                std::cout << "UNSAT" << std::endl;
+                rc = ReturnCode::UNSAT;
+            }
         }
         delete f;
-        return 0;
+        return rc;
 /**********************/
 
         input_file.open(argw[2]);

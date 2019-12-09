@@ -40,6 +40,7 @@ private:
     //void changeChildWithFormula(std::list<QuantifierTreeNode*>::iterator childToChange, Cudd &mgr);
 public:
     QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> children, QuantifiedVariablesManager &qvMgr);
+    QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> children, QuantifiedVariablesManipulator &qvManipulator);
     QuantifierTree(const QuantifierTree&) = delete;
     QuantifierTree& operator=(const QuantifierTree&) = delete;
 
