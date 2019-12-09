@@ -126,10 +126,10 @@ QuantifiedVariablesManipulator::QuantifiedVariablesManipulator(const QuantifiedV
     }
 
     for (Variable eVar : qvm.getExistVars()) {
-        addExistVar(eVar, qvm.getExistVarDependencies(eVar));
+        addExistVar(eVar);
     }
 
-    supportSet = qvm.supportSet;
+    //supportSet = qvm.supportSet;
 }
 
 

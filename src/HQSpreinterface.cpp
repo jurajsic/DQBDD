@@ -1,5 +1,5 @@
-#include "hqspre/easylogging++.hpp"
-#include "hqspre/formula.hpp"
+#include <easylogging++.hpp>
+#include "../libs/hqspre-1.4/src/formula.hpp"
 
 #include "HQSpreinterface.hpp"
 
@@ -188,6 +188,7 @@ void HQSPreInterface::parse(std::string fileName) {
     const auto gates = formulaPtr->formula.getGates();
 
     formulaPtr->gate_table = std::vector<BDD>(formulaPtr->formula.maxVarIndex() + 1);
+    formulaPtr->outputvarToGate = std::vector<const hqspre::Gate*>(formulaPtr->formula.maxVarIndex() + 1);
 
     // Create the proper problem variables (without Tseitin variables)
     // First all universal variables, then the existential ones (as the universal occur in the dependency sets)

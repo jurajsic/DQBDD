@@ -2,6 +2,7 @@
 #include <iostream>
 #include "simplesolver.hpp"
 #include "treesolver.hpp"
+#include "HQSpreinterface.hpp"
 
 // TODO add some sort of checking (maybe creating dependency graph -> in manager but what 
 // to do with tree) of whether formula is in QBF form??
@@ -24,6 +25,26 @@ int main(int argc, char **argw)
     }
 
     if (argc > 2) {
+
+/**************************/
+        delete solver;
+        QuantifiedVariablesManager qvMgr;
+        Parser *parser = new HQSPreInterface(mgr, qvMgr);
+        parser->parse(argw[2]);
+        std::cout << "Parsing finished" << std::endl;
+        Formula *f = parser->getFormula();
+        std::cout << "FOrmula got" << std::endl;
+        delete parser;
+        f->eliminatePossibleVars();
+        if (f->getMatrix().IsOne()) {
+            std::cout << "SAT" << std::endl;
+        } else {
+            std::cout << "UNSAT" << std::endl;
+        }
+        delete f;
+        return 0;
+/**********************/
+
         input_file.open(argw[2]);
         if (!input_file.is_open()) {
             std::cerr << "Could not open input file." << std::endl;
