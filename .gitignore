@@ -5,7 +5,7 @@
 
 #HQSpreinterface.*
 debug/
-parser.cpp
+#parser.cpp
 #*.o
 #solver
 build/*

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.5)
 project(DQBF-BDD VERSION 0.1 LANGUAGES C CXX)
 
 # Enforce C++17
