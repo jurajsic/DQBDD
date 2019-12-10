@@ -19,7 +19,7 @@ public:
      * 
      * @param fileName name of the file to parse
      */
-    void parse(std::string fileName);
+    bool parse(std::string fileName);
     Formula* getFormula();
     QuantifierTreeNode* getQuantifierTree();
 };

@@ -1,9 +1,10 @@
 .vscode/*
 results/*
 hqspre/*
-libs/*
+#libs/*
 
 #HQSpreinterface.*
+debug/
 parser.cpp
 *.o
 solver

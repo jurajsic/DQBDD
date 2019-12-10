@@ -1,0 +1,43 @@
+HQSpre - An Effective Preprocessor for QBF and QBF
+--------------------------------------------------
+
+Version 1.4 (2018-??-??)
+
+Copyright 2016/17 by
+    Ralf Wimmer, Sven Reimer, Paolo Marin, Bernd Becker
+    Albert-Ludwigs-Universitaet Freiburg
+    Georges-Koehler-Allee 51
+    79110 Freiburg im Breisgau
+    Germany
+    wimmer@informatik.uni-freiburg.de (Ralf Wimmer)
+
+This program is released under the version 3 of the
+GNU Lesser General Public License
+(LGPL v3, see https://www.gnu.org/licenses/lgpl-3.0.en.html)
+
+
+HQSpre requires the Boost C++ libraries, in particular
+    boost-program_options
+    boost-iostreams.
+libz is used to read gzip-compressed input files. The (integer) linear
+programming solver glpk is used for dependency elimination on DQBFs.
+
+Additionally, a C++14 compatible compiler is required.
+
+After successful compilation, the subdirectory src contains the binary
+hqspre. Calling
+    ./src/hqspre -h
+prints the list of available command line options.
+
+For bug reports, ideas for extension, comments, improvements etc. please
+contact Ralf Wimmer (wimmer@informatik.uni-freiburg.de).
+
+If you use HQSpre, please cite the following paper:
+
+    Ralf Wimmer, Sven Reimer, Paolo Marin, Bernd Becker:
+    HQSpre -- An Effective Preprocessor for QBF and DQBF.
+    Proceedings of the 23rd Int'l Conf. on Tools and Algorithms
+    for the Construction and Analysis of Systems (TACAS).
+    Lecture Notes in Computer Science, vol. 10205, pages 373-390.
+    Springer 2017. DOI 10.1007/978-3-662-54577-5_21
+

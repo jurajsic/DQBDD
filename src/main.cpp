@@ -39,34 +39,39 @@ int main(int argc, char **argw)
         delete solver;
         QuantifiedVariablesManager qvMgr;
         Parser *parser = new HQSPreInterface(mgr, qvMgr);
-        parser->parse(argw[2]);
-        std::cout << "Parsing finished" << std::endl;
         Formula *f;
+        bool preprocessorSolved = false;
+        try {
+        preprocessorSolved = parser->parse(argw[2]);
+        std::cout << "Parsing finished" << std::endl;
         if (std::stoi(argw[1]) == 0) {
             f = parser->getFormula();
         } else {
             f = parser->getQuantifierTree()->changeToFormula(mgr);
         }
+        } catch(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > s) {
+            std::cerr << s << std::endl;
+            delete parser;
+            return -1; 
+        }
+
         
         std::cout << "FOrmula got" << std::endl;
         ReturnCode rc;
         delete parser;
+
+        if (!preprocessorSolved) {
+            f->eliminatePossibleVars();
+        }
+        
         if (f->getMatrix().IsOne()) {
             std::cout << "SAT" << std::endl;
-            rc = ReturnCode::SATPRE;
-        } else if (f->getMatrix().IsZero()) {
-            std::cout << "UNSAT" << std::endl;
-            rc = ReturnCode::UNSATPRE;
+            rc = preprocessorSolved ? ReturnCode::SATPRE : ReturnCode::SAT;
         } else {
-            f->eliminatePossibleVars();
-            if (f->getMatrix().IsOne()) {
-                std::cout << "SAT" << std::endl;
-                rc = ReturnCode::SAT;
-            } else {
-                std::cout << "UNSAT" << std::endl;
-                rc = ReturnCode::UNSAT;
-            }
+            std::cout << "UNSAT" << std::endl;
+            rc = preprocessorSolved ? ReturnCode::UNSATPRE : ReturnCode::UNSAT;
         }
+        
         delete f;
         return rc;
 /**********************/

@@ -133,16 +133,16 @@ public:
 
 HQSPreInterface::HQSPreInterface(Cudd &mgr, QuantifiedVariablesManager &qvmgr) : formulaPtr(nullptr), mgr(mgr), DQBFPrefix(qvmgr) {}
 
-// code based on hqspre version 1.4 code of main.cpp
-void HQSPreInterface::parse(std::string fileName) {
+// code based on hqsfork
+bool HQSPreInterface::parse(std::string fileName) {
     formulaPtr.reset(new HQSPreFormulaWrapper());
 
     // Configure logging
     el::Configurations defaultConf;
     defaultConf.setToDefault();
     defaultConf.setGlobally(el::ConfigurationType::Enabled, "true");
-    defaultConf.setGlobally(el::ConfigurationType::Format, "[%level] %msg");
-    defaultConf.set(el::Level::Verbose, el::ConfigurationType::Format, "[%level-%vlevel] %msg");
+    defaultConf.setGlobally(el::ConfigurationType::Format, "[HQSpre] %msg");
+    defaultConf.set(el::Level::Verbose, el::ConfigurationType::Format, "[HQSpre] %msg");
     defaultConf.setGlobally(el::ConfigurationType::ToFile, "false");
     defaultConf.setGlobally(el::ConfigurationType::ToStandardOutput, "true");
     el::Loggers::reconfigureAllLoggers(defaultConf);
@@ -174,10 +174,10 @@ void HQSPreInterface::parse(std::string fileName) {
         formulaPtr->formula.printStatistics();
     } catch (hqspre::SATException&) {
         formulaPtr->isSat = true;
-        return;
+        return true;
     } catch (hqspre::UNSATException&) {
         formulaPtr->isUnSat = true;
-        return;
+        return true;
     }
 
     // do gate extraction
@@ -210,6 +210,8 @@ void HQSPreInterface::parse(std::string fileName) {
     for (auto &gate : formulaPtr->formula.getGates()) {
         formulaPtr->outputvarToGate[hqspre::lit2var(gate._output_literal)] = &gate;
     }
+
+    return false;
 }
 
 Formula* HQSPreInterface::getFormula() {
