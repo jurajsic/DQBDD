@@ -1,6 +1,7 @@
 #include <algorithm>
 #include "quantifiertree.hpp"
 
+QuantifierTreeNode::QuantifierTreeNode(QuantifiedVariablesManager &qvmgr) : QuantifiedVariablesManipulator(qvmgr) {}
 
 void QuantifierTreeNode::pushExistVar(Variable var) {
     if (getSupportSet().contains(var)) {
@@ -29,14 +30,14 @@ void QuantifierTreeNode::pushUnivVar(Variable var) {
 /*******************************************/
 /*******************************************/ 
 
-QuantifierTree::QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> children, QuantifiedVariablesManager &qvMgr) : QuantifiedVariablesManipulator(qvMgr), isConj(isConj) {
+QuantifierTree::QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> children, QuantifiedVariablesManager &qvMgr) : QuantifierTreeNode(qvMgr), QuantifiedVariablesManipulator(qvMgr), isConj(isConj) {
     supportSet = {};
     for (QuantifierTreeNode *child : children) {
         addChild(child);
     }
 }
 
-QuantifierTree::QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> children, QuantifiedVariablesManipulator &qvManipulator) : QuantifiedVariablesManipulator(qvManipulator), isConj(isConj) {
+QuantifierTree::QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> children, QuantifiedVariablesManipulator &qvManipulator) : QuantifierTreeNode(*qvManipulator.getManager()), QuantifiedVariablesManipulator(qvManipulator), isConj(isConj) {
     supportSet = {};
     for (QuantifierTreeNode *child : children) {
         addChild(child);
@@ -345,10 +346,10 @@ std::ostream& QuantifierTree::print(std::ostream& out) const {
 /*********************************************************/
 
 QuantifierTreeFormula::QuantifierTreeFormula(const Cudd &mgr, QuantifiedVariablesManager &qvmgr)
-                            : QuantifiedVariablesManipulator(qvmgr), Formula(mgr, qvmgr) {}
+                            : QuantifierTreeNode(qvmgr), QuantifiedVariablesManipulator(qvmgr), Formula(mgr, qvmgr) {}
 
 QuantifierTreeFormula::QuantifierTreeFormula(const Cudd &mgr, QuantifiedVariablesManipulator &qvManipulator)
-                            : QuantifiedVariablesManipulator(qvManipulator), Formula(mgr, qvManipulator) {}
+                            : QuantifierTreeNode(*qvManipulator.getManager()), QuantifiedVariablesManipulator(qvManipulator), Formula(mgr, qvManipulator) {}
 
 void QuantifierTreeFormula::localise() {
     removeUnusedVars();

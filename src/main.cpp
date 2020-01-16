@@ -12,6 +12,7 @@ enum ReturnCode {
     UNSAT = 20,
     SATPRE = 30, // solved by HQSpre
     UNSATPRE = 40, // solved by HQSpre
+    UNKNOWN = 50
 };
 
 int main(int argc, char **argw)
@@ -41,14 +42,23 @@ int main(int argc, char **argw)
         Parser *parser = new HQSPreInterface(mgr, qvMgr);
         Formula *f;
         bool preprocessorSolved = false;
+        /*std::ofstream statusOutput;
+        if (argc > 3) {
+            statusOutput.open(argw[3], std::ios::out | std::ios::app);
+            statusOutput << argw[2] << ',';
+        }*/
         try {
-        preprocessorSolved = parser->parse(argw[2]);
-        std::cout << "Parsing finished" << std::endl;
-        if (std::stoi(argw[1]) == 0) {
-            f = parser->getFormula();
-        } else {
-            f = parser->getQuantifierTree()->changeToFormula(mgr);
-        }
+            preprocessorSolved = parser->parse(argw[2]);
+            std::cout << "Parsing finished" << std::endl;
+            //statusOutput << 'P';
+            if (std::stoi(argw[1]) == 0) {
+                f = parser->getFormula();
+            } else {
+                auto qtroot = parser->getQuantifierTree();
+                std::cout << "Created quantifier tree" << std::endl;
+                //statusOutput << 'Q';
+                f = qtroot->changeToFormula(mgr);
+            }
         } catch(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > s) {
             std::cerr << s << std::endl;
             delete parser;
@@ -56,20 +66,27 @@ int main(int argc, char **argw)
         }
 
         
-        std::cout << "FOrmula got" << std::endl;
+        std::cout << "Created BDD formula" << std::endl;
+        //statusOutput << 'F';
         ReturnCode rc;
         delete parser;
 
         if (!preprocessorSolved) {
             f->eliminatePossibleVars();
+            //statusOutput << 'E';
         }
+
+        //statusOutput << 'S';
         
         if (f->getMatrix().IsOne()) {
             std::cout << "SAT" << std::endl;
             rc = preprocessorSolved ? ReturnCode::SATPRE : ReturnCode::SAT;
-        } else {
+        } else if (f->getMatrix().IsZero()) {
             std::cout << "UNSAT" << std::endl;
             rc = preprocessorSolved ? ReturnCode::UNSATPRE : ReturnCode::UNSAT;
+        } else { // this should not be reachable
+            std::cout << "UNKNOWN" << std::endl;
+            rc = ReturnCode::UNKNOWN;
         }
         
         delete f;

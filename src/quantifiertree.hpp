@@ -9,6 +9,7 @@ class QuantifierTreeFormula;
 
 class QuantifierTreeNode : virtual public QuantifiedVariablesManipulator {
 public:
+    QuantifierTreeNode(QuantifiedVariablesManager &qvmgr);
     virtual ~QuantifierTreeNode() = default;
     virtual void localise() = 0; // TODO ake parametre a return???
     void pushExistVar(Variable var);
