@@ -70,7 +70,7 @@ protected:
 public:
     Parser() = default;
     virtual ~Parser() = default;
-    // returns true if resulting formula is trivial (TRUE or FALSE) - can also mean that preprocessor solved
+    // returns true if resulting formula is trivial (equal to TRUE or FALSE) - can also mean that preprocessor solved
     virtual bool parse(std::string fileName) = 0;
     virtual Formula* getFormula() = 0;
     virtual QuantifierTreeNode* getQuantifierTree() = 0;

@@ -74,6 +74,8 @@ int main(int argc, char **argw)
         if (!preprocessorSolved) {
             f->eliminatePossibleVars();
             //statusOutput << 'E';
+        } else {
+            std::cout << "Solved by preprocessor" << std::endl;
         }
 
         //statusOutput << 'S';
