@@ -6,6 +6,7 @@
 
 class Variable {
 private:
+    // each variable has unique ID based on Cudd manager
     unsigned int id;
     BDD representation;
     Cudd mgr;
@@ -17,7 +18,7 @@ public:
     //Variable(BDD repr);
     unsigned int getId() const;
     BDD getBDD() const;
-    // get Variable that is at the same level as this variable
+    // get a new Variable that is at the same BDD level as this variable
     Variable newVarAtSameLevel();
     int getLevel() const;
     bool operator==(const Variable &anotherVariable) const;

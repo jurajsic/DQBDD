@@ -1,4 +1,5 @@
 #include "quantifiedvariablesmanipulator.hpp"
+#include "DQBDDexceptions.hpp"
 
 bool VariableSet::contains(Variable const &var) const {
     return (this->count(var) != 0);
@@ -12,7 +13,7 @@ bool VariableSet::contains(Variable const &var) const {
 
 void QuantifiedVariablesManager::addExistVarInstance(Variable eVar) {
     ++numberOfUsedExistVars[eVar];
-    if (numberOfUsedExistVars[eVar] == 1) {
+    if (numberOfUsedExistVars[eVar] == 1) { // if eVar is newly added
         ++numberOfExistVars;
         existVarsDependencies[eVar] = {};
     }
@@ -20,7 +21,7 @@ void QuantifiedVariablesManager::addExistVarInstance(Variable eVar) {
 
 void QuantifiedVariablesManager::removeExistVarInstance(Variable eVar) {
     --numberOfUsedExistVars[eVar];
-    if (numberOfUsedExistVars[eVar] == 0) {
+    if (numberOfUsedExistVars[eVar] == 0) { // if eVar is not in manager anymore
         --numberOfExistVars;
         removeDependency(eVar, existVarsDependencies[eVar]);
         existVarsDependencies.erase(eVar);
@@ -29,7 +30,7 @@ void QuantifiedVariablesManager::removeExistVarInstance(Variable eVar) {
 
 void QuantifiedVariablesManager::addUnivVarInstance(Variable uVar) {
     ++numberOfUsedUnivVars[uVar];
-    if (numberOfUsedUnivVars[uVar] == 1) {
+    if (numberOfUsedUnivVars[uVar] == 1) { // if uVar is newly added
         ++numberOfUnivVars;
         univVarsDependencies[uVar] = {};
     }
@@ -38,7 +39,7 @@ void QuantifiedVariablesManager::addUnivVarInstance(Variable uVar) {
 
 void QuantifiedVariablesManager::removeUnivVarInstance(Variable uVar) {
     --numberOfUsedUnivVars[uVar];
-    if (numberOfUsedUnivVars[uVar] == 0) {
+    if (numberOfUsedUnivVars[uVar] == 0) { // if uVar is not in manager anymore
         --numberOfUnivVars;
         auto existVarsToUpdate = univVarsDependencies[uVar];
         for (Variable existVarToUpdate : existVarsToUpdate) {
@@ -202,7 +203,6 @@ void QuantifiedVariablesManipulator::removeExistVar(Variable eVar) {
     }
 }
 
-//TODO check this
 void QuantifiedVariablesManipulator::removeVar(Variable var) {
     if (!isVarHereQuantified(var))
         return;
@@ -216,13 +216,13 @@ void QuantifiedVariablesManipulator::removeVar(Variable var) {
 
 VariableSet const &QuantifiedVariablesManipulator::getExistVarDependencies(Variable eVar) const {
     if (!isVarExist(eVar))
-        throw "Variable is not existential";
+        throw DQBDDexception("Trying to get the dependency set of variable which is not existential.");
     return qvMgr->getExistVarDependencies(eVar);
 }
 
 VariableSet const &QuantifiedVariablesManipulator::getUnivVarDependencies(Variable uVar) const {
     if (!isVarUniv(uVar))
-        throw "Variable is not universal";
+        throw DQBDDexception("Trying to get the set of dependent variable for variable which is not universal.");
     return qvMgr->getUnivVarDependencies(uVar);
 }
 
@@ -254,7 +254,7 @@ VariableSet const &QuantifiedVariablesManipulator::getSupportSet() {
     return supportSet;
 }
 
-// removes variables that are not in the support set of matrix (we can do this because 3a) rule )
+// removes variables that are not in the support set of matrix
 void QuantifiedVariablesManipulator::removeUnusedVars() {
     VariableSet usedVars = getSupportSet();
 

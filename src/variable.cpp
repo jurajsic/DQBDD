@@ -30,8 +30,6 @@ unsigned int Variable::getId() const {
 
 
 BDD Variable::getBDD() const {
-    // TODO decide if we save the BDD - if not we have to tell mgr that id is taken!
-    //return mgr.bddVar(id);
     return representation;
 }
 
