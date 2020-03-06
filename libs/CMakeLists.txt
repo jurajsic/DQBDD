@@ -1,1 +1,5 @@
-add_subdirectory("hqspre-1.4")
+add_subdirectory("antom")
+add_subdirectory("easylogging")
+add_subdirectory("picosat")
+add_subdirectory("hqspre")
+add_subdirectory("cudd-3.0.0")

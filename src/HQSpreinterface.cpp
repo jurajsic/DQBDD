@@ -1,5 +1,6 @@
 #include <easylogging++.hpp>
-#include "../libs/hqspre-1.4/src/formula.hpp"
+//#include "../libs/hqspre-1.4/src/formula.hpp"
+#include <formula.hpp>
 
 #include "HQSpreinterface.hpp"
 
