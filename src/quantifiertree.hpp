@@ -19,6 +19,13 @@ public:
     //virtual void renameVar(Variable oldVar, Variable newVar) = 0;
 };
 
+/*
+class QuantifierTreeVariable : public QuantifierTreeNode, public Variable {
+public:
+    QuantifierTreeVariable();
+};
+*/
+
 class QuantifierTreeFormula : public QuantifierTreeNode, public Formula {
 public:
     QuantifierTreeFormula(const Cudd &mgr, QuantifiedVariablesManager &qvmgr);
