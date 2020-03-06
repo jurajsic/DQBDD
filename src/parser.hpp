@@ -1,7 +1,7 @@
-#ifndef DQBF_BDD_PARSER_HPP
-#define DQBF_BDD_PARSER_HPP
+#ifndef DQBDD_PARSER_HPP
+#define DQBDD_PARSER_HPP
 
-#include "formula.hpp"
+#include "DQBDDformula.hpp"
 #include "quantifiertree.hpp"
 
 /**

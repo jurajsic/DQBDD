@@ -1,6 +1,7 @@
 #include <iostream>
 #include <algorithm>
-#include "formula.hpp"
+
+#include "DQBDDformula.hpp"
 
 //Formula::Formula(const Cudd &mgr) : mgr(mgr) {}
 

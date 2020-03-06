@@ -1,7 +1,7 @@
 # Create the DQBF-BDD solver binary
 add_executable(solver
-                formula.cpp
-                formula.hpp
+                DQBDDformula.cpp
+                DQBDDformula.hpp
                 HQSpreinterface.cpp
                 HQSpreinterface.hpp
                 main.cpp
@@ -10,14 +10,14 @@ add_executable(solver
                 quantifiedvariablesmanipulator.hpp
                 quantifiertree.cpp
                 quantifiertree.hpp
-                simplesolver.cpp
-                simplesolver.hpp
-                solver.cpp
-                solver.hpp
-                treesolver.cpp
-                treesolver.hpp
-                variable.cpp
-                variable.hpp
+                #simplesolver.cpp
+                #simplesolver.hpp
+                #solver.cpp
+                #solver.hpp
+                #treesolver.cpp
+                #treesolver.hpp
+                DQBDDvariable.cpp
+                DQBDDvariable.hpp
                 )
 target_link_libraries(solver hqspre)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../cudd/)

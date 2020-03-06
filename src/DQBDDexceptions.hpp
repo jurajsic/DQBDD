@@ -1,5 +1,5 @@
-#ifndef DQBF_BDD_DQBDD_EXCEPTION_HPP
-#define DQBF_BDD_DQBDD_EXCEPTION_HPP
+#ifndef DQBDD_EXCEPTION_HPP
+#define DQBDD_EXCEPTION_HPP
 
 #include <stdexcept>
 

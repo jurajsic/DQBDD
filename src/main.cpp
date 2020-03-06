@@ -1,7 +1,9 @@
 #include <fstream>
 #include <iostream>
-#include "simplesolver.hpp"
-#include "treesolver.hpp"
+
+//#include "simplesolver.hpp"
+//#include "treesolver.hpp"
+
 #include "HQSpreinterface.hpp"
 
 // TODO add some sort of checking (maybe creating dependency graph -> in manager but what 
@@ -20,24 +22,24 @@ int main(int argc, char **argw)
     Cudd mgr;
     //mgr.AutodynDisable();
     std::ifstream input_file;
-    Solver *solver;
+    //Solver *solver;
     if (argc <= 1) {
         throw "wrong args";
         return -1;
-    } else {
+    } /*else {
         if (std::stoi(argw[1]) == 0) {
             solver = new SimpleSolver(mgr);
         } else {
             solver = new TreeSolver(mgr);
         }
-    }
+    }*/
 
     
 
     if (argc > 2) {
 
 /**************************/
-        delete solver;
+        //delete solver;
         QuantifiedVariablesManager qvMgr;
         Parser *parser = new HQSPreInterface(mgr, qvMgr);
         Formula *f;
@@ -93,8 +95,9 @@ int main(int argc, char **argw)
         
         delete f;
         return rc;
+    }
 /**********************/
-
+/*
         input_file.open(argw[2]);
         if (!input_file.is_open()) {
             std::cerr << "Could not open input file." << std::endl;
@@ -119,4 +122,5 @@ int main(int argc, char **argw)
     }
     delete solver;
     return 0;
+    */
 }

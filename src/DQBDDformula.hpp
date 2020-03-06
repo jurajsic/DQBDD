@@ -1,11 +1,13 @@
-#ifndef DQBF_BDD_FORMULA_HPP
-#define DQBF_BDD_FORMULA_HPP
+#ifndef DQBDD_FORMULA_HPP
+#define DQBDD_FORMULA_HPP
 
 #include <unordered_map>
 #include <unordered_set>
-#include "variable.hpp"
+
+#include <cuddObj.hh>
+
+#include "DQBDDvariable.hpp"
 #include "quantifiedvariablesmanipulator.hpp"
-#include "cuddObj.hh"
 
 class Formula : public virtual QuantifiedVariablesManipulator {
 private:

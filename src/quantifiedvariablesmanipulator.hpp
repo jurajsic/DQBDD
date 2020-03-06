@@ -1,8 +1,9 @@
-#ifndef DQBF_BDD_QUANTIFIEDVARIABLESMANIPULATOR_HPP
-#define DQBF_BDD_QUANTIFIEDVARIABLESMANIPULATOR_HPP
+#ifndef DQBDD_QUANTIFIEDVARIABLESMANIPULATOR_HPP
+#define DQBDD_QUANTIFIEDVARIABLESMANIPULATOR_HPP
 
 #include <unordered_map>
-#include "variable.hpp"
+
+#include "DQBDDvariable.hpp"
 
 class VariableSet : public std::unordered_set<Variable> {
 public:

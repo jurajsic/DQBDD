@@ -1,9 +1,10 @@
-#ifndef DQBF_BDD_QUANTIFIERTREE_HPP
-#define DQBF_BDD_QUANTIFIERTREE_HPP
+#ifndef DQBDD_QUANTIFIERTREE_HPP
+#define DQBDD_QUANTIFIERTREE_HPP
 
 #include <list>
-#include "variable.hpp"
-#include "formula.hpp"
+
+#include "DQBDDvariable.hpp"
+#include "DQBDDformula.hpp"
 
 class QuantifierTreeFormula;
 

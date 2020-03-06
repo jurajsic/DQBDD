@@ -1,4 +1,5 @@
 #include <algorithm>
+
 #include "quantifiertree.hpp"
 
 QuantifierTreeNode::QuantifierTreeNode(QuantifiedVariablesManager &qvmgr) : QuantifiedVariablesManipulator(qvmgr) {}

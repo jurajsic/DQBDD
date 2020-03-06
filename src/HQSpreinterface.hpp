@@ -1,7 +1,8 @@
-#ifndef DQBF_BDD_HQSPRE_INTERFACE_HPP
-#define DQBF_BDD_HQSPRE_INTERFACE_HPP
+#ifndef DQBDD_HQSPRE_INTERFACE_HPP
+#define DQBDD_HQSPRE_INTERFACE_HPP
 
 #include <memory>
+
 #include "parser.hpp"
 
 class HQSPreInterface : public Parser {

@@ -1,6 +1,7 @@
 #include <functional>
 #include <iostream>
-#include "variable.hpp"
+
+#include "DQBDDvariable.hpp"
 
 Variable::Variable(int id, Cudd &mgr) : id(id), mgr(mgr) {
     representation = mgr.bddVar(id);
