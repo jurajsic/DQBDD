@@ -1,5 +1,14 @@
 # DQBF-BDD
 
+Copyright 2020 Juraj Síč
+This program is released under the version 3 of the
+GNU Lesser General Public License
+(LGPL v3, see https://www.gnu.org/licenses/lgpl-3.0.en.html)
+
+
+
+TODO: rewrite this, this is old info
+
 DQBF (Dependency quantifier boolean formulas) solver using BDDs (binary decision diagrams). This implementation uses cudd BDD library (https://github.com/ivmai/cudd). Just run make to compile.
 
 ## Usage
