@@ -30,7 +30,7 @@ target_link_libraries(DQBDD hqspre)
 # statically link to standard library
 target_link_libraries(DQBDD -static-libgcc -static-libstdc++)
 
-target_compile_options(DQBDD -Wall -Wextra -Wpedantic)
+target_compile_options(DQBDD PRIVATE -Wall -Wextra -Wpedantic)
 
 install(TARGETS DQBDD
         RUNTIME DESTINATION ${CMAKE_BINARY_DIR}/bin
