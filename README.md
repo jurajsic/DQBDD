@@ -1,4 +1,4 @@
-# DQBF-BDD
+# DQBDD
 
 Copyright 2020 Juraj Síč  
 This program is released under the version 3 of the
