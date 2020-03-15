@@ -20,6 +20,8 @@
 #include <fstream>
 #include <iostream>
 
+#include <cxxopts.hpp>
+
 //#include "simplesolver.hpp"
 //#include "treesolver.hpp"
 
@@ -36,19 +38,56 @@ enum ReturnCode {
     UNKNOWN = 50
 };
 
-int main(int argc, char **argw)
+int main(int argc, char **argv)
 {
     std::cout << "This is DQBDD version 0.1" << std::endl;
+
+    // argument parsing
+    cxxopts::Options options("DQBDD", "A DQBF solver using BDDs.");
+    options.add_options()
+        ("h,help", "Print usage")
+        ("l,localise", "Push quantifiers inside the formula")
+        ("r,removal", "The heuristics to decide what to remove in each subformula", cxxopts::value<int>()->default_value("1"))
+        ("e,expansion", "The heuristics to decide how to choose the next universal variable for expansion", cxxopts::value<int>()->default_value("1"))
+        ("f,file","DQDIMACS file to solve",cxxopts::value<std::string>())
+        ;
+    options.parse_positional({"file"});
+    options.positional_help("<input file>");
+    
+    cxxopts::ParseResult *result;
+    try {
+        result = new cxxopts::ParseResult(options.parse(argc, argv));
+    } catch (const cxxopts::OptionParseException& e) {
+        std::cerr << "Parsing error: " << e.what() << std::endl;
+        return -1;
+    }
+
+    if (result->count("help")) {
+        std::cout << options.help() << std::endl;
+        return 0;
+    }
+    
+    if (!result->count("file")) {
+        std::cerr << "No file specified, try 'DQBDD --help' for more info" << std::endl;
+        return -1;
+    }
+
+    std::string fileName = (*result)["file"].as<std::string>();
+    bool localise = result->count("localise");
+    // for now, this is doing nothing
+    int removeHeuristic = (*result)["removal"].as<int>();
+    // for noww this is doing nothing
+    int varToExpansionHeuristic = (*result)["expansion"].as<int>();
 
 
     Cudd mgr;
     //mgr.AutodynDisable();
     std::ifstream input_file;
     //Solver *solver;
-    if (argc <= 1) {
+    /*if (argc <= 1) {
         throw "wrong args";
         return -1;
-    } /*else {
+    }*/ /*else {
         if (std::stoi(argw[1]) == 0) {
             solver = new SimpleSolver(mgr);
         } else {
@@ -58,7 +97,7 @@ int main(int argc, char **argw)
 
     
 
-    if (argc > 2) {
+   // if (argc > 2) {
 
 /**************************/
         //delete solver;
@@ -72,10 +111,10 @@ int main(int argc, char **argw)
             statusOutput << argw[2] << ',';
         }*/
         try {
-            preprocessorSolved = parser->parse(argw[2]);
+            preprocessorSolved = parser->parse(fileName);
             std::cout << "Parsing finished" << std::endl;
             //statusOutput << 'P';
-            if (std::stoi(argw[1]) == 0) {
+            if (!localise) {
                 f = parser->getFormula();
             } else {
                 auto qtroot = parser->getQuantifierTree();
@@ -117,7 +156,7 @@ int main(int argc, char **argw)
         
         delete f;
         return rc;
-    }
+   // }
 /**********************/
 /*
         input_file.open(argw[2]);

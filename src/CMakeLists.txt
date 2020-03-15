@@ -21,6 +21,7 @@ add_executable(DQBDD
                 )
 target_link_libraries(DQBDD cudd)
 target_link_libraries(DQBDD hqspre)
+target_link_libraries(DQBDD cxxopts)
 
 # old way to link to cudd
 #include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../cudd/)
