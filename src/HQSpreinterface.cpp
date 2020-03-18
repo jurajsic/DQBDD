@@ -313,5 +313,7 @@ QuantifierTreeNode* HQSPreInterface::getQuantifierTree() {
         }
     }
 
-    return new QuantifierTree(true, clauses, DQBFPrefix);  
+    auto qt = new QuantifierTree(true, clauses, DQBFPrefix);
+    DQBFPrefix.clear();
+    return qt;
 }
