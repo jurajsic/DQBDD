@@ -17,6 +17,26 @@
  * along with DQBDD. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "solver.hpp"
+#ifndef DQBDD_DQDIMACSPARSER_HPP
+#define DQBDD_DQDIMACSPARSER_HPP
 
-Solver::Solver(const Cudd &mgr) : mgr(mgr) {}
+#include "parser.hpp"
+
+/**
+ * @brief Base function for formula parsers to inherit from.
+ */
+class DQDIMACSParser {
+    Cudd &mgr;
+    QuantifiedVariablesManipulator DQBFPrefix;
+
+    typedef std::pair<bool,Variable> Literal;
+    std::vector<std::vector<Literal>> clauses;
+public:
+    DQDIMACSParser(Cudd &mgr, QuantifiedVariablesManager &qvmgr);
+    // returns true if resulting formula is trivial (equal to TRUE or FALSE)
+    bool parse(std::string fileName);
+    Formula* getFormula();
+    QuantifierTreeNode* getQuantifierTree();
+};
+
+#endif

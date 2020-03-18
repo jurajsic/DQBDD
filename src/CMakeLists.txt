@@ -10,14 +10,10 @@ add_executable(DQBDD
                 quantifiedvariablesmanipulator.hpp
                 quantifiertree.cpp
                 quantifiertree.hpp
-                #simplesolver.cpp
-                #simplesolver.hpp
-                #solver.cpp
-                #solver.hpp
-                #treesolver.cpp
-                #treesolver.hpp
                 DQBDDvariable.cpp
                 DQBDDvariable.hpp
+                DQDIMACSparser.cpp
+                DQDIMACSparser.hpp
                 )
 target_link_libraries(DQBDD cudd)
 target_link_libraries(DQBDD hqspre)

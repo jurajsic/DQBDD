@@ -44,6 +44,7 @@ int main(int argc, char **argv)
 
     // argument parsing
     cxxopts::Options options("DQBDD", "A DQBF solver using BDDs.");
+    // TODO add argument for choosing wheether to use HQSpre or not (then use either HQSpreinterface parser of DQDIMACSparser)
     options.add_options()
         ("h,help", "Print usage")
         ("l,localise", "Push quantifiers inside the formula")
@@ -82,7 +83,7 @@ int main(int argc, char **argv)
 
     Cudd mgr;
     //mgr.AutodynDisable();
-    std::ifstream input_file;
+    //std::ifstream input_file;
     //Solver *solver;
     /*if (argc <= 1) {
         throw "wrong args";
