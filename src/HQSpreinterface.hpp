@@ -26,7 +26,7 @@
 
 class HQSPreInterface : public Parser {
 private:
-    // using pimpl idiom to hide implementation of HQSPre
+    // using pimpl idiom to hide the implementation of HQSPre
     class HQSPreFormulaWrapper;
     std::unique_ptr<HQSPreFormulaWrapper> formulaPtr;
 

@@ -88,6 +88,8 @@ bool DQDIMACSParser::parse(std::string fileName) {
             clauses.push_back(disj);
         }
     }
+
+    return false;
 }
 
 Formula* DQDIMACSParser::getFormula() {

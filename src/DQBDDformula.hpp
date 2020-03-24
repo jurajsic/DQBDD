@@ -28,6 +28,13 @@
 #include "DQBDDvariable.hpp"
 #include "quantifiedvariablesmanipulator.hpp"
 
+// heuristic by which next universal variable for elimination is chosen
+enum UnivVarElimHeuristic {
+    NumOfDependenciesOnce, // by number of existential variables dependent on u. vars decided at beginning
+    NumOfDependenciesContinuous, // by number of existential variables dependent on u. vars decided each time u. var to eliminate is chosen 
+    NumOfLeftoverVarsInConjuncts, // by doing  phi[x=0] and phi[x=1] (as BDDs) and checking how much variables are leftover in them
+};
+
 class Formula : public virtual QuantifiedVariablesManipulator {
 private:
 
@@ -38,6 +45,11 @@ private:
     std::ostream& print(std::ostream& out) const override;
 
     bool needToRecomputeSupportSet = true;
+
+    UnivVarElimHeuristic uVarElimHeur;
+    std::vector<Variable> univVarsOrderToRemove;
+    void initializeUnivVarEliminationOrder();
+    Variable getUnivVarToEliminate();
 
 public:
     Formula() = delete;

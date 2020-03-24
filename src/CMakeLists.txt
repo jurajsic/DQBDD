@@ -1,5 +1,6 @@
 # Create the DQBF-BDD solver binary
 add_executable(DQBDD
+                DQBDDexceptions.hpp
                 DQBDDformula.cpp
                 DQBDDformula.hpp
                 HQSpreinterface.cpp

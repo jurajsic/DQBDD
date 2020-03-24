@@ -18,12 +18,11 @@
  */
 
 #include <easylogging++.hpp>
-//#include "../libs/hqspre-1.4/src/formula.hpp"
 #include <formula.hpp>
 
 #include "HQSpreinterface.hpp"
+#include "DQBDDexceptions.hpp"
 
-// TODO define exceptions
 // TODO univ expand - 0 or 2?
 
 INITIALIZE_EASYLOGGINGPP
@@ -72,7 +71,7 @@ public:
 
             default:
             {
-                throw "Invalid gate type encountered!";
+                throw DQBDDexception("Invalid gate type encountered");
                 break;
             }
         }
@@ -139,7 +138,7 @@ public:
 
             default:
             {
-                throw "Invalid gate type encountered!";
+                throw DQBDDexception("Invalid gate type encountered");
                 break;
             }
         }
@@ -172,11 +171,11 @@ bool HQSPreInterface::parse(std::string fileName) {
     // Parse the file
     std::string in_name(fileName);
     if (in_name == "") {
-        throw "No input file given.";
+        throw DQBDDexception("No input file given.");
     }
     std::ifstream in(in_name);
     if (!in) {
-        throw std::string("Could not open input file '") + in_name + std::string("'!");
+        throw DQBDDexception("Could not open input file '");
     }
     in >> formulaPtr->formula;
     in.close();
@@ -217,7 +216,7 @@ bool HQSPreInterface::parse(std::string fileName) {
             Variable uVar = Variable(var, mgr);
             DQBFPrefix.addUnivVar(uVar);
             formulaPtr->gate_table[var] = uVar;
-        } else if (formulaPtr->formula.isExistential(var) && !formulaPtr->formula.isGateOutput(var)) { // TODO copy files from HQSfork
+        } else if (formulaPtr->formula.isExistential(var) && !formulaPtr->formula.isGateOutput(var)) {
             Variable eVar = Variable(var, mgr);
             DQBFPrefix.addExistVar(eVar);
             for (auto dep : formulaPtr->formula.getDependencies(var)) {
@@ -236,7 +235,7 @@ bool HQSPreInterface::parse(std::string fileName) {
 
 Formula* HQSPreInterface::getFormula() {
     if (formulaPtr == nullptr) {
-        throw "A file must be parsed first!";
+        throw DQBDDexception("A file must be parsed before it is possible to get formula");
     }
 
     Formula *DQBFformula = new Formula(mgr, DQBFPrefix);
@@ -277,7 +276,7 @@ Formula* HQSPreInterface::getFormula() {
 
 QuantifierTreeNode* HQSPreInterface::getQuantifierTree() {
     if (formulaPtr == nullptr) {
-        throw "A file must be parsed first!";
+        throw DQBDDexception("A file must be parsed first before it is possible to get quantifier tree");
     }
 
     if (formulaPtr->isSat || formulaPtr->isUnSat) {

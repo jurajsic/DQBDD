@@ -25,7 +25,7 @@
 /**
  * @brief Base function for formula parsers to inherit from.
  */
-class DQDIMACSParser {
+class DQDIMACSParser : public Parser {
     Cudd &mgr;
     QuantifiedVariablesManipulator DQBFPrefix;
 

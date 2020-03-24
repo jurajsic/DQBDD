@@ -20,6 +20,7 @@
 #include <iostream>
 #include <algorithm>
 
+#include "DQBDDexceptions.hpp"
 #include "DQBDDformula.hpp"
 
 //Formula::Formula(const Cudd &mgr) : mgr(mgr) {}
@@ -34,7 +35,7 @@ BDD Formula::getMatrix() const {
 
 void Formula::setMatrix(const BDD &matrix) {
     if (mgr.getManager() != matrix.manager()) {
-        throw "Managers are fucking different mate";
+        throw DQBDDexception("Not possible to set matrix of formula with BDD from different CUDD manager.");
     }
     this->matrix = matrix;
     needToRecomputeSupportSet = true;
@@ -160,21 +161,30 @@ VariableSet Formula::getPossibleExistVarsToEliminate() {
     return possibleExistVarsToEliminate;
 }
 
-void Formula::eliminatePossibleVars() {
-    removeUnusedVars();
+void Formula::initializeUnivVarEliminationOrder() {
+    switch (uVarElimHeur)
+    {
+    case UnivVarElimHeuristic::NumOfDependenciesOnce:
+    {
+        univVarsOrderToRemove.assign(getUnivVars().begin(), getUnivVars().end());
+        std::sort(univVarsOrderToRemove.begin(), univVarsOrderToRemove.end(),
+                    [&](Variable a, Variable b) {
+                        return (getUnivVarDependencies(a).size() > getUnivVarDependencies(b).size());
+                    }
+                );
+        break;
+    }
+    default:
+        throw DQBDDexception("Chosen heuristic to choose next universal variable to eliminate is not implemented.");
+        break;
+    }
+}
 
-    // the order of removal of univ vars is based on the number of depending existential variables
-    std::vector<Variable> univVarsOrderToRemove(getUnivVars().begin(), getUnivVars().end());
-    std::sort(univVarsOrderToRemove.begin(), univVarsOrderToRemove.end(),
-                [&](Variable a, Variable b) {
-                    return (getUnivVarDependencies(a).size() > getUnivVarDependencies(b).size());
-                }
-            );
-    /* lambda function that gives us the next universal variable to remove (the one 
-     * that had the least amount of depending existential variables at the beginning 
-     * of removal)
-     */
-    auto getNextUnivVarToRemove = [&]() {
+Variable Formula::getUnivVarToEliminate() {
+    switch (uVarElimHeur)
+    {
+    case UnivVarElimHeuristic::NumOfDependenciesOnce:
+    {
         Variable v = univVarsOrderToRemove.back();
         univVarsOrderToRemove.pop_back();
         while (!getUnivVars().contains(v)) {
@@ -182,7 +192,21 @@ void Formula::eliminatePossibleVars() {
             univVarsOrderToRemove.pop_back();
         }
         return v;
-    };
+    }
+    default:
+        throw DQBDDexception("Chosen heuristic to choose next universal variable to eliminate is not implemented.");
+        break;
+    }
+}
+
+/**
+ * @brief Iteratively remove universal variables and all possible existential variables in this (sub)formula
+ * 
+ */
+void Formula::eliminatePossibleVars() {
+    removeUnusedVars();
+
+    initializeUnivVarEliminationOrder();
 
     while (!getUnivVars().empty()) {
         //printFormulaStats();
@@ -204,28 +228,26 @@ void Formula::eliminatePossibleVars() {
         //printFormulaStats();
         //reorder();
 
-        // TODO!!!!!!!!!-what logic? find the universal variable to remove next
-        //Variable uVarToEliminate = *getUnivVars().begin();
-        Variable uVarToEliminate = getNextUnivVarToRemove();
+        Variable uVarToEliminate = getUnivVarToEliminate();
         std::cout << "Eliminating univ variable " << uVarToEliminate.getId() << std::endl;
         eliminateUnivVar(uVarToEliminate);
         
         removeUnusedVars();
     }
 
-    // TODO add logic for deleting all exist vars (just check if matrix == 0 in that case)
     // If all exist vars are quantified here -> it means we just need to check if BDD != 0
     // because otherwise there is a path to 1 resulting in assignment which satisfies this formula.
     // But we also have to check if there are no universal vars in support set.
     // If size of support set is larger than the number of quantified exist vars
     // then some univ var that is earlier in formula is in support set.
-    if (getExistVars().size() == qvMgr->getNumberOfExistVars() && getSupportSet().size() == getExistVars().size()) {
+    if (getExistVars().size() == qvMgr->getNumberOfExistVars() // all existential variables are in this formula --> it is not a subformula but whole formula
+         && getSupportSet().size() == getExistVars().size()) { // only existential variables are here
         if (!getMatrix().IsZero()) {
             setMatrix(mgr.bddOne());
             clear();
         }
-    } else {
-        // we need to properly check if there are some leftover exist vars possible to eliminate
+    } else { // this is just a subformula, we cannot just remove existential variables
+        // but we can check if there are some leftover exist vars possible to eliminate
         VariableSet existVarsToEliminate = getPossibleExistVarsToEliminate();
         while (existVarsToEliminate.size() !=0) {
             eliminateExistVars(existVarsToEliminate);
