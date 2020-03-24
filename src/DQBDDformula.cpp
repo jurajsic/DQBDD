@@ -174,6 +174,8 @@ void Formula::initializeUnivVarEliminationOrder() {
                 );
         break;
     }
+    case UnivVarElimHeuristic::NumOfDependenciesContinuous:
+        return;
     default:
         throw DQBDDexception("Chosen heuristic to choose next universal variable to eliminate is not implemented.");
         break;
@@ -192,6 +194,14 @@ Variable Formula::getUnivVarToEliminate() {
             univVarsOrderToRemove.pop_back();
         }
         return v;
+    }
+    case UnivVarElimHeuristic::NumOfDependenciesContinuous:
+    {
+        return *std::min_element(getUnivVars().begin(), getUnivVars().end(),
+                    [&](Variable a, Variable b) {
+                        return (getUnivVarDependencies(a).size() < getUnivVarDependencies(b).size());
+                    }
+                );
     }
     default:
         throw DQBDDexception("Chosen heuristic to choose next universal variable to eliminate is not implemented.");
