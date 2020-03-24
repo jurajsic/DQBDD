@@ -40,7 +40,6 @@ int main(int argc, char **argv)
 {
     // argument parsing
     cxxopts::Options options("DQBDD", "A DQBF solver using BDDs.");
-    // TODO add argument for choosing wheether to use HQSpre or not (then use either HQSpreinterface parser of DQDIMACSparser)
     options.add_options()
         ("h,help", "Print usage")
         ("v,version", "Print the version number")
@@ -105,7 +104,11 @@ int main(int argc, char **argv)
             f = parser->getFormula();
         } else {
             auto qtroot = parser->getQuantifierTree();
-            std::cout << "Created quantifier tree" << std::endl;
+            if (!preprocessorSolved) {
+                std::cout << "Created quantifier tree" << std::endl;
+                qtroot->localise();
+                std::cout << "Pushed quantifiers inside" << std::endl;
+            }
             f = qtroot->changeToFormula(mgr);
         }
     } catch(const std::exception &e) {
@@ -116,10 +119,10 @@ int main(int argc, char **argv)
 
     delete parser;
     
-    std::cout << "Created BDD formula" << std::endl;
     ReturnCode rc;
 
     if (!preprocessorSolved) {
+        std::cout << "Created BDD formula" << std::endl;
         f->eliminatePossibleVars();
     } else {
         std::cout << "Solved by preprocessor" << std::endl;

@@ -46,7 +46,7 @@ private:
 
     bool needToRecomputeSupportSet = true;
 
-    UnivVarElimHeuristic uVarElimHeur;
+    UnivVarElimHeuristic uVarElimHeur = UnivVarElimHeuristic::NumOfDependenciesOnce;
     std::vector<Variable> univVarsOrderToRemove;
     void initializeUnivVarEliminationOrder();
     Variable getUnivVarToEliminate();

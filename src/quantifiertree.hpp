@@ -51,7 +51,7 @@ public:
     QuantifierTreeFormula(const Cudd &mgr, QuantifiedVariablesManager &qvmgr);
     QuantifierTreeFormula(const Cudd &mgr, QuantifiedVariablesManipulator &qvManipulator);
     void localise();
-    QuantifierTreeFormula* changeToFormula(Cudd &mgr);
+    QuantifierTreeFormula* changeToFormula(Cudd &);
     void negate();
 };
 

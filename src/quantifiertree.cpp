@@ -375,7 +375,7 @@ void QuantifierTreeFormula::localise() {
     removeUnusedVars();
 }
 
-QuantifierTreeFormula* QuantifierTreeFormula::changeToFormula(Cudd &mgr) {
+QuantifierTreeFormula* QuantifierTreeFormula::changeToFormula(Cudd &) {
     return this;
 }
 
