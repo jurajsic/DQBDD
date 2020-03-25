@@ -45,16 +45,16 @@ int main(int argc, char **argv)
         ("v,version", "Print the version number")
         ("l,localise", "Push quantifiers inside the formula")
         ("p,preprocess", "Use preprocessing")
-        ("r,removal", "The heuristics to decide what to remove in each subformula", cxxopts::value<int>()->default_value("1"))
+        ("r,removal", "The heuristics to decide what to remove in each subformula", cxxopts::value<int>()->default_value("0"))
         ("e,expansion", "The heuristics to decide how to choose the next universal variable for expansion", cxxopts::value<int>()->default_value("1"))
         ("f,file","DQDIMACS file to solve",cxxopts::value<std::string>())
         ;
     options.parse_positional({"file"});
     options.positional_help("<input file>");
     
-    cxxopts::ParseResult *result;
+    std::unique_ptr<cxxopts::ParseResult> result;
     try {
-        result = new cxxopts::ParseResult(options.parse(argc, argv));
+        result.reset(new cxxopts::ParseResult(options.parse(argc, argv)));
     } catch (const cxxopts::OptionParseException& e) {
         std::cerr << "Parsing error: " << e.what() << std::endl;
         return -1;
@@ -80,15 +80,16 @@ int main(int argc, char **argv)
     bool localise = result->count("localise");
     bool preprocess = result->count("preprocess");
     // for now, this is doing nothing
-    int removeHeuristic = (*result)["removal"].as<int>();
+    // TODO check if it is not out of range 
+    UnivVarElimHeuristic removeHeuristic = static_cast<UnivVarElimHeuristic>((*result)["removal"].as<int>());
     // for noww this is doing nothing
     int varToExpansionHeuristic = (*result)["expansion"].as<int>();
 
 
     Cudd mgr;
     //mgr.AutodynDisable();
-    QuantifiedVariablesManager qvMgr;
-    Formula *f;
+    QuantifiedVariablesManager qvMgr(removeHeuristic);
+    Formula *f = nullptr;
     bool preprocessorSolved = false;
     Parser *parser;
     if (preprocess) {
@@ -123,7 +124,13 @@ int main(int argc, char **argv)
 
     if (!preprocessorSolved) {
         std::cout << "Created BDD formula" << std::endl;
-        f->eliminatePossibleVars();
+        try {
+            f->eliminatePossibleVars();
+        } catch(const std::exception &e) {
+            std::cerr << e.what() << std::endl;
+            delete f;
+            return -1;
+        }
     } else {
         std::cout << "Solved by preprocessor" << std::endl;
     }

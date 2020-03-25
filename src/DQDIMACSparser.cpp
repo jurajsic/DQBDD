@@ -72,7 +72,7 @@ bool DQDIMACSParser::parse(std::string fileName) {
             auto getLiteralFromStr = [&](std::string tok) {
                 int i = std::stoi(tok);
                 if (i < 0) {
-                    return Literal(false, Variable(i,mgr));
+                    return Literal(false, Variable(-i,mgr));
                 } else {
                     return Literal(true, Variable(i,mgr));
                 }
@@ -91,6 +91,8 @@ bool DQDIMACSParser::parse(std::string fileName) {
 
     return false;
 }
+
+#include <iostream>
 
 Formula* DQDIMACSParser::getFormula() {
     BDD matrix = mgr.bddOne();

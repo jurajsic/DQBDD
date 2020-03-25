@@ -30,6 +30,8 @@ bool VariableSet::contains(Variable const &var) const {
 /********************************************/
 /********************************************/
 
+QuantifiedVariablesManager::QuantifiedVariablesManager(UnivVarElimHeuristic uVarElimHeur) : uVarElimHeur(uVarElimHeur) {}
+
 void QuantifiedVariablesManager::addExistVarInstance(Variable eVar) {
     ++numberOfUsedExistVars[eVar];
     if (numberOfUsedExistVars[eVar] == 1) { // if eVar is newly added

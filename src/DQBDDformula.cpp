@@ -25,9 +25,9 @@
 
 //Formula::Formula(const Cudd &mgr) : mgr(mgr) {}
 
-Formula::Formula(const Cudd &mgr, QuantifiedVariablesManager &qvmgr) : QuantifiedVariablesManipulator(qvmgr), mgr(mgr) {}
+Formula::Formula(const Cudd &mgr, QuantifiedVariablesManager &qvmgr) : QuantifiedVariablesManipulator(qvmgr), mgr(mgr), uVarElimHeur(qvMgr->uVarElimHeur) {}
 
-Formula::Formula(const Cudd &mgr, QuantifiedVariablesManipulator &qvManipulator) : QuantifiedVariablesManipulator(qvManipulator), mgr(mgr) {}
+Formula::Formula(const Cudd &mgr, QuantifiedVariablesManipulator &qvManipulator) : QuantifiedVariablesManipulator(qvManipulator), mgr(mgr), uVarElimHeur(qvMgr->uVarElimHeur) {}
 
 BDD Formula::getMatrix() const {
     return matrix;

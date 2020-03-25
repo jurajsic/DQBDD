@@ -167,6 +167,7 @@ bool HQSPreInterface::parse(std::string fileName) {
     el::Loggers::reconfigureAllLoggers(defaultConf);
     el::Loggers::setVerboseLevel(1);
 
+    formulaPtr->formula.settings().consistency_check = false;
 
     // Parse the file
     std::string in_name(fileName);
@@ -182,14 +183,28 @@ bool HQSPreInterface::parse(std::string fileName) {
 
     // do the preprocessing magic
     try {
-        formulaPtr->formula.settings().bla = false;
-        formulaPtr->formula.settings().ble = false;
-        formulaPtr->formula.settings().preserve_gates = true;
-        formulaPtr->formula.settings().substitution = false;
-        formulaPtr->formula.settings().rewrite = false;
-        formulaPtr->formula.settings().max_loops = 20;
-        formulaPtr->formula.settings().univ_expand = 2;
+        formulaPtr->formula.determineGates(true, true, false, false);
+        if (formulaPtr->formula.getGates().size() > 5) {
+            // First do full preprocessing on a copy of the formula
+            hqspre::Formula formula2(formulaPtr->formula);
+            formula2.settings().bla              = false;
+            formula2.settings().ble              = false;
+            formula2.settings().pure_sat_timeout = 1000;
+            formula2.preprocess();
+
+            // Then do preprocessing, preserving gates
+            formulaPtr->formula.settings().univ_expand      = 0; // maybe 2 is better???
+            formulaPtr->formula.settings().bla              = false;
+            formulaPtr->formula.settings().ble              = false;
+            formulaPtr->formula.settings().preserve_gates   = true;
+            formulaPtr->formula.settings().substitution     = false;
+            formulaPtr->formula.settings().rewrite          = false;
+            formulaPtr->formula.settings().resolution       = false;
+            formulaPtr->formula.settings().max_loops        = 20;
+            formulaPtr->formula.settings().pure_sat_timeout = 1000;
+        }
         formulaPtr->formula.preprocess();
+        formulaPtr->formula.printStatistics();
     } catch (hqspre::SATException&) {
         formulaPtr->isSat = true;
         return true;
@@ -199,10 +214,9 @@ bool HQSPreInterface::parse(std::string fileName) {
     }
 
     // do gate extraction
+    formulaPtr->formula.determineGates(true, true, false, false);
     formulaPtr->formula.enforceDQBF(true);
     formulaPtr->formula.unitPropagation();
-    formulaPtr->formula.determineGates(true, true, false, false);
-    formulaPtr->formula.printStatistics();
 
     const auto gates = formulaPtr->formula.getGates();
 

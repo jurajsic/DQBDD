@@ -20,13 +20,13 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 # enable logging for HQSpre
 add_definitions("-DLOGGING=true")
 
-# Find librt (used for timeout handling in hqspre)
+# Find librt (used for timeout handling in HQSpre)
 find_package(RT REQUIRED)
 add_library(rt IMPORTED INTERFACE)
 set_property(TARGET rt PROPERTY INTERFACE_LINK_LIBRARIES  "${RT_LIBRARIES}")
 set_property(TARGET rt PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${RT_INCLUDES}")
 
-# Try to find GLPK (used as MILP solver)
+# Try to find GLPK (used as MILP solver in HQSpre)
 find_package(GLPK)
 if (GLPK_FOUND)
     add_library(glpk IMPORTED INTERFACE)
@@ -35,8 +35,7 @@ if (GLPK_FOUND)
     set_property(TARGET glpk PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${GLPK_INCLUDE_DIRS}")
 endif()
 
-
-# Enable OpenMP (used by the Antom SAT solver)
+# Enable OpenMP (used by the Antom SAT solver which is used in HQSpre)
 find_package(OpenMP REQUIRED)
 add_library(openmp IMPORTED INTERFACE)
 set_property(TARGET openmp PROPERTY INTERFACE_COMPILE_OPTIONS ${OpenMP_CXX_FLAGS})

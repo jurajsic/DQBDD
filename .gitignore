@@ -9,3 +9,5 @@ debug/
 #*.o
 #solver
 build/*
+
+src/hqspresimple.cpp
