@@ -42,4 +42,5 @@ int main(int, char **argv)
     }
 
     std::cout << formula;
+    return 30;
 }
