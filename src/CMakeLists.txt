@@ -36,3 +36,11 @@ install(TARGETS DQBDD
         ARCHIVE DESTINATION ${CMAKE_BINARY_DIR}/lib
         INCLUDES DESTINATION ${CMAKE_BINARY_DIR}/include
        )
+
+add_executable(HQSpresimple
+                hqspresimple.cpp
+              )
+target_link_libraries(HQSpresimple hqspre)
+target_link_libraries(HQSpresimple -static-libgcc -static-libstdc++)
+target_compile_options(HQSpresimple PRIVATE -Wall -Wextra -Wpedantic)
+

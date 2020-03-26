@@ -10,4 +10,4 @@ debug/
 #solver
 build/*
 
-src/hqspresimple.cpp
+#src/hqspresimple.cpp
