@@ -5,6 +5,13 @@ project(DQBDD VERSION 0.1 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# use only static libraries
+set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+find_package(LTDL REQUIRED)
+add_library(ltdl IMPORTED INTERFACE)
+set_property(TARGET ltdl PROPERTY INTERFACE_LINK_LIBRARIES  "${LTDL_LIBRARIES}")
+set_property(TARGET ltdl PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${LTDL_INCLUDES}")
+
 ########################################################################################
 ################################### Stuff for HQSpre ###################################
 ########################################################################################

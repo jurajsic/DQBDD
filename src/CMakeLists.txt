@@ -16,17 +16,19 @@ add_executable(DQBDD
                 DQDIMACSparser.cpp
                 DQDIMACSparser.hpp
                 )
-target_link_libraries(DQBDD cudd)
-target_link_libraries(DQBDD hqspre)
-target_link_libraries(DQBDD cxxopts)
+target_link_libraries(DQBDD PUBLIC cudd
+                            PUBLIC hqspre
+                            PUBLIC cxxopts)
 
 # old way to link to cudd
 #include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../cudd/)
 #target_link_libraries(solver ${CMAKE_CURRENT_SOURCE_DIR}/../cudd/libs/libobj.a)
 #target_link_libraries(solver ${CMAKE_CURRENT_SOURCE_DIR}/../cudd/libs/libcudd.a)
 
-# statically link to standard library
-target_link_libraries(DQBDD -static-libgcc -static-libstdc++)
+# statically link to stuff
+target_link_libraries(DQBDD PRIVATE -static)
+target_link_libraries(DQBDD PRIVATE ltdl)
+set_target_properties(DQBDD PROPERTIES LINK_SEARCH_END_STATIC 1)
 
 target_compile_options(DQBDD PRIVATE -Wall -Wextra -Wpedantic)
 
@@ -40,7 +42,9 @@ install(TARGETS DQBDD
 add_executable(HQSpresimple
                 hqspresimple.cpp
               )
-target_link_libraries(HQSpresimple hqspre)
-target_link_libraries(HQSpresimple -static-libgcc -static-libstdc++)
+target_link_libraries(HQSpresimple PUBLIC hqspre)
+target_link_libraries(HQSpresimple PRIVATE -static)
+target_link_libraries(HQSpresimple PRIVATE ltdl)
+set_target_properties(HQSpresimple PROPERTIES LINK_SEARCH_END_STATIC 1)
 target_compile_options(HQSpresimple PRIVATE -Wall -Wextra -Wpedantic)
 
