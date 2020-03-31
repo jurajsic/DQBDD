@@ -25,7 +25,7 @@
 
 #define ELPP_STL_LOGGING
 #include <easylogging++.hpp>
-#include "aux.hpp"
+#include "auxil.hpp"
 #include "clause.hpp"
 #include "formula.hpp"
 #include "literal.hpp"

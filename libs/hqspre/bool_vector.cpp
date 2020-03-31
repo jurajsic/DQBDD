@@ -23,7 +23,7 @@
 #include <cstring>
 #include <ostream>
 
-#include "aux.hpp"
+#include "auxil.hpp"
 
 /**
  * \file bool_vector.cpp

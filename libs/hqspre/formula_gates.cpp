@@ -29,7 +29,7 @@
 
 #include <easylogging++.hpp>
 
-#include "aux.hpp"
+#include "auxil.hpp"
 #include "clause.hpp"
 #include "gate.hpp"
 #include "literal.hpp"

@@ -32,7 +32,7 @@
 #include <utility>
 #include <vector>
 
-#include "aux.hpp"
+#include "auxil.hpp"
 #include "clause.hpp"
 #include "exceptions.hpp"
 #include "gate.hpp"

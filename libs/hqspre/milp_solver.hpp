@@ -25,7 +25,7 @@
 
 #include <vector>
 
-#include "aux.hpp"
+#include "auxil.hpp"
 
 #if defined(HAVE_GLPK)
 // forward declarations

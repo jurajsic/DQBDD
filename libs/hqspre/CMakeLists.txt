@@ -1,7 +1,7 @@
 # Create the HQSpre library
 
 add_library(hqspre STATIC
-              aux.hpp
+              auxil.hpp
               bool_vector.hpp
               bool_vector.ipp
               bool_vector.cpp

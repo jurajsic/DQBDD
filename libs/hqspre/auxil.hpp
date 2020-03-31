@@ -27,7 +27,7 @@
 #include <utility>
 
 /**
- * \file aux.hpp
+ * \file auxil.hpp
  * \brief Auxiliary macros and functions (mainly optimized set operations)
  * \author Ralf Wimmer
  * \date 2015-16

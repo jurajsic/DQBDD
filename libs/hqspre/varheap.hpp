@@ -24,7 +24,7 @@
 #include <cstdint>
 #include <vector>
 
-#include "aux.hpp"
+#include "auxil.hpp"
 
 /**
  * \file varheap.hpp
