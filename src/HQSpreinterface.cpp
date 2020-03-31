@@ -152,6 +152,8 @@ public:
 
 HQSPreInterface::HQSPreInterface(Cudd &mgr, QuantifiedVariablesManager &qvmgr) : formulaPtr(nullptr), mgr(mgr), DQBFPrefix(qvmgr) {}
 
+HQSPreInterface::~HQSPreInterface() = default;
+
 // code based on hqsfork
 bool HQSPreInterface::parse(std::string fileName) {
     formulaPtr.reset(new HQSPreFormulaWrapper());
@@ -187,9 +189,9 @@ bool HQSPreInterface::parse(std::string fileName) {
         if (formulaPtr->formula.getGates().size() > 5) {
             // First do full preprocessing on a copy of the formula
             hqspre::Formula formula2(formulaPtr->formula);
-            formula2.settings().bla              = false;
-            formula2.settings().ble              = false;
-            formula2.settings().pure_sat_timeout = 1000;
+            //formula2.settings().bla              = false;
+            //formula2.settings().ble              = false;
+            //formula2.settings().pure_sat_timeout = 1000;
             formula2.preprocess();
 
             // Then do preprocessing, preserving gates
@@ -201,7 +203,7 @@ bool HQSPreInterface::parse(std::string fileName) {
             formulaPtr->formula.settings().rewrite          = false;
             formulaPtr->formula.settings().resolution       = false;
             formulaPtr->formula.settings().max_loops        = 20;
-            formulaPtr->formula.settings().pure_sat_timeout = 1000;
+            //formulaPtr->formula.settings().pure_sat_timeout = 1000;
         }
         formulaPtr->formula.preprocess();
         formulaPtr->formula.printStatistics();
@@ -224,7 +226,6 @@ bool HQSPreInterface::parse(std::string fileName) {
     formulaPtr->outputvarToGate = std::vector<const hqspre::Gate*>(formulaPtr->formula.maxVarIndex() + 1);
 
     // Create the proper problem variables (without Tseitin variables)
-    // First all universal variables, then the existential ones (as the universal occur in the dependency sets)
     for (hqspre::Variable var = formulaPtr->formula.minVarIndex(); var <= formulaPtr->formula.maxVarIndex(); ++var) {
         if (formulaPtr->formula.isUniversal(var)) {
             Variable uVar = Variable(var, mgr);

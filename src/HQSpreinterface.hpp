@@ -42,6 +42,7 @@ public:
     bool parse(std::string fileName);
     Formula* getFormula();
     QuantifierTreeNode* getQuantifierTree();
+    ~HQSPreInterface();
 };
 
 #endif

@@ -31,9 +31,9 @@
 enum ReturnCode {
     SAT = 10,
     UNSAT = 20,
-    SATPRE = 30, // solved by HQSpre
-    UNSATPRE = 40, // solved by HQSpre
-    UNKNOWN = 50
+    SATPRE = 10, // solved by HQSpre
+    UNSATPRE = 20, // solved by HQSpre
+    UNKNOWN = 0
 };
 
 int main(int argc, char **argv)
@@ -91,39 +91,45 @@ int main(int argc, char **argv)
     QuantifiedVariablesManager qvMgr(removeHeuristic);
     Formula *f = nullptr;
     bool preprocessorSolved = false;
-    Parser *parser;
-    if (preprocess) {
-        parser = new HQSPreInterface(mgr, qvMgr);
-    } else {
-        parser = new DQDIMACSParser(mgr,qvMgr);
-    }
 
     try {
+        std::unique_ptr<Parser> parser;
+        std::cout << "Parsing" << std::endl;
+        if (preprocess) {
+            parser = std::make_unique<HQSPreInterface>(mgr, qvMgr);
+            std::cout << "Starting HQSpre" << std::endl;
+        } else {
+            parser = std::make_unique<DQDIMACSParser>(mgr,qvMgr);
+        }
         preprocessorSolved = parser->parse(fileName);
         std::cout << "Parsing finished" << std::endl;
         if (!localise) {
+            if (!preprocessorSolved) {
+                std::cout << "Creating BDD formula" << std::endl;
+            }
             f = parser->getFormula();
         } else {
+            if (!preprocessorSolved) {
+                std::cout << "Creating quantifier tree" << std::endl;
+            }
             auto qtroot = parser->getQuantifierTree();
             if (!preprocessorSolved) {
-                std::cout << "Created quantifier tree" << std::endl;
+                std::cout << "Pushing quantifiers inside" << std::endl;
                 qtroot->localise();
-                std::cout << "Pushed quantifiers inside" << std::endl;
+                std::cout << "Creating BDD formula" << std::endl;
             }
             f = qtroot->changeToFormula(mgr);
         }
     } catch(const std::exception &e) {
         std::cerr << e.what() << std::endl;
-        delete parser;
         return -1; 
     }
 
-    delete parser;
     
     ReturnCode rc;
 
     if (!preprocessorSolved) {
-        std::cout << "Created BDD formula" << std::endl;
+        std::cout << "Eliminating universal variables" << std::endl;
         try {
             f->eliminatePossibleVars();
         } catch(const std::exception &e) {

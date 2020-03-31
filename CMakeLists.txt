@@ -7,10 +7,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # use only static libraries
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
-find_package(LTDL REQUIRED)
-add_library(ltdl IMPORTED INTERFACE)
-set_property(TARGET ltdl PROPERTY INTERFACE_LINK_LIBRARIES  "${LTDL_LIBRARIES}")
-set_property(TARGET ltdl PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${LTDL_INCLUDES}")
 
 ########################################################################################
 ################################### Stuff for HQSpre ###################################
@@ -41,6 +37,11 @@ if (GLPK_FOUND)
     set_property(TARGET glpk PROPERTY INTERFACE_LINK_LIBRARIES      "${GLPK_LIBRARIES};${LTDL_LIBRARIES}")
     set_property(TARGET glpk PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${GLPK_INCLUDE_DIRS}")
 endif()
+
+find_package(LTDL REQUIRED)
+add_library(ltdl IMPORTED INTERFACE)
+set_property(TARGET ltdl PROPERTY INTERFACE_LINK_LIBRARIES  "${LTDL_LIBRARIES}")
+set_property(TARGET ltdl PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${LTDL_INCLUDES}")
 
 # Enable OpenMP (used by the Antom SAT solver which is used in HQSpre)
 find_package(OpenMP REQUIRED)
