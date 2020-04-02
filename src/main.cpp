@@ -114,9 +114,11 @@ int main(int argc, char **argv)
             }
             auto qtroot = parser->getQuantifierTree();
             if (!preprocessorSolved) {
-                std::cout << "Pushing quantifiers inside" << std::endl;
+                std::cout << "Quantifier tree created" << std::endl
+                          << "Pushing quantifiers inside" << std::endl;
                 qtroot->localise();
-                std::cout << "Creating BDD formula" << std::endl;
+                std::cout << "Quantifiers pushed inside" << std::endl
+                          << "Creating BDD formula" << std::endl;
             }
             f = qtroot->changeToFormula(mgr);
         }
@@ -129,7 +131,8 @@ int main(int argc, char **argv)
     ReturnCode rc;
 
     if (!preprocessorSolved) {
-        std::cout << "Eliminating universal variables" << std::endl;
+        std::cout << "BDD formula created" << std::endl;
+        std::cout << "Eliminating universal variables in the created formula" << std::endl;
         try {
             f->eliminatePossibleVars();
         } catch(const std::exception &e) {

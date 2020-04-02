@@ -128,6 +128,7 @@ QuantifierTreeNode* DQDIMACSParser::getQuantifierTree() {
             } else { // ...negated variable
                 varFormula->setMatrix(!lit.second);
             }
+            literals.push_back(varFormula);
         }
         QuantifierTree *clauseTree = new QuantifierTree(false, literals, *DQBFPrefix.getManager());
         qtClauses.push_back(clauseTree);

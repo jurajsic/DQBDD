@@ -50,6 +50,8 @@ void QuantifierTreeNode::pushUnivVar(Variable var) {
 /*******************************************/
 /*******************************************/ 
 
+#include <iostream>
+
 QuantifierTree::QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> children, QuantifiedVariablesManager &qvMgr) : QuantifiedVariablesManipulator(qvMgr), QuantifierTreeNode(qvMgr), isConj(isConj) {
     supportSet = {};
     for (QuantifierTreeNode *child : children) {
@@ -333,9 +335,33 @@ void QuantifierTree::negate() {
 }
 
 void QuantifierTree::addChild(QuantifierTreeNode *child) {
-    children.push_back(child);
+    // add variables of the child to the support set here
     for (const Variable var : child->getSupportSet()) {
         supportSet.insert(var);
+    }
+
+    // check if this child is not quantifier tree with the same operator like here
+    auto treeChild = dynamic_cast<QuantifierTree*>(child);
+    if (treeChild != nullptr && treeChild->isConj == isConj) {
+        // if it is, set its children as current children, not itself
+        for (auto childOfChild : treeChild->children) {
+            children.push_back(childOfChild);
+        }
+        treeChild->children.clear();
+
+        // and also copy the quantifier prefix
+        for (Variable uVar : child->getUnivVars()) {
+            addUnivVar(uVar);
+        }
+        for (Variable eVar : child->getExistVars()) {
+            addExistVar(eVar);
+        }
+        treeChild->clear();
+
+        // and finally delete it
+        delete child;
+    } else {
+        children.push_back(child);
     }
 }
 
