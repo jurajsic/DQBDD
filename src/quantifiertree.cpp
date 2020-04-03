@@ -340,27 +340,20 @@ void QuantifierTree::addChild(QuantifierTreeNode *child) {
         supportSet.insert(var);
     }
 
-    // check if this child is not quantifier tree with the same operator like here
+    // check if this child is not quantifier tree with the same operator like here and empty quantifier prefix
     auto treeChild = dynamic_cast<QuantifierTree*>(child);
-    if (treeChild != nullptr && treeChild->isConj == isConj) {
+    if (treeChild != nullptr && treeChild->isConj == isConj 
+                && !(treeChild->getExistVars().empty() && treeChild->getUnivVars().empty())) {
         // if it is, set its children as current children, not itself
         for (auto childOfChild : treeChild->children) {
             children.push_back(childOfChild);
         }
         treeChild->children.clear();
 
-        // and also copy the quantifier prefix
-        for (Variable uVar : child->getUnivVars()) {
-            addUnivVar(uVar);
-        }
-        for (Variable eVar : child->getExistVars()) {
-            addExistVar(eVar);
-        }
-        treeChild->clear();
-
         // and finally delete it
         delete child;
     } else {
+        // otherwise just add this child to children
         children.push_back(child);
     }
 }
