@@ -259,26 +259,38 @@ void QuantifierTree::localise() {
 }
 
 QuantifierTreeFormula* QuantifierTree::changeToFormula(Cudd &mgr) {
-    auto childIter = children.begin();
+    
     BDD matrix;
     if (isConj) {
         matrix = mgr.bddOne();
     } else {
         matrix = mgr.bddZero();
     }
+
+    auto childIter = children.begin();
     while (childIter != children.end()) {
+        // get the formula from child
         QuantifierTreeFormula *childFormula = (*childIter)->changeToFormula(mgr);
 
-        // remove the child 
+        // remove the child from the list of children
         auto childToRemoveIter = childIter;
         ++childIter;
-        // TODO maybe change to shared_ptr so I don't have to this shit
-        //delete (*childToRemoveIter);
         children.erase(childToRemoveIter);
 
-        // TODO implement this
-        childFormula->eliminatePossibleVars();
+        if (qvMgr->options.removeUnivVarsInTree) {
+            // eliminate all possible universal and existential variables
+            childFormula->eliminatePossibleVars();
+        } else {
+            VariableSet existVarsToEliminate = childFormula->getPossibleExistVarsToEliminate();
+            while (existVarsToEliminate.size() !=0) {
+                childFormula->eliminateExistVars(existVarsToEliminate);
+                removeUnusedVars();
+                existVarsToEliminate = childFormula->getPossibleExistVarsToEliminate();
+            }
+        }
         
+        
+        // check if we can stop (the resulting formula after adding the child formula is simple)
         if (isConj) {
             matrix &= childFormula->getMatrix();
             if (matrix.IsZero()) {
@@ -293,11 +305,12 @@ QuantifierTreeFormula* QuantifierTree::changeToFormula(Cudd &mgr) {
             }
         }
 
-        // move all exist vars up (univ vars are not moved, because they were eliminated)
+        // move the quantifier prefix up
         for (const Variable &eVar : childFormula->getExistVars()) {
             addExistVar(eVar);
-            // no need for this because we delete childFormula after and it is done automatically (and it wouldnt work because childFormula->getExistVars() returns reference)
-            //childFormula->removeExistVar(eVar);
+        }
+        for (const Variable &uVar : childFormula->getUnivVars()) {
+            addUnivVar(uVar);
         }
 
         delete childFormula;
@@ -305,7 +318,6 @@ QuantifierTreeFormula* QuantifierTree::changeToFormula(Cudd &mgr) {
     
     // delete leftover children
     while (childIter != children.end()) {
-        // remove the child 
         auto childToRemoveIter = childIter;
         ++childIter;
         delete (*childToRemoveIter);

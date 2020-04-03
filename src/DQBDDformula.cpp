@@ -25,9 +25,9 @@
 
 //Formula::Formula(const Cudd &mgr) : mgr(mgr) {}
 
-Formula::Formula(const Cudd &mgr, QuantifiedVariablesManager &qvmgr) : QuantifiedVariablesManipulator(qvmgr), mgr(mgr), uVarElimHeur(qvMgr->uVarElimHeur) {}
+Formula::Formula(const Cudd &mgr, QuantifiedVariablesManager &qvmgr) : QuantifiedVariablesManipulator(qvmgr), mgr(mgr) {}
 
-Formula::Formula(const Cudd &mgr, QuantifiedVariablesManipulator &qvManipulator) : QuantifiedVariablesManipulator(qvManipulator), mgr(mgr), uVarElimHeur(qvMgr->uVarElimHeur) {}
+Formula::Formula(const Cudd &mgr, QuantifiedVariablesManipulator &qvManipulator) : QuantifiedVariablesManipulator(qvManipulator), mgr(mgr) {}
 
 BDD Formula::getMatrix() const {
     return matrix;
@@ -162,9 +162,9 @@ VariableSet Formula::getPossibleExistVarsToEliminate() {
 }
 
 void Formula::initializeUnivVarEliminationOrder() {
-    switch (uVarElimHeur)
+    switch (qvMgr->options.uVarElimChoice)
     {
-    case UnivVarElimHeuristic::NumOfDependenciesOnce:
+    case UnivVarElimChoice::NumOfDependenciesOnce:
     {
         univVarsOrderToRemove.assign(getUnivVars().begin(), getUnivVars().end());
         std::sort(univVarsOrderToRemove.begin(), univVarsOrderToRemove.end(),
@@ -174,7 +174,7 @@ void Formula::initializeUnivVarEliminationOrder() {
                 );
         break;
     }
-    case UnivVarElimHeuristic::NumOfDependenciesContinuous:
+    case UnivVarElimChoice::NumOfDependenciesContinuous:
         return;
     default:
         throw DQBDDexception("Chosen heuristic to choose next universal variable to eliminate is not implemented.");
@@ -183,9 +183,9 @@ void Formula::initializeUnivVarEliminationOrder() {
 }
 
 Variable Formula::getUnivVarToEliminate() {
-    switch (uVarElimHeur)
+    switch (qvMgr->options.uVarElimChoice)
     {
-    case UnivVarElimHeuristic::NumOfDependenciesOnce:
+    case UnivVarElimChoice::NumOfDependenciesOnce:
     {
         Variable v = univVarsOrderToRemove.back();
         univVarsOrderToRemove.pop_back();
@@ -195,7 +195,7 @@ Variable Formula::getUnivVarToEliminate() {
         }
         return v;
     }
-    case UnivVarElimHeuristic::NumOfDependenciesContinuous:
+    case UnivVarElimChoice::NumOfDependenciesContinuous:
     {
         return *std::min_element(getUnivVars().begin(), getUnivVars().end(),
                     [&](Variable a, Variable b) {

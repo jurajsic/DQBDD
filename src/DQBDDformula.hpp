@@ -38,8 +38,7 @@ private:
     std::ostream& print(std::ostream& out) const override;
 
     bool needToRecomputeSupportSet = true;
-
-    UnivVarElimHeuristic uVarElimHeur;
+    
     std::vector<Variable> univVarsOrderToRemove;
     void initializeUnivVarEliminationOrder();
     Variable getUnivVarToEliminate();

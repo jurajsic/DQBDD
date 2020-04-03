@@ -39,22 +39,22 @@ enum ReturnCode {
 int main(int argc, char **argv)
 {
     // argument parsing
-    cxxopts::Options options("DQBDD", "A DQBF solver using BDDs.");
-    options.add_options()
+    cxxopts::Options optionsParser("DQBDD", "A DQBF solver using BDDs.");
+    optionsParser.add_options()
         ("h,help", "Print usage")
         ("v,version", "Print the version number")
         ("l,localise", "Push quantifiers inside the formula")
         ("p,preprocess", "Use preprocessing")
-        ("r,removal", "The heuristics to decide what to remove in each subformula", cxxopts::value<int>()->default_value("0"))
-        ("e,expansion", "The heuristics to decide how to choose the next universal variable for expansion", cxxopts::value<int>()->default_value("1"))
+        ("e,uvar-eliminate", "Eliminate also universal variables while transforming quantifier tree into formula")
+        ("c,uvar-choice", "The heuristics by which the next universal variable for elimination is chosen", cxxopts::value<int>()->default_value("0"))
         ("f,file","DQDIMACS file to solve",cxxopts::value<std::string>())
         ;
-    options.parse_positional({"file"});
-    options.positional_help("<input file>");
+    optionsParser.parse_positional({"file"});
+    optionsParser.positional_help("<input file>");
     
     std::unique_ptr<cxxopts::ParseResult> result;
     try {
-        result.reset(new cxxopts::ParseResult(options.parse(argc, argv)));
+        result.reset(new cxxopts::ParseResult(optionsParser.parse(argc, argv)));
     } catch (const cxxopts::OptionParseException& e) {
         std::cerr << "Parsing error: " << e.what() << std::endl;
         return -1;
@@ -62,7 +62,7 @@ int main(int argc, char **argv)
 
 
     if (result->count("help")) {
-        std::cout << options.help() << std::endl;
+        std::cout << optionsParser.help() << std::endl;
         return 0;
     }
 
@@ -79,16 +79,16 @@ int main(int argc, char **argv)
     std::string fileName = (*result)["file"].as<std::string>();
     bool localise = result->count("localise");
     bool preprocess = result->count("preprocess");
-    // for now, this is doing nothing
+    Options options;
+    options.removeUnivVarsInTree = result->count("uvar-eliminate");
     // TODO check if it is not out of range 
-    UnivVarElimHeuristic removeHeuristic = static_cast<UnivVarElimHeuristic>((*result)["removal"].as<int>());
+    options.uVarElimChoice = static_cast<UnivVarElimChoice>((*result)["uvar-choice"].as<int>());
     // for noww this is doing nothing
-    int varToExpansionHeuristic = (*result)["expansion"].as<int>();
 
 
     Cudd mgr;
     //mgr.AutodynDisable();
-    QuantifiedVariablesManager qvMgr(removeHeuristic);
+    QuantifiedVariablesManager qvMgr(options);
     Formula *f = nullptr;
     bool preprocessorSolved = false;
 

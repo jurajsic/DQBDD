@@ -23,13 +23,7 @@
 #include <unordered_map>
 
 #include "DQBDDvariable.hpp"
-
-// heuristic by which the next universal variable for elimination is chosen
-enum UnivVarElimHeuristic {
-    NumOfDependenciesOnce, // by number of existential variables dependent on u. vars decided at beginning
-    NumOfDependenciesContinuous, // by number of existential variables dependent on u. vars decided each time u. var to eliminate is chosen 
-    NumOfLeftoverVarsInConjuncts, // by doing  phi[x=0] and phi[x=1] (as BDDs) and checking how much variables are leftover in them
-};
+#include "DQBDDoptions.hpp"
 
 class VariableSet : public std::unordered_set<Variable> {
 public:
@@ -64,10 +58,10 @@ private:
     unsigned numberOfExistVars;
 
 public:
-    UnivVarElimHeuristic uVarElimHeur = UnivVarElimHeuristic::NumOfDependenciesOnce; 
+    Options options;
 
     QuantifiedVariablesManager() = default;
-    QuantifiedVariablesManager(UnivVarElimHeuristic uVarElimHeur);
+    QuantifiedVariablesManager(Options options);
 
     void addExistVarInstance(Variable eVar);
     void removeExistVarInstance(Variable eVar);
