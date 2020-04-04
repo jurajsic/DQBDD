@@ -81,9 +81,7 @@ int main(int argc, char **argv)
     bool preprocess = result->count("preprocess");
     Options options;
     options.removeUnivVarsInTree = result->count("uvar-eliminate");
-    // TODO check if it is not out of range 
     options.uVarElimChoice = static_cast<UnivVarElimChoice>((*result)["uvar-choice"].as<int>());
-    // for noww this is doing nothing
 
 
     Cudd mgr;
@@ -132,6 +130,7 @@ int main(int argc, char **argv)
 
     if (!preprocessorSolved) {
         std::cout << "BDD formula created" << std::endl;
+        f->printStats();
         std::cout << "Eliminating universal variables in the created formula" << std::endl;
         try {
             f->eliminatePossibleVars();

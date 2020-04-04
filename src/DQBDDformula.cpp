@@ -23,8 +23,6 @@
 #include "DQBDDexceptions.hpp"
 #include "DQBDDformula.hpp"
 
-//Formula::Formula(const Cudd &mgr) : mgr(mgr) {}
-
 Formula::Formula(const Cudd &mgr, QuantifiedVariablesManager &qvmgr) : QuantifiedVariablesManipulator(qvmgr), mgr(mgr) {}
 
 Formula::Formula(const Cudd &mgr, QuantifiedVariablesManipulator &qvManipulator) : QuantifiedVariablesManipulator(qvManipulator), mgr(mgr) {}
@@ -41,7 +39,6 @@ void Formula::setMatrix(const BDD &matrix) {
     needToRecomputeSupportSet = true;
 }
 
-// TODO add needToRecomputeSupportSet which is set to true whenever new matrix is set
 VariableSet const &Formula::getSupportSet() {
     if (needToRecomputeSupportSet) {
         supportSet.clear();
@@ -54,7 +51,7 @@ VariableSet const &Formula::getSupportSet() {
 }
 
 void Formula::eliminateUnivVar(Variable uVarToEliminate) {
-    // TODO duplicate only those that are in the bdd????? -> pozri ako som zrobil pushUnivVar ci to fakt treba
+    // find existential variables that will be duplicated
     VariableSet eVarsToDuplicate;
     VariableSet dependentVars = getUnivVarDependencies(uVarToEliminate);
     for (const Variable &dependentVar : dependentVars) {
@@ -81,7 +78,6 @@ void Formula::eliminateUnivVar(Variable uVarToEliminate) {
     //std::cout << std::endl;
 
 
-    // TODO what is the FUCKING difference between constrain and restrict
     //std::cout << "Creating BDDs" << std::endl;
     // uVarToEliminate=false where we have old existential variables
     BDD f1 = matrix.Restrict(!uVarToEliminate.getBDD());
@@ -116,12 +112,7 @@ void Formula::eliminateExistVars(VariableSet existVarsToEliminate) {
     setMatrix(matrix.ExistAbstract(CubeToRemove));
 }
 
-// TODO recreate it to getter of possible exist vars to eliminat
-
 VariableSet Formula::getPossibleExistVarsToEliminate() {
-    // TODO if (getUnivVars().size() == qvMgr->getNumberOfUnivVars() // this is prob unimportant && getExistVars().size() == ...)
-    // TODO     we can just do some easier stuff here???
-
     // the set of univ vars on which exist vars that are possible to eliminate need to depend on
     VariableSet univVarsNeededToDependOn;
 
@@ -151,7 +142,7 @@ VariableSet Formula::getPossibleExistVarsToEliminate() {
                 }
             }
         }
-        // only those exist vars that are quantified in this subformula and depend on all univ vars we already went can possibly be eliminated
+        // only those exist vars that are quantified in this subformula and depend on all univ vars we already went trough can possibly be eliminated
         if (isVarHereQuantified(eVar) && getExistVarDependencies(eVar).size() == univVarsNeededToDependOn.size()) {
             possibleExistVarsToEliminate.insert(eVar);
         }
@@ -274,65 +265,7 @@ std::ostream& Formula::print(std::ostream& out) const {
 }
 
 void Formula::printStats() {
-    std::cout << "Formula BDD have " << matrix.nodeCount() 
-                << " nodes with " << getUnivVars().size() << " universal variables and "
-                << getExistVars().size() << " existential variables." << std::endl;
+    std::cout << "The BDD has " << matrix.nodeCount() 
+                << " nodes and there are " << getUnivVars().size() << " universal and "
+                << getExistVars().size() << " existential variables quantified in the formula." << std::endl;
 }
-
-/*
-int Formula::eliminatePossibleExistVars() {
-    VariableSet supportSet = getSupportSet();
-    VariableSet univVarsNeededToDependOn;
-    VariableSet existVarsToEliminate;
-
-    bool isUnivVarInSupportSet = false;
-    bool isFreeVarInSupportSet = false;
-
-    for (const Variable &var : supportSet) {
-        if (isVarUniv(var)) {
-            if (univVarsNeededToDependOn.insert(var).second) { // if var was not in univVarsNeededToDependOn
-                existVarsToEliminate.clear();
-            }
-            isUnivVarInSupportSet = true;
-        } else if (isVarExist(var)) {
-            for (const Variable &uVar : getExistVarDependencies(var)) {
-                if (univVarsNeededToDependOn.insert(uVar).second) { // if uVar was not in univVarsNeededToDependOn
-                    existVarsToEliminate.clear();
-                }
-            }
-            if (isVarHere(var)) {
-                if (getExistVarDependencies(var).size() == univVarsNeededToDependOn.size()) {
-                    existVarsToEliminate.insert(var);
-                }
-            } else {
-                isFreeVarInSupportSet = true;
-            }
-        } else {
-            isFreeVarInSupportSet = true;
-        }
-    }
-
-    if (!isUnivVarInSupportSet || !isFreeVarInSupportSet) { // if matrix contains only existential variables that are in this formula
-        // we can just look if bbd is Zero, if it is not, then eliminating all exist variables would just leave us with One
-        if (!matrix.IsZero()) {
-            matrix = mgr.bddOne();
-        }
-        int numberOfExistVars = getExistVars().size();
-        clear();
-        return numberOfExistVars;
-    } else {
-        eliminateExistVars(existVarsToEliminate);
-        return existVarsToEliminate.size();
-    }    
-}
-*/
-
-/*
-bool Formula::isMatrixOne() {
-    return matrix == bddtrue;
-}
-
-bool Formula::isMatrixZero() {
-    return matrix == bddfalse;
-}
-*/

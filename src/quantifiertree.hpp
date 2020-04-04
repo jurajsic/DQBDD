@@ -27,45 +27,61 @@
 
 class QuantifierTreeFormula;
 
+/**
+ * @brief Base class for nodes in quantifier trees
+ */
 class QuantifierTreeNode : virtual public QuantifiedVariablesManipulator {
 public:
     QuantifierTreeNode(QuantifiedVariablesManager &qvmgr);
     virtual ~QuantifierTreeNode() = default;
-    virtual void localise() = 0; // TODO ake parametre a return???
+    // pushes quantifiers inside the subtree rooted in this node
+    virtual void localise() = 0;
+    // pushes the existential variable var into this node
     void pushExistVar(Variable var);
+    // pushes the universal variable var into this node
     void pushUnivVar(Variable var);
+    /**
+     * @brief Changes this instance of node into a formula
+     */
     virtual QuantifierTreeFormula* changeToFormula(Cudd &mgr) = 0;
+    // negates this node
     virtual void negate() = 0;
-    //virtual void renameVar(Variable oldVar, Variable newVar) = 0;
 };
 
-/*
-class QuantifierTreeVariable : public QuantifierTreeNode, public Variable {
-public:
-    QuantifierTreeVariable();
-};
-*/
-
+/**
+ * @brief A node that is also a formula (used for terminal nodes)
+ */
 class QuantifierTreeFormula : public QuantifierTreeNode, public Formula {
 public:
     QuantifierTreeFormula(const Cudd &mgr, QuantifiedVariablesManager &qvmgr);
     QuantifierTreeFormula(const Cudd &mgr, QuantifiedVariablesManipulator &qvManipulator);
-    void localise();
-    QuantifierTreeFormula* changeToFormula(Cudd &);
-    void negate();
+    void localise() override;
+    QuantifierTreeFormula* changeToFormula(Cudd &) override;
+    void negate() override;
+
+    VariableSet const &getSupportSet() override;
 };
 
+/**
+ * @brief A node that represents a root of a quantifier subtree
+ */
 class QuantifierTree : public QuantifierTreeNode {
 private:
+    // the children of root
     std::list<QuantifierTreeNode*> children;
-    bool isConj; // TODO change to operator, will have to learn how to do that tho
 
+    // if isConj=true, the root has assigned conjuction, otherwise disjunction
+    bool isConj;
 
+    /**
+     * @brief Removes from one ordered list another where both are assumed to be ordered by the ordering in of children list
+     * 
+     * @return true if something was removed
+     */
     bool removeFromOrderedListOtherOrderedListUsingChildrenOrder(std::list<QuantifierTreeNode*> &listToRemoveFrom, std::list<QuantifierTreeNode*> &listOfItemsToRemove);
 
     std::ostream& print(std::ostream& out) const override;
 
-    //void changeChildWithFormula(std::list<QuantifierTreeNode*>::iterator childToChange, Cudd &mgr);
 public:
     QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> children, QuantifiedVariablesManager &qvMgr);
     QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> children, QuantifiedVariablesManipulator &qvManipulator);
@@ -74,7 +90,7 @@ public:
 
     ~QuantifierTree();
 
-    void localise();
+    void localise() override;
 
     /**
      * @brief Changes this instance of QuantifierTree to the instance of Formula,
@@ -84,10 +100,15 @@ public:
      * @param mgr The Cudd manager used for creating matrix of Formula
      * @return Pointer to the resulting instance of Formula, needs to be deleted after it was used
      */
-    QuantifierTreeFormula* changeToFormula(Cudd &mgr);
-    void negate();
-    //void renameVar(Variable oldVar, Variable newVar);
+    QuantifierTreeFormula* changeToFormula(Cudd &mgr) override;
+    void negate() override;
 
+    /**
+     * @brief Adds another child to the list of children
+     * 
+     * If child has the same operator as this quantifier tree and does not contain a quantifier prefix,
+     * the children of this child are added instead, while child is deleted.
+     */
     void addChild(QuantifierTreeNode *child);
 };
 

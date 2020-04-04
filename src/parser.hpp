@@ -24,7 +24,7 @@
 #include "quantifiertree.hpp"
 
 /**
- * @brief Base function for formula parsers to inherit from.
+ * @brief Base class for formula parsers to inherit from
  */
 class Parser {
 public:

@@ -23,7 +23,7 @@
 #include "parser.hpp"
 
 /**
- * @brief Base function for formula parsers to inherit from.
+ * @brief Simple parser of formulas in DQDIMACS format
  */
 class DQDIMACSParser : public Parser {
     Cudd &mgr;
@@ -33,7 +33,6 @@ class DQDIMACSParser : public Parser {
     std::vector<std::vector<Literal>> clauses;
 public:
     DQDIMACSParser(Cudd &mgr, QuantifiedVariablesManager &qvmgr);
-    // returns true if resulting formula is trivial (equal to TRUE or FALSE)
     bool parse(std::string fileName);
     Formula* getFormula();
     QuantifierTreeNode* getQuantifierTree();

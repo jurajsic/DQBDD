@@ -30,22 +30,22 @@
 
 class Formula : public virtual QuantifiedVariablesManipulator {
 private:
-
+    // the Cudd manager used for BDD manipulation
     Cudd mgr;
-    // propositional predicate inside DQBF formula in BDD form
+    // the matrix of DQBF formula in BDD form
     BDD matrix = mgr.bddZero();
 
     std::ostream& print(std::ostream& out) const override;
 
     bool needToRecomputeSupportSet = true;
-    
+
+    // used for saving the order of universal variables to eliminate    
     std::vector<Variable> univVarsOrderToRemove;
     void initializeUnivVarEliminationOrder();
     Variable getUnivVarToEliminate();
 
 public:
     Formula() = delete;
-    //Formula(const Cudd &mgr);
     Formula(const Cudd &mgr, QuantifiedVariablesManager &qvmgr);
     Formula(const Cudd &mgr, QuantifiedVariablesManipulator &qvManipulator);
     Formula(const Formula &f) = delete;
@@ -57,16 +57,47 @@ public:
     BDD getMatrix() const;
     void setMatrix(const BDD &matrix);
 
+    /**
+     * @brief Eliminates the universal variable uVarToEliminate
+     * Based on universal expansion:
+     * \forall x \psi = \psi[0/x] /\ \psi[y1',...,yn'/y1,...,yn][1/x]
+     * where y1,...,yn are all existential variables dependent on x
+     * and y1',...,yn' are new variables.
+     */
     void eliminateUnivVar(Variable uVarToEliminate);
 
+    /**
+     * @brief Eliminates the existential variable existVarToEliminate
+     * Based on existential elimination:
+     * \exists y \psi = \psi[0/y] \/ \psi[1/y]
+     * It is assumed that universal variables in matrix are only those
+     * that existVarToEliminate depends on and all existential variables
+     * in matrix depend only on those variables that existVarToEliminate 
+     * depends on.
+     */
     void eliminateExistVar(Variable existVarToEliminate);
+    /**
+     * @brief Eliminates the existential variables existVarsToEliminate
+     * Based on existential elimination:
+     * \exists y \psi = \psi[0/y] \/ \psi[1/y]
+     * It is assumed that universal variables in matrix are only those
+     * that all existVarsToEliminate depend on and all existential variables
+     * in matrix depend only on those variables that existVarsToEliminate 
+     * depend on.
+     */
     void eliminateExistVars(VariableSet existVarsToEliminate);
+    /**
+     * @brief Get all existential variables that can be eliminated
+     * 
+     * @return existential variables y1,...,yn that depend on all universal
+     * variables in matrix and all existential variables in matrix
+     * depend only on those universal variables that y1,..,yn depend on 
+     */
     VariableSet getPossibleExistVarsToEliminate();
-    // eliminates all existential variables that are possible to eliminate based on Theorem 5 from DQBF localization paper
-    // returns number of eliminated existential variables
-    //int eliminatePossibleExistVars();
 
-    // TODO implemenet -> should eliminate all universal variables and all possible exist (can add new exist)
+    /**
+     * @brief Eliminates all possible vars (both universal and existential)
+     */
     void eliminatePossibleVars();
 
     void printStats();

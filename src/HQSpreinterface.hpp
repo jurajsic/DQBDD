@@ -24,6 +24,9 @@
 
 #include "parser.hpp"
 
+/**
+ * @brief Parser which uses HQSpre preprocessor to also preprocess the parsed formula
+ */
 class HQSPreInterface : public Parser {
 private:
     // using pimpl idiom to hide the implementation of HQSPre
@@ -38,6 +41,7 @@ public:
      * @brief Parses a file in DQDIMACS format and runs HQSpre preprocessor
      * 
      * @param fileName name of the file to parse
+     * @return true if formula was solved by preprocessor
      */
     bool parse(std::string fileName);
     Formula* getFormula();

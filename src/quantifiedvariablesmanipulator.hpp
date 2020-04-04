@@ -85,8 +85,6 @@ public:
     //VariableSet getAllExistVars();
 };
 
-// TODO: solve supportSet, ci treba mat tu ulozene a ako to funguje diamond pri virtual metode getSupportSet()
-
 /**
  * @brief Quantified variables manipulator
  * 
@@ -96,8 +94,8 @@ public:
  * while we work with this manipulator.
  * It should be used as a base class for representing subformulas of DQBF, where this represents
  * the prefix of subformula, while the matrix (which can be created from subformulas) needs to be
- * represented in subclass. The sublass needs to also define method getSupportSet() which should 
- * return the variables that occur in the matrix.
+ * represented in subclass. The sublass should also redefine the method getSupportSet() which should 
+ * update the set supportSet so it contains the variables that occur in the matrix and return it.
  */
 class QuantifiedVariablesManipulator {
 private:
@@ -113,11 +111,10 @@ private:
     friend std::ostream& operator<<(std::ostream& out, const QuantifiedVariablesManipulator& qvm);
 
 protected:
-    // this either refers to external manager or internal if external is not supplied -> always to external??
+    // QVManager that takes care of dependencies for variables occuring in this manipulator
     QuantifiedVariablesManager *qvMgr;
-    // TODO: check if this is needed here, maybe should be deleted, if it is used in formula or tree, should be inside, it doesnt make sense to keep it here
-    // the variables in support set do not need to be the same which are in univVars + existVars,
-    // depends on the 
+
+    // the set of variables occuring in the matrix (NOT those that occur in this manipulator)
     VariableSet supportSet;
 
 public:
@@ -126,12 +123,10 @@ public:
     ~QuantifiedVariablesManipulator();
     QuantifiedVariablesManipulator(const QuantifiedVariablesManipulator &qvm);
 
-    //TODO!!!!!!!!!!!!!
-    //QuantifiedVariablesManipulator& operator=(QuantifiedVariablesManipulator &qvm);
+    QuantifiedVariablesManipulator& operator=(QuantifiedVariablesManipulator &qvm) = delete;
 
     VariableSet const &getUnivVars() const;
     VariableSet const &getExistVars() const;
-    //VariableSet getVars() const;
 
     QuantifiedVariablesManager* getManager();
 
@@ -168,8 +163,6 @@ public:
     // removes all variables not in support set
     void removeUnusedVars();
     virtual VariableSet const &getSupportSet();
-
-    //bool dependsOnEverything(Variable eVar);
 };
 
 std::ostream& operator<<(std::ostream& os, const QuantifiedVariablesManipulator& qvm);
