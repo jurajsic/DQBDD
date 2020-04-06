@@ -144,12 +144,6 @@ VariableSet QuantifiedVariablesManager::getAllExistVars() {
 /********************************************/
 /********************************************/
 
-
-
-// TODO remove calls to getSupportSet and replace with isVarHere where possible
-// fuck no don't do that, isVarHere returns variable that is in manager, not support set
-// renamed to isVarHereQuantified - maybe just add isVarInSupportSet
-
 //QuantifiedVariablesManipulator::QuantifiedVariablesManipulator() : internalQVManager(), qvMgr(&internalQVManager) {}
 
 QuantifiedVariablesManipulator::QuantifiedVariablesManipulator(QuantifiedVariablesManager &qvMgr) : qvMgr(&qvMgr) {}
