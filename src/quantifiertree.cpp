@@ -124,9 +124,9 @@ void QuantifierTree::localise() {
         // for each existential variable, create a set of children which contain it
         std::unordered_map<Variable,std::list<QuantifierTreeNode*>> childrenContainingExistVar;
         for (QuantifierTreeNode *child : children) {
-            VariableSet supportSet = child->getSupportSet();
+            VariableSet childSupportSet = child->getSupportSet();
             for (const Variable &eVar : getExistVars()) {
-                if (supportSet.contains(eVar)) {
+                if (childSupportSet.contains(eVar)) {
                     childrenContainingExistVar[eVar].push_back(child);
                 }
             }
@@ -212,20 +212,20 @@ void QuantifierTree::localise() {
             removeExistVar(existVarToPush);
         }
 
-        // for each universal variable find the set of children that contain it + all exist variables which depend
+        // for each universal variable find the set of children that contain it or contain exist variable which depends
         // on it and merge them into new QuantifierTree with same operator and remove it if it was pushed
         std::unordered_map<Variable,std::list<QuantifierTreeNode*>> childrenContainingUnivVar;
         for (QuantifierTreeNode *child : children) {
-            VariableSet supportSet = child->getSupportSet();
+            VariableSet childSupportSet = child->getSupportSet();
             for (const Variable &uVar : getUnivVars()) {
                 // if the child contains uVar...
-                if (supportSet.contains(uVar)) {
+                if (childSupportSet.contains(uVar)) {
                     childrenContainingUnivVar[uVar].push_back(child);
                     continue;
                 }
                 // ... or some exist var that depends on uVar
                 for (const Variable &eVar : getUnivVarDependencies(uVar)) {
-                    if (supportSet.contains(eVar)) {
+                    if (childSupportSet.contains(eVar)) {
                         childrenContainingUnivVar[uVar].push_back(child);
                         continue;
                     }
@@ -305,9 +305,9 @@ QuantifierTreeFormula* QuantifierTree::changeToFormula(Cudd &mgr) {
             childFormula->eliminatePossibleVars();
         } else {
             VariableSet existVarsToEliminate = childFormula->getPossibleExistVarsToEliminate();
-            while (existVarsToEliminate.size() !=0) {
+            while (existVarsToEliminate.size() != 0) {
                 childFormula->eliminateExistVars(existVarsToEliminate);
-                removeUnusedVars();
+                childFormula->removeUnusedVars();
                 existVarsToEliminate = childFormula->getPossibleExistVarsToEliminate();
             }
         }
@@ -377,7 +377,7 @@ void QuantifierTree::addChild(QuantifierTreeNode *child) {
     // check if this child is not quantifier tree with the same operator like here and empty quantifier prefix
     auto treeChild = dynamic_cast<QuantifierTree*>(child);
     if (treeChild != nullptr && treeChild->isConj == isConj 
-                && !(treeChild->getExistVars().empty() && treeChild->getUnivVars().empty())) {
+                && treeChild->getExistVars().empty() && treeChild->getUnivVars().empty()) {
         // if it is, set its children as current children, not itself
         for (auto childOfChild : treeChild->children) {
             children.push_back(childOfChild);
