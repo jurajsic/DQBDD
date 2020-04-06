@@ -32,6 +32,8 @@ public:
     bool contains(Variable const &var) const;
 };
 
+std::ostream& operator<<(std::ostream& os, const VariableSet& variableSet);
+
 
 typedef std::unordered_map<Variable, VariableSet> DependencyMap;
 
@@ -54,8 +56,8 @@ private:
     std::unordered_map<Variable,int> numberOfUsedExistVars;
     std::unordered_map<Variable,int> numberOfUsedUnivVars;
 
-    unsigned numberOfUnivVars;
-    unsigned numberOfExistVars;
+    unsigned numberOfUnivVars = 0;
+    unsigned numberOfExistVars = 0;
 
 public:
     Options options;

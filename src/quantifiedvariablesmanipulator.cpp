@@ -24,6 +24,19 @@ bool VariableSet::contains(Variable const &var) const {
     return (this->count(var) != 0);
 }
 
+std::ostream& operator<<(std::ostream& os, const VariableSet& variableSet) {
+    os << std::string("{");
+    for (auto iter = variableSet.begin(); iter != variableSet.end(); ++iter) {
+        if (iter == variableSet.begin()) {
+            os << *iter;
+        } else {
+            os << std::string(", ") << *iter;
+        }
+    }
+    os << std::string("}");
+    return os;
+}
+
 /********************************************/
 /********************************************/
 /***************** MANAGER ******************/
