@@ -20,6 +20,7 @@
 #include <algorithm>
 
 #include "quantifiertree.hpp"
+#include "DQBDDexceptions.hpp"
 
 QuantifierTreeNode::QuantifierTreeNode(QuantifiedVariablesManager &qvmgr) : QuantifiedVariablesManipulator(qvmgr) {}
 
@@ -58,10 +59,11 @@ void QuantifierTreeNode::pushUnivVar(Variable var) {
 /*******************************************/
 /*******************************************/ 
 
-#include <iostream>
-
 QuantifierTree::QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> children, QuantifiedVariablesManager &qvMgr) : QuantifiedVariablesManipulator(qvMgr), QuantifierTreeNode(qvMgr), isConj(isConj) {
     supportSet = {};
+    if (children.size() < 2) {
+        throw DQBDDexception("You cannot create a quantifier tree with only one or zero operands");
+    }
     for (QuantifierTreeNode *child : children) {
         addChild(child);
     }
@@ -69,6 +71,9 @@ QuantifierTree::QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> child
 
 QuantifierTree::QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> children, QuantifiedVariablesManipulator &qvManipulator) : QuantifiedVariablesManipulator(qvManipulator), QuantifierTreeNode(*qvManipulator.getManager()), isConj(isConj) {
     supportSet = {};
+    if (children.size() < 2) {
+        throw DQBDDexception("You cannot create a quantifier tree with only one or zero operands");
+    }
     for (QuantifierTreeNode *child : children) {
         addChild(child);
     }
@@ -129,7 +134,7 @@ void QuantifierTree::localise() {
         
         // push exist vars while it is possible
         while (!getExistVars().empty()) {
-            // function that finds exist variable that has minimal number of occurences in children
+            // exist variable that has minimal number of occurences in children
             auto eVarToPushIter = std::min_element(getExistVars().begin(), getExistVars().end(), 
                         [&](Variable v1, Variable v2) { 
                             return (childrenContainingExistVar[v1].size() < childrenContainingExistVar[v2].size());
@@ -230,7 +235,7 @@ void QuantifierTree::localise() {
         
         // push all universal variables (except those on which some exist var from every child depends)
         while (!getUnivVars().empty()) {
-            // function that finds univ variable that has minimal number of occurences in children
+            // univ variable that has minimal number of occurences in children
             auto uVarToPushIter = std::min_element(getUnivVars().begin(), getUnivVars().end(), 
                         [&](Variable v1, Variable v2) { 
                             return (childrenContainingUnivVar[v1].size() < childrenContainingUnivVar[v2].size());
