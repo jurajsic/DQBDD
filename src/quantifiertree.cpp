@@ -300,16 +300,29 @@ QuantifierTreeFormula* QuantifierTree::changeToFormula(Cudd &mgr) {
         ++childIter;
         children.erase(childToRemoveIter);
 
-        if (qvMgr->options.removeUnivVarsInTree) {
-            // eliminate all possible universal and existential variables
-            childFormula->eliminatePossibleVars();
-        } else {
+        switch (qvMgr->options.treeElimChoice)
+        {
+        case TreeElimChoice::None:
+            break;
+        case TreeElimChoice::Simple: {
+            // eliminate possible existential variables
+            // TODO: maybe also universal without dependencies
             VariableSet existVarsToEliminate = childFormula->getPossibleExistVarsToEliminate();
             while (existVarsToEliminate.size() != 0) {
                 childFormula->eliminateExistVars(existVarsToEliminate);
                 childFormula->removeUnusedVars();
                 existVarsToEliminate = childFormula->getPossibleExistVarsToEliminate();
             }
+        }
+        case TreeElimChoice::All: {
+            // eliminate all possible universal and existential variables
+            childFormula->eliminatePossibleVars();
+            break;
+        }
+        default: {
+            throw DQBDDexception("Selected choice of variables to eliminate in tree is not supported.");
+            break;
+        }
         }
         
         // check if we can stop (the resulting formula after adding the child formula is simple)

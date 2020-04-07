@@ -45,7 +45,7 @@ int main(int argc, char **argv)
         ("v,version", "Print the version number")
         ("l,localise", "Push quantifiers inside the formula")
         ("p,preprocess", "Use preprocessing")
-        ("e,uvar-eliminate", "Eliminate also universal variables while transforming quantifier tree into formula")
+        ("t,tree-choice", "Decide what to eliminate on each level of quantifier tree during transformation to formula", cxxopts::value<int>()->default_value("1"))
         ("c,uvar-choice", "The heuristics by which the next universal variable for elimination is chosen", cxxopts::value<int>()->default_value("0"))
         ("f,file","DQDIMACS file to solve",cxxopts::value<std::string>())
         ;
@@ -80,7 +80,7 @@ int main(int argc, char **argv)
     bool localise = result->count("localise");
     bool preprocess = result->count("preprocess");
     Options options;
-    options.removeUnivVarsInTree = result->count("uvar-eliminate");
+    options.treeElimChoice = static_cast<TreeElimChoice>((*result)["uvar-eliminate"].as<int>());
     options.uVarElimChoice = static_cast<UnivVarElimChoice>((*result)["uvar-choice"].as<int>());
 
 
@@ -114,7 +114,9 @@ int main(int argc, char **argv)
             if (!preprocessorSolved) {
                 std::cout << "Quantifier tree created" << std::endl
                           << "Pushing quantifiers inside" << std::endl;
+                //std::cout << *qtroot << std::endl;
                 qtroot->localise();
+                //std::cout << *qtroot << std::endl;
                 std::cout << "Quantifiers pushed inside" << std::endl
                           << "Creating BDD formula" << std::endl;
             }

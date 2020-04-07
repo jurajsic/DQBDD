@@ -27,13 +27,21 @@ enum UnivVarElimChoice {
     NumOfLeftoverVarsInConjuncts, // by doing  phi[x=0] and phi[x=1] (as BDDs) and checking how much variables are leftover in them
 };
 
+// decides what to eliminate on each level of quantifier tree
+enum TreeElimChoice {
+    None,       // nothing
+    Simple,     // only existential variables (TODO: maybe also universal with no/small amount of dependency)
+    All,        // everything possible (every universal and possible existentials)
+};
 
 class Options {
 public:
     // heuristic by which the next universal variable for elimination is chosen
     UnivVarElimChoice uVarElimChoice = UnivVarElimChoice::NumOfDependenciesOnce;
     // remove also universal variables during transforming quantifier tree to formula, 
-    bool removeUnivVarsInTree = true;
+    //bool removeUnivVarsInTree = true;
+    // decides what to eliminate on each level of quantifier tree
+    TreeElimChoice treeElimChoice = TreeElimChoice::Simple;
 };
 
 #endif
