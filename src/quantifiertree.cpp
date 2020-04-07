@@ -313,6 +313,7 @@ QuantifierTreeFormula* QuantifierTree::changeToFormula(Cudd &mgr) {
                 childFormula->removeUnusedVars();
                 existVarsToEliminate = childFormula->getPossibleExistVarsToEliminate();
             }
+            break;
         }
         case TreeElimChoice::All: {
             // eliminate all possible universal and existential variables
