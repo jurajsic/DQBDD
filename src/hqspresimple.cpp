@@ -26,6 +26,52 @@ INITIALIZE_EASYLOGGINGPP
 
 int main(int, char **argv)
 {
+    /*
+    Cudd mgr1;
+    QuantifiedVariablesManager qvm1;
+    std::vector<QuantifierTreeNode*> treeees = { };
+    QuantifierTreeFormula *varFormula1 = new QuantifierTreeFormula(mgr1, qvm1);
+            varFormula1->setMatrix(Variable(0, mgr1));
+            treeees.push_back(varFormula1);
+    QuantifierTreeFormula *varFormula12 = new QuantifierTreeFormula(mgr1, qvm1);
+            varFormula12->setMatrix(!Variable(0, mgr1));
+            treeees.push_back(varFormula12);
+            QuantifierTreeFormula *varFormula2 = new QuantifierTreeFormula(mgr1, qvm1);
+            varFormula2->setMatrix(Variable(1, mgr1));
+            treeees.push_back(varFormula2);
+            QuantifierTreeFormula *varFormula22 = new QuantifierTreeFormula(mgr1, qvm1);
+            varFormula22->setMatrix(Variable(1, mgr1));
+            treeees.push_back(varFormula22);
+    QuantifierTreeNode *firstOp = varFormula1;
+                QuantifierTreeNode *firstOpNeg = varFormula12;
+                QuantifierTreeNode *secondOp = varFormula2;
+                QuantifierTreeNode *secondOpNeg = varFormula22;
+                QuantifierTreeNode *firstConj = new QuantifierTree(true, std::list<QuantifierTreeNode*>{firstOp, secondOpNeg}, qvm1);
+            treeees.push_back(firstConj);
+                QuantifierTreeNode *secondConj = new QuantifierTree(true, std::list<QuantifierTreeNode*>{firstOpNeg, secondOp}, qvm1);
+            treeees.push_back(secondConj);
+    
+            QuantifierTreeFormula *varFormula3 = new QuantifierTreeFormula(mgr1, qvm1);
+            varFormula3->setMatrix(Variable(2, mgr1));
+            treeees.push_back(varFormula3);
+            QuantifierTreeFormula *varFormula32 = new QuantifierTreeFormula(mgr1, qvm1);
+            varFormula32->setMatrix(!Variable(2, mgr1));
+            treeees.push_back(varFormula32);
+    QuantifierTreeNode *qtxor = new QuantifierTree(false, std::list<QuantifierTreeNode*>{firstConj, secondConj}, qvm1);
+    QuantifierTreeNode *qtor = new QuantifierTree(false, std::list<QuantifierTreeNode*>{qtxor, varFormula3}, qvm1);
+    //QuantifierTreeNode *qtor2 = new QuantifierTree(false, std::list<QuantifierTreeNode*>{qtor, varFormula32}, qvm1);
+    //QuantifierTreeNode *qtor3 = new QuantifierTree(false, std::list<QuantifierTreeNode*>{qtxor, varFormula3, varFormula32}, qvm1);
+    treeees.push_back(qtxor);
+    treeees.push_back(qtor);
+    //treeees.push_back(qtor2);
+    //treeees.push_back(qtor3);
+    //for (auto tree : treeees) {
+    //    std::cout << *tree << " with support set " << tree->getSupportSet() <<std::endl;
+    //}
+    std::cout << *qtor << " with support set " << qtor->getSupportSet() <<std::endl;
+    return 0;*/
+                
+
     hqspre::Formula formula;
 
     // Configure logging
