@@ -233,7 +233,7 @@ bool Formula::eliminateSimpleUnivVars() {
             std::cout << uVarToEliminate.getId() << " ";
         }
         std::cout << std::endl;
-        setMatrix(matrix.ExistAbstract(CubeToRemove));
+        setMatrix(matrix.UnivAbstract(CubeToRemove));
         somethingWasEliminated = true;
         removeUnusedVars();
         univVarsToEliminate = getUnivVarsToEliminate();
