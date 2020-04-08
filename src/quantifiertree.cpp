@@ -305,14 +305,13 @@ QuantifierTreeFormula* QuantifierTree::changeToFormula(Cudd &mgr) {
         case TreeElimChoice::None:
             break;
         case TreeElimChoice::Simple: {
-            // eliminate possible existential variables
-            // TODO: maybe also universal without dependencies
-            VariableSet existVarsToEliminate = childFormula->getPossibleExistVarsToEliminate();
-            while (existVarsToEliminate.size() != 0) {
-                childFormula->eliminateExistVars(existVarsToEliminate);
-                childFormula->removeUnusedVars();
-                existVarsToEliminate = childFormula->getPossibleExistVarsToEliminate();
-            }
+            bool somethingWasEliminated = false;
+            do {
+                // eliminate possible existential variables...
+                somethingWasEliminated = childFormula->eliminatePossibleExistVars();
+                // ...and universal without dependencies
+                somethingWasEliminated |= childFormula->eliminateSimpleUnivVars();
+            } while (somethingWasEliminated);
             break;
         }
         case TreeElimChoice::All: {

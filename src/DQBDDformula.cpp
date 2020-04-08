@@ -200,6 +200,47 @@ Variable Formula::getUnivVarToEliminate() {
     }
 }
 
+bool Formula::eliminatePossibleExistVars() {
+    bool somethingWasEliminated = false;
+    VariableSet existVarsToEliminate = getPossibleExistVarsToEliminate();
+    while (existVarsToEliminate.size() !=0) {
+        eliminateExistVars(existVarsToEliminate);
+        somethingWasEliminated = true;
+        existVarsToEliminate = getPossibleExistVarsToEliminate();
+    }
+    return somethingWasEliminated;
+}
+
+bool Formula::eliminateSimpleUnivVars() {
+    bool somethingWasEliminated = false;
+    // function that returns the universal variables whose existential dependencies are not occuring in this formula
+    auto getUnivVarsToEliminate = [&] {
+        VariableSet uVarsToEliminate;
+        for (const auto &uVar : getUnivVars()) {
+            if (getUnivVarDependencies(uVar).intersect(getSupportSet()).empty()) {
+                uVarsToEliminate.insert(uVar);
+            }
+        }
+        return uVarsToEliminate;
+    };
+    auto univVarsToEliminate = getUnivVarsToEliminate();
+    while (!univVarsToEliminate.empty()) {
+        std::cout << "Eliminating universal variables ";
+        BDD CubeToRemove = mgr.bddOne();
+        for (const Variable &uVarToEliminate : univVarsToEliminate) {
+            CubeToRemove = CubeToRemove & uVarToEliminate;
+            removeUnivVar(uVarToEliminate);
+            std::cout << uVarToEliminate.getId() << " ";
+        }
+        std::cout << std::endl;
+        setMatrix(matrix.ExistAbstract(CubeToRemove));
+        somethingWasEliminated = true;
+        removeUnusedVars();
+        univVarsToEliminate = getUnivVarsToEliminate();
+    }
+    return somethingWasEliminated;
+}
+
 /**
  * @brief Iteratively remove universal variables and all possible existential variables in this (sub)formula
  * 

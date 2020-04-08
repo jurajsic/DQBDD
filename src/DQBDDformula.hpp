@@ -96,6 +96,20 @@ public:
     VariableSet getPossibleExistVarsToEliminate();
 
     /**
+     * @brief Eliminate all possible existential variables
+     * 
+     * @return true if something was eliminated
+     */
+    bool eliminatePossibleExistVars();
+
+    /**
+     * @brief Eliminate all universal variables that do not create new copies after elimination
+     * 
+     * @return true if something was eliminated
+     */
+    bool eliminateSimpleUnivVars();
+
+    /**
      * @brief Eliminates all possible vars (both universal and existential)
      */
     void eliminatePossibleVars();
