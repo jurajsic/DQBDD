@@ -43,10 +43,14 @@ int main(int argc, char **argv)
     optionsParser.add_options()
         ("h,help", "Print usage")
         ("v,version", "Print the version number")
-        ("l,localise", "Push quantifiers inside the formula")
+        ("l,localise", "Force pushing quantifiers inside the tree")
         ("p,preprocess", "Use preprocessing")
-        ("t,tree-choice", "Decide what to eliminate on each level of quantifier tree during transformation to formula", cxxopts::value<int>()->default_value("1"))
-        ("c,uvar-choice", "The heuristics by which the next universal variable for elimination is chosen", cxxopts::value<int>()->default_value("0"))
+        ("e,elimination-choice", "Decide what to eliminate on each level of quantifier tree during transformation to formula"//\
+                0: Do not eliminate anything\
+                1: Eliminate only existential variables\
+              2: Eliminate all universal variables and possible existential variables"
+              , cxxopts::value<int>()->default_value("1"))
+        ("u,uvar-choice", "The heuristics by which the next universal variable for elimination is chosen", cxxopts::value<int>()->default_value("0"))
         ("f,file","DQDIMACS file to solve",cxxopts::value<std::string>())
         ;
     optionsParser.parse_positional({"file"});
@@ -80,7 +84,7 @@ int main(int argc, char **argv)
     bool localise = result->count("localise");
     bool preprocess = result->count("preprocess");
     Options options;
-    options.treeElimChoice = static_cast<TreeElimChoice>((*result)["uvar-eliminate"].as<int>());
+    options.treeElimChoice = static_cast<TreeElimChoice>((*result)["elimination-choice"].as<int>());
     options.uVarElimChoice = static_cast<UnivVarElimChoice>((*result)["uvar-choice"].as<int>());
 
 
@@ -121,6 +125,7 @@ int main(int argc, char **argv)
                           << "Creating BDD formula" << std::endl;
             }
             f = qtroot->changeToFormula(mgr);
+            //std::cout << *f <<std::endl;
         }
     } catch(const std::exception &e) {
         std::cerr << e.what() << std::endl;
@@ -131,8 +136,11 @@ int main(int argc, char **argv)
     ReturnCode rc;
 
     if (!preprocessorSolved) {
+        f->removeUnusedVars();
         std::cout << "BDD formula created" << std::endl;
         f->printStats();
+        //std::cout << "Universal variables: " << f->getUnivVars() << std::endl;
+        //std::cout << "Existential variables: " << f->getExistVars() << std::endl;
         std::cout << "Eliminating universal variables in the created formula" << std::endl;
         try {
             f->eliminatePossibleVars();
