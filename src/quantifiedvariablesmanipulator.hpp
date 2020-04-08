@@ -30,6 +30,10 @@ public:
     using std::unordered_set<Variable>::unordered_set;
 
     bool contains(Variable const &var) const;
+    /**
+     * @brief returns the intersection of this set with vs
+     */
+    VariableSet intersect(const VariableSet &vs) const;
 };
 
 std::ostream& operator<<(std::ostream& os, const VariableSet& variableSet);

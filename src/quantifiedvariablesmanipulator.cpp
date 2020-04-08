@@ -24,6 +24,16 @@ bool VariableSet::contains(Variable const &var) const {
     return (this->count(var) != 0);
 }
 
+VariableSet VariableSet::intersect(const VariableSet &vs) const {
+    VariableSet intersection = { };
+    for (auto iter = this->begin(); iter != this->end(); ++iter) {
+        if (vs.contains(*iter)) {
+            intersection.insert(*iter);
+        }
+    }
+    return intersection;
+}
+
 std::ostream& operator<<(std::ostream& os, const VariableSet& variableSet) {
     os << std::string("{");
     for (auto iter = variableSet.begin(); iter != variableSet.end(); ++iter) {
