@@ -131,23 +131,6 @@ unsigned QuantifiedVariablesManager::getNumberOfExistVars() {
     return numberOfExistVars;
 }
 
-/*
-// TODO probably add variables sets as members
-VariableSet QuantifiedVariablesManager::getAllUnivVars() {
-    VariableSet univVars;
-    for (const auto &var : univVarsDependencies) {
-        univVars.insert(var.first);
-    }
-    return univVars;
-}
-
-// TODO implement
-VariableSet QuantifiedVariablesManager::getAllExistVars() { 
-    throw "Not implemented";
-}
-*/
-
-
 /********************************************/
 /********************************************/
 /*************** MANIPULATOR ****************/

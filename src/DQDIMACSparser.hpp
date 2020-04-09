@@ -33,9 +33,9 @@ class DQDIMACSParser : public Parser {
     std::vector<std::vector<Literal>> clauses;
 public:
     DQDIMACSParser(Cudd &mgr, QuantifiedVariablesManager &qvmgr);
-    bool parse(std::string fileName);
-    Formula* getFormula();
-    QuantifierTreeNode* getQuantifierTree();
+    bool parse(std::string fileName) override;
+    Formula* getFormula() override;
+    QuantifierTreeNode* getQuantifierTree() override;
 };
 
 #endif

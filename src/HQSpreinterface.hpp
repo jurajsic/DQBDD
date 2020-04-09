@@ -43,9 +43,9 @@ public:
      * @param fileName name of the file to parse
      * @return true if formula was solved by preprocessor
      */
-    bool parse(std::string fileName);
-    Formula* getFormula();
-    QuantifierTreeNode* getQuantifierTree();
+    bool parse(std::string fileName) override;
+    Formula* getFormula() override;
+    QuantifierTreeNode* getQuantifierTree() override;
     ~HQSPreInterface();
 };
 

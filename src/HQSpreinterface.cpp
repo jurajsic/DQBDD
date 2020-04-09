@@ -309,7 +309,6 @@ QuantifierTreeNode* HQSPreInterface::getQuantifierTree() {
 
     // delete clauses from which gates were generated
     for (const hqspre::Gate& g: formulaPtr->formula.getGates()) {
-        // TODO check if we don't have to do something here (like in BDD case), probably not
         for (const auto c_nr: g._encoding_clauses) formulaPtr->formula.removeClause(c_nr);
     }
 
