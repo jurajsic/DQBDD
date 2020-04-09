@@ -30,7 +30,7 @@ enum UnivVarElimChoice {
 // decides what to eliminate on each level of quantifier tree
 enum TreeElimChoice {
     None,       // nothing
-    Simple,     // only existential variables (TODO: maybe also universal with no/small amount of dependency)
+    Simple,     // only existential variables and universal with no dependencies
     All,        // everything possible (every universal and possible existentials)
 };
 
