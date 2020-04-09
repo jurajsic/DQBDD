@@ -69,6 +69,16 @@ public:
                 break;
             }
 
+            case hqspre::GateType::MUX_GATE:
+            {
+                // MUX(A,B,C) = (A AND B) OR (!A AND C)
+                BDD A = convertLiteral(g._input_literals[0]);
+                BDD B = convertLiteral(g._input_literals[1]);
+                BDD C = convertLiteral(g._input_literals[2]);
+                result = (A & B) | ((~A) & C);
+                break;
+            }
+
             default:
             {
                 throw DQBDDexception("Invalid gate type encountered");
@@ -136,6 +146,20 @@ public:
                 break;
             }
 
+            case hqspre::GateType::MUX_GATE:
+            {
+                // MUX(A,B,C) = (A AND B) OR (!A AND C)
+                QuantifierTreeNode *firstOp = literalToTree(mgr, g._input_literals[0], qvm);
+                QuantifierTreeNode *firstOpNeg = literalToTree(mgr, g._input_literals[0], qvm);
+                firstOpNeg->negate();
+                QuantifierTreeNode *secondOp = literalToTree(mgr, g._input_literals[1], qvm);
+                QuantifierTreeNode *thirdOp = literalToTree(mgr, g._input_literals[2], qvm);
+                QuantifierTreeNode *firstConj = new QuantifierTree(true, std::list<QuantifierTreeNode*>{firstOp, secondOp}, qvm);
+                QuantifierTreeNode *secondConj = new QuantifierTree(true, std::list<QuantifierTreeNode*>{firstOpNeg, thirdOp}, qvm);
+                result = new QuantifierTree(false, std::list<QuantifierTreeNode*>{firstConj, secondConj}, qvm);
+                break;
+            }
+
             default:
             {
                 throw DQBDDexception("Invalid gate type encountered");
@@ -185,7 +209,7 @@ bool HQSPreInterface::parse(std::string fileName) {
 
     // do the preprocessing magic
     try {
-        formulaPtr->formula.determineGates(true, true, false, false);
+        formulaPtr->formula.determineGates(true, true, true, false);
         if (formulaPtr->formula.getGates().size() > 5) {
             // First do full preprocessing on a copy of the formula
             hqspre::Formula formula2(formulaPtr->formula);
@@ -216,7 +240,7 @@ bool HQSPreInterface::parse(std::string fileName) {
     }
 
     // do gate extraction
-    formulaPtr->formula.determineGates(true, true, false, false);
+    formulaPtr->formula.determineGates(true, true, true, false);
     formulaPtr->formula.enforceDQBF(true);
     formulaPtr->formula.unitPropagation();
 
