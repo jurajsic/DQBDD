@@ -117,15 +117,15 @@ int main(int argc, char **argv)
             auto qtroot = parser->getQuantifierTree();
             if (!preprocessorSolved) {
                 std::cout << "Quantifier tree created" << std::endl
-                          << *qtroot << std::endl
+                          //<< *qtroot << std::endl
                           << "Pushing quantifiers inside" << std::endl;
                 qtroot->localise();
                 std::cout << "Quantifiers pushed inside" << std::endl
-                          << *qtroot << std::endl
+                          //<< *qtroot << std::endl
                           << "Creating BDD formula" << std::endl;
             }
             f = qtroot->changeToFormula(mgr);
-            std::cout << *f <<std::endl;
+            //std::cout << *f <<std::endl;
         }
     } catch(const std::exception &e) {
         std::cerr << e.what() << std::endl;
@@ -139,8 +139,8 @@ int main(int argc, char **argv)
         f->removeUnusedVars();
         std::cout << "BDD formula created" << std::endl;
         f->printStats();
-        std::cout << "Universal variables: " << f->getUnivVars() << std::endl;
-        std::cout << "Existential variables: " << f->getExistVars() << std::endl;
+        //std::cout << "Universal variables: " << f->getUnivVars() << std::endl;
+        //std::cout << "Existential variables: " << f->getExistVars() << std::endl;
         std::cout << "Eliminating universal variables in the created formula" << std::endl;
         try {
             f->eliminatePossibleVars();

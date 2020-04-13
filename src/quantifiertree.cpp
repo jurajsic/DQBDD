@@ -22,6 +22,8 @@
 #include "quantifiertree.hpp"
 #include "DQBDDexceptions.hpp"
 
+//#include<iostream>
+
 QuantifierTreeNode::QuantifierTreeNode(QuantifiedVariablesManager &qvmgr) : QuantifiedVariablesManipulator(qvmgr) {}
 
 void QuantifierTreeNode::pushExistVar(Variable var) {
@@ -53,6 +55,18 @@ void QuantifierTreeNode::pushUnivVar(Variable var) {
     }
 }
 
+VariableSet const& QuantifierTreeNode::getUVarsOutsideThisSubtree() const {
+    return uVarsOutsideThisSubtree;
+}
+
+VariableSet const& QuantifierTreeNode::getUVarsSupportSet() {
+    return uVarsSupportSet;
+}
+
+void QuantifierTreeNode::addToUVarsOutsideThisSubtree(const Variable &varToAdd) {
+    addToUVarsOutsideThisSubtree(VariableSet{varToAdd});
+}
+
 /*******************************************/
 /*******************************************/
 /************ QUANTIFIER TREE **************/
@@ -61,8 +75,9 @@ void QuantifierTreeNode::pushUnivVar(Variable var) {
 
 QuantifierTree::QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> children, QuantifiedVariablesManager &qvMgr) : QuantifiedVariablesManipulator(qvMgr), QuantifierTreeNode(qvMgr), isConj(isConj) {
     supportSet = {};
+    uVarsSupportSet = {};
     if (children.size() < 2) {
-        throw DQBDDexception("You cannot create a quantifier tree with only one or zero operands");
+        throw DQBDDexception((std::string("You cannot create a quantifier tree with ") + std::to_string(children.size()) + std::string(" operands")).c_str());
     }
     for (QuantifierTreeNode *child : children) {
         addChild(child);
@@ -71,11 +86,40 @@ QuantifierTree::QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> child
 
 QuantifierTree::QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> children, QuantifiedVariablesManipulator &qvManipulator) : QuantifiedVariablesManipulator(qvManipulator), QuantifierTreeNode(*qvManipulator.getManager()), isConj(isConj) {
     supportSet = {};
+    uVarsSupportSet = {};
     if (children.size() < 2) {
-        throw DQBDDexception("You cannot create a quantifier tree with only one or zero operands");
+        throw DQBDDexception((std::string("You cannot create a quantifier tree with ") + std::to_string(children.size()) + std::string(" operands")).c_str());
     }
     for (QuantifierTreeNode *child : children) {
         addChild(child);
+    }
+}
+
+
+QuantifierTree::QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> children, QuantifiedVariablesManager &qvMgr, 
+                        const std::list<QuantifierTreeNode*> &siblings, QuantifierTree *parent) :QuantifiedVariablesManipulator(qvMgr), QuantifierTreeNode(qvMgr), isConj(isConj) {
+    supportSet = {};
+    uVarsSupportSet = {};
+    if (children.size() < 2) {
+        throw DQBDDexception((std::string("You cannot create a quantifier tree with ") + std::to_string(children.size()) + std::string(" operands")).c_str());
+    }
+
+    
+    // we do not need to update uVarsOutsideThisSubtree of children because of 
+    // the assumption where this constructor can be used 
+    // so we only set it for this node
+    uVarsOutsideThisSubtree = parent->getUVarsOutsideThisSubtree();
+    for (QuantifierTreeNode *sibling : siblings) {
+        uVarsOutsideThisSubtree.insert(sibling->getUVarsSupportSet().begin(),
+                                       sibling->getUVarsSupportSet().end());
+    }
+
+    for (QuantifierTreeNode *child : children) {
+        supportSet.insert(child->getSupportSet().begin(),
+                          child->getSupportSet().end());
+        uVarsSupportSet.insert(child->getUVarsSupportSet().begin(),
+                               child->getUVarsSupportSet().end());
+        this->children.push_back(child);
     }
 }
 
@@ -111,169 +155,263 @@ bool QuantifierTree::removeFromOrderedListOtherOrderedListUsingChildrenOrder(std
     return somethingWasDeleted;
 }
 
-void QuantifierTree::localise() {
-    removeUnusedVars();
-    if (isConj) {
-        /****************************************************************************
-         * For conjunction, first find for each exist var the set of children that  
-         * contain it and merge them into new QuantifierTree with same operator and 
-         * then push universal variables on which none of the leftover existential 
-         * variables depend into children.
-         ****************************************************************************/
+void QuantifierTree::addPossibleUnivVarsToMapping(std::unordered_map<Variable, std::list<QuantifierTreeNode*>> &childrenToCombineMapping) {
+    // get all universal variables on which some leftover exist var depends (these vars cant be pushed)...
+    VariableSet dependentUnivVars; 
+    for (const Variable &existVar : getExistVars()) {
+        dependentUnivVars.insert(getExistVarDependencies(existVar).begin(), getExistVarDependencies(existVar).end());
+    }
+    // ...add to it variables which are already in mapping...
+    for (const auto &univVarInMappingWithMappedContent : childrenToCombineMapping) {
+        dependentUnivVars.insert(univVarInMappingWithMappedContent.first);
+    }
+    // ...and take all universal variables which are not in it
+    VariableSet notDependentUnivVars = getUnivVars().minus(dependentUnivVars);
 
-        // for each existential variable, create a set of children which contain it
-        std::unordered_map<Variable,std::list<QuantifierTreeNode*>> childrenContainingExistVar;
+    // for each universal variable that is not in dependentUnivVars get the list of children containing it or its dependency
+    if (!notDependentUnivVars.empty()) {
         for (QuantifierTreeNode *child : children) {
-            VariableSet childSupportSet = child->getSupportSet();
-            for (const Variable &eVar : getExistVars()) {
-                if (childSupportSet.contains(eVar)) {
-                    childrenContainingExistVar[eVar].push_back(child);
-                }
-            }
-        }
-        
-        // push exist vars while it is possible
-        while (!getExistVars().empty()) {
-            // exist variable that has minimal number of occurences in children
-            auto eVarToPushIter = std::min_element(getExistVars().begin(), getExistVars().end(), 
-                        [&](Variable v1, Variable v2) { 
-                            return (childrenContainingExistVar[v1].size() < childrenContainingExistVar[v2].size());
-                        }
-                     );
-
-            std::list<QuantifierTreeNode*> &childrenToCombine = childrenContainingExistVar[*eVarToPushIter];
-
-            // if we hit the exist variable that is in all children (meaning 
-            // that all other exist variables are in all children too) we stop
-            if (childrenToCombine.size() == children.size()) {
-                break;
-            }
-
-            // if *eVarToPushIter is needed to be pushed to only one child, there is no need to create new children
-            if (childrenToCombine.size() == 1) {
-                (*childrenToCombine.begin())->pushExistVar(*eVarToPushIter);
-                removeExistVar(*eVarToPushIter);
-                continue;
-            }
-            
-            // create a new child to which this existential variable is pushed
-            QuantifierTree *newChild = new QuantifierTree(isConj, childrenToCombine, *qvMgr);
-            newChild->pushExistVar(*eVarToPushIter);
-            removeExistVar(*eVarToPushIter);
-
-            // erase the children that were connected to create a new child
-            // and add the new child if some children were connected
-            for (const Variable &eVarToBePushed : getExistVars()) {
-                if (removeFromOrderedListOtherOrderedListUsingChildrenOrder(childrenContainingExistVar[eVarToBePushed], childrenToCombine)) {
-                    childrenContainingExistVar[eVarToBePushed].push_back(newChild);
-                }
-            }
-            removeFromOrderedListOtherOrderedListUsingChildrenOrder(children, childrenToCombine);
-            children.push_back(newChild);
-
-            childrenContainingExistVar.erase(*eVarToPushIter);
-        }
-        
-        // get all universal variables on which some leftover exist var depends (these vars cant be pushed)
-        VariableSet dependentUnivVars; 
-        for (const Variable &existVar : getExistVars()) {
-            dependentUnivVars.insert(getExistVarDependencies(existVar).begin(), getExistVarDependencies(existVar).end());
-        }
-
-        // push possible univ vars (they do not depend on any exist var in current node)
-        VariableSet univVars = getUnivVars();
-        for (const Variable &univVarToPush : univVars) {
-            if (!dependentUnivVars.contains(univVarToPush)) { // no leftover existential variable depends on univVarToPush --> can be pushed
-                // push it into every child, pushUnivVar() will take care of deciding whether to keep it there or not
-                for (QuantifierTreeNode *child : children) {
-                    child->pushUnivVar(univVarToPush);
-                }
-                removeUnivVar(univVarToPush);
-            }
-        }
-    } else {
-        /***********************************************************************************
-         * For disjunction, we can easily push every existential quantifier into children
-         * and then we create for each univ var new subtrees from children which contain them
-         * in which we push them.
-         ***********************************************************************************/
-
-        // push all existential variables into children
-        VariableSet existVars = getExistVars();
-        for (const Variable &existVarToPush : existVars) {
-            for (QuantifierTreeNode *child : children) {
-                /* There is no need to rename them, because universal vars on which this exist var 
-                 * depends will either stay as ancestor/same level or will be pushed into some sibling 
-                 * and then the dependency will be removed. Also, pushExistVar() takes care whether
-                 * to actually push it inside or not.       
-                 */
-                child->pushExistVar(existVarToPush);
-            }
-            removeExistVar(existVarToPush);
-        }
-
-        // for each universal variable find the set of children that contain it or contain exist variable which depends
-        // on it and merge them into new QuantifierTree with same operator and remove it if it was pushed
-        std::unordered_map<Variable,std::list<QuantifierTreeNode*>> childrenContainingUnivVar;
-        for (QuantifierTreeNode *child : children) {
-            VariableSet childSupportSet = child->getSupportSet();
-            for (const Variable &uVar : getUnivVars()) {
+            const VariableSet &childSupportSet = child->getSupportSet();
+            for (const Variable &uVar : notDependentUnivVars) {
                 // if the child contains uVar...
                 if (childSupportSet.contains(uVar)) {
-                    childrenContainingUnivVar[uVar].push_back(child);
+                    childrenToCombineMapping[uVar].push_back(child);
                     continue;
                 }
                 // ... or some exist var that depends on uVar
                 for (const Variable &eVar : getUnivVarDependencies(uVar)) {
                     if (childSupportSet.contains(eVar)) {
-                        childrenContainingUnivVar[uVar].push_back(child);
+                        childrenToCombineMapping[uVar].push_back(child);
                         continue;
                     }
                 }
             }
         }
-        
-        // push all universal variables (except those on which some exist var from every child depends)
-        while (!getUnivVars().empty()) {
-            // univ variable that has minimal number of occurences in children
-            auto uVarToPushIter = std::min_element(getUnivVars().begin(), getUnivVars().end(), 
-                        [&](Variable v1, Variable v2) { 
-                            return (childrenContainingUnivVar[v1].size() < childrenContainingUnivVar[v2].size());
-                        }
-                     );
+    }
+}
 
-            std::list<QuantifierTreeNode*> &childrenToCombine = childrenContainingUnivVar[*uVarToPushIter];
+void QuantifierTree::pushVarsWithCombining(std::unordered_map<Variable, std::list<QuantifierTreeNode*>> &childrenToCombineMapping, bool findNewUnivVars) {
+    //std::cout << "We are planning to remove these with combining" << std::endl;
+    //for (auto i : childrenToCombineMapping) {
+    //    std::cout << "  variable " << i.first << " with " << i.second.size() << " children to combine." << std::endl;
+    //}
+    
+    while (!childrenToCombineMapping.empty()) {
+        //std::cout << "These are leftover" << std::endl;
+        //for (auto i : childrenToCombineMapping) {
+        //    std::cout << "  variable " << i.first << " with " << i.second.size() << " children to combine." << std::endl;
+        //}
+        // get variable that has minimal number of occurences in children
+        auto varToPushAndItsChildren = std::min_element(childrenToCombineMapping.begin(), childrenToCombineMapping.end(), 
+                    [](const std::pair<Variable, std::list<QuantifierTreeNode*>> &a, 
+                        const std::pair<Variable, std::list<QuantifierTreeNode*>> &b) { 
+                        return (a.second.size() < b.second.size());
+                    }
+                    );
+        Variable varToPush = varToPushAndItsChildren->first;
+        //std::cout << "Pushing the variable " << varToPush << " to a new combined child." << std::endl;
+        std::list<QuantifierTreeNode*> childrenToCombine = varToPushAndItsChildren->second;
+        //std::cout << "The size of children to combine right after getting it: " << childrenToCombine.size() << std::endl;
 
-            // if we hit the univ variable that is in all children (meaning 
-            // that all other univ variables are in all children too) we stop
-            if (childrenToCombine.size() == children.size()) {
-                break;
+        // if we hit the variable that is in all children (meaning 
+        // that all other variables are in all children too) we stop
+        if (childrenToCombine.size() == children.size()) {
+            break;
+        }
+
+        // if varToPush is needed to be pushed to only one child, there is no need to create new child
+        if (childrenToCombine.size() == 1) {
+            if (isVarUniv(varToPush)) {
+                (*childrenToCombine.begin())->pushUnivVar(varToPush);
+                removeUnivVar(varToPush);
+            } else if (isVarExist(varToPush)) {
+                (*childrenToCombine.begin())->pushExistVar(varToPush);
+                removeExistVar(varToPush);
+                if (findNewUnivVars) {
+                    addPossibleUnivVarsToMapping(childrenToCombineMapping);
+                }
+            } else {
+                throw DQBDDexception("Found variable which is neither universal or existential, this should not happen");
             }
+            childrenToCombineMapping.erase(varToPush);
+            continue;
+        }
 
-            // if *uVarToPushIter is needed to be pushed to only one child, there is no need to create new child
-            if (childrenToCombine.size() == 1) {
-                (*childrenToCombine.begin())->pushUnivVar(*uVarToPushIter);
-                removeUnivVar(*uVarToPushIter);
-                continue;
+        // for each variable v that we are planning to push later, we need to update
+        // childrenToCombineMapping[v] by removing from them the set of children
+        // which we are going to combine and also save them into varsWithChangedChildren
+        // if something was deleted to add the new child with combined children to it
+        VariableSet varsWithChangedChildren = {};
+        for (auto &varToBePushedWithChildren : childrenToCombineMapping) {
+            Variable varToBePushed = varToBePushedWithChildren.first;
+            if (removeFromOrderedListOtherOrderedListUsingChildrenOrder(childrenToCombineMapping[varToBePushed], childrenToCombine)) {
+                varsWithChangedChildren.insert(varToBePushed);
             }
+        }
 
-            // create a new child to which this universal variable is pushed
-            QuantifierTree *newChild = new QuantifierTree(isConj, childrenToCombine, *qvMgr);
-            newChild->pushUnivVar(*uVarToPushIter);
-            removeUnivVar(*uVarToPushIter);
+        // create a new child to which varToPush is pushed
+        removeFromOrderedListOtherOrderedListUsingChildrenOrder(children, childrenToCombine);
+        //std::cout << "The size of children to combine right before creating new child: " << childrenToCombine.size() << std::endl;
+        QuantifierTree *newChild = new QuantifierTree(isConj, childrenToCombine, *qvMgr, children, this);
+        if (isVarExist(varToPush)) {
+            newChild->pushExistVar(varToPush);
+            removeExistVar(varToPush);
+        } else if (isVarUniv(varToPush)) {
+            newChild->pushUnivVar(varToPush);
+            removeUnivVar(varToPush);
+        } else {
+            throw DQBDDexception("Found variable which is neither universal or existential, this should not happen");
+        }
+        children.push_back(newChild);
 
-            // erase the children that were connected to create a new child
-            // and add the new child if some children were deleted
-            for (const Variable &uVarToBePushed : getUnivVars()) {
-                if (removeFromOrderedListOtherOrderedListUsingChildrenOrder(childrenContainingUnivVar[uVarToBePushed], childrenToCombine)) {
-                    childrenContainingUnivVar[uVarToBePushed].push_back(newChild);
+        // add the new child to each var in varsWithChangedChildren
+        for (auto varWithChangedChildren : varsWithChangedChildren) {
+            childrenToCombineMapping[varWithChangedChildren].push_back(newChild);
+        }
+
+        childrenToCombineMapping.erase(varToPush);
+
+        // at the end, if the pushed variable was existential, some universal variables can become pushable
+        if (isVarExist(varToPush) && findNewUnivVars) {
+            addPossibleUnivVarsToMapping(childrenToCombineMapping);
+        }
+    }
+}
+
+
+void QuantifierTree::localiseOR() {
+    /************************************************************************************
+     * For disjunction, we can push only some existential quantifiers into children, we
+     * have to check if the children fulfill the conditions for it to be possible. We 
+     * can however still create the new subtrees which contain them to which we can them,
+     * but also we do it at the same time as we push univ vars, for those we also create 
+     * new subtrees which contain them or some existential variable depending on it.
+     ************************************************************************************/
+
+    // for each existential variable map to the list of children containing it
+    std::unordered_map<Variable,std::list<QuantifierTreeNode*>> childrenContainingVarOrDependency;
+    for (QuantifierTreeNode *child : children) {
+        const VariableSet &childSupportSet = child->getSupportSet();
+        for (const Variable &eVar : getExistVars()) {
+            if (childSupportSet.contains(eVar)) {
+                childrenContainingVarOrDependency[eVar].push_back(child);
+            }
+        }
+    }
+
+    /* first, try pushing existential variables into children if they all fulfill the needed conditions,
+        * where for exist. var y with dependency set D_y:
+        *     (1) check if all children containing y have uVarsSupportSet/D_y pairwise disjoint
+        *     (2) at most one child containing y has some variable from uVarsSupportSet/D_y in uVarsSupportSet
+        *       of child that does not contain y or in uVarsOutsideThisSubtree
+        */
+    VariableSet existVars = getExistVars();
+    for (const Variable &existVarToPush : existVars) {
+        // if true, existVarToPush fulfills the conditions
+        bool canBePushed = true;
+        // true if one of the processed children was already problematic
+        bool wasThereOneProblem = false;
+
+        // first check the condition
+        for (QuantifierTreeNode *child : childrenContainingVarOrDependency[existVarToPush]) {
+            /* uVarsToCheck = uVarsSupportSet/D_y
+                * - the set of universal variables in the child (or in a dependency set of a exist var in child)
+                *   which are not in the dependency set of existVarToPush
+                */
+            VariableSet uVarsToCheck = child->getUVarsSupportSet().minus(getExistVarDependencies(existVarToPush));
+
+            /* check if uVarsToCheck are outside this child subtree
+                *     - if it violates condition (1), then it is true and it either sets wasThereOneProblem
+                *       to true and some next child with which it intersects will also evaluate this to true
+                *       but wasThereOneProblem will be already set to true OR this is the second child and 
+                *       wasThereOneProblem is already true
+                *     - if it violates condition (2), then it is true and we set wasThereOneProblem to true
+                *       so we know this one child is the one possible child that can violate (2)
+                *     - if it does not violate either, then this is false 
+                */
+            if ( !(child->getUVarsOutsideThisSubtree().intersect(uVarsToCheck).empty()) ) {
+                if (wasThereOneProblem) {
+                    canBePushed = false;
+                    break;
+                } else {
+                    wasThereOneProblem = true;
                 }
             }
-            removeFromOrderedListOtherOrderedListUsingChildrenOrder(children, childrenToCombine);
-            children.push_back(newChild);
-
-            childrenContainingUnivVar.erase(*uVarToPushIter);
         }
+
+        // if it can be pushed, push it
+        if (canBePushed) {
+            //std::cout << "Pushing " << existVarToPush << " using the weird rule." << std::endl;
+            for (QuantifierTreeNode *child : childrenContainingVarOrDependency[existVarToPush]) {
+                /* There is no need to rename them, because universal vars on which this exist var 
+                * depends will either stay as ancestor/same level or will be pushed into some sibling 
+                * and then the dependency will be removed. Also, pushExistVar() takes care whether
+                * to actually push it inside or not.       
+                */
+                child->pushExistVar(existVarToPush);
+            }
+            removeExistVar(existVarToPush);
+            childrenContainingVarOrDependency.erase(existVarToPush);
+        }
+    }
+
+    addPossibleUnivVarsToMapping(childrenContainingVarOrDependency);
+
+    // push all possible leftover existential and universal vars into a new child created from children containing them
+    pushVarsWithCombining(childrenContainingVarOrDependency, true);
+}
+
+void QuantifierTree::localiseAND() {
+    /****************************************************************************
+     * For conjunction, first find for each exist var the set of children that  
+     * contain it and merge them into new QuantifierTree with same operator and 
+     * then push universal variables on which none of the leftover existential 
+     * variables depend into children.
+     ****************************************************************************/
+
+    // for each existential variable, create a set of children which contain it
+    std::unordered_map<Variable,std::list<QuantifierTreeNode*>> childrenContainingExistVar;
+    for (QuantifierTreeNode *child : children) {
+        const VariableSet &childSupportSet = child->getSupportSet();
+        for (const Variable &eVar : getExistVars()) {
+            if (childSupportSet.contains(eVar)) {
+                childrenContainingExistVar[eVar].push_back(child);
+            }
+        }
+    }
+    
+    // push exist vars while it is possible
+    pushVarsWithCombining(childrenContainingExistVar, false);
+    
+    // get all universal variables on which some leftover exist var depends (these vars cant be pushed)
+    VariableSet dependentUnivVars; 
+    for (const Variable &existVar : getExistVars()) {
+        dependentUnivVars.insert(getExistVarDependencies(existVar).begin(), getExistVarDependencies(existVar).end());
+    }
+
+    // push possible univ vars (they do not depend on any exist var in current node)
+    VariableSet univVars = getUnivVars();
+    for (const Variable &univVarToPush : univVars) {
+        if (!dependentUnivVars.contains(univVarToPush)) { // no leftover existential variable depends on univVarToPush --> can be pushed
+            // push it into every child, pushUnivVar() will take care of deciding whether to keep it there or not
+            for (QuantifierTreeNode *child : children) {
+                child->pushUnivVar(univVarToPush);
+            }
+            removeUnivVar(univVarToPush);
+        }
+    }
+}
+
+void QuantifierTree::localise() {
+    removeUnusedVars();
+    //std::cout << "Localising at tree: " << *this << " with: " << std::endl
+    //          << "   support set:   " << getSupportSet() << std::endl
+    //          << "   u support set: " << getUVarsSupportSet() << std::endl
+    //          << "   u outside:     " << getUVarsOutsideThisSubtree() << std::endl;
+    if (isConj) {
+        localiseAND();
+    } else {
+        localiseOR();
     }
 
     // recursively call localise for each child
@@ -381,27 +519,55 @@ void QuantifierTree::negate() {
     }
 }
 
+
+void QuantifierTree::addToUVarsOutsideThisSubtree(const VariableSet &varsToAdd) {
+    for (auto child : children) {
+        child->addToUVarsOutsideThisSubtree(varsToAdd);
+    }
+
+    uVarsOutsideThisSubtree.insert(varsToAdd.begin(), varsToAdd.end());
+}
+
 void QuantifierTree::addChild(QuantifierTreeNode *child) {
-    // add variables of the child to the support set here
-    for (const Variable var : child->getSupportSet()) {
-        supportSet.insert(var);
+    /* in oldUVarsSupportSet are all universal variables in all the children
+     * of this tree before adding new child, therefore all those will be
+     * added to uVarsOutsideThisSubtree of the new child
+     */
+    VariableSet oldUVarsSupportSet = getUVarsSupportSet();
+
+    // add variables of the child to the support sets here
+    supportSet.insert(child->getSupportSet().begin(),
+                    child->getSupportSet().end());
+    uVarsSupportSet.insert(child->getUVarsSupportSet().begin(),
+                        child->getUVarsSupportSet().end());
+
+    // update others children uVarsOutsideThisSubtree with the universal
+    // variables that are in support set of what will be newly added child
+    for (auto oldChild : children) {
+        oldChild->addToUVarsOutsideThisSubtree(child->getUVarsSupportSet());
     }
 
     // check if this child is not quantifier tree with the same operator like here and empty quantifier prefix
     auto treeChild = dynamic_cast<QuantifierTree*>(child);
     if (treeChild != nullptr && treeChild->isConj == isConj 
                 && treeChild->getExistVars().empty() && treeChild->getUnivVars().empty()) {
+
         // if it is, set its children as current children, not itself
         for (auto childOfChild : treeChild->children) {
             children.push_back(childOfChild);
+            // we only nned to add to uVarsOutsideThisSubtree the uVarsInSupportSet
+            // of old children, because these children of the child have already
+            // the uVarsInSupportSet of other children of the child in their uVarsOutsideThisSubtree
+            childOfChild->addToUVarsOutsideThisSubtree(oldUVarsSupportSet);
         }
-        treeChild->children.clear();
 
         // and finally delete it
+        treeChild->children.clear();
         delete child;
     } else {
         // otherwise just add this child to children
         children.push_back(child);
+        child->addToUVarsOutsideThisSubtree(oldUVarsSupportSet);
     }
 }
 
@@ -414,14 +580,16 @@ std::ostream& QuantifierTree::print(std::ostream& out) const {
     }
 
     auto size = children.size();
+    out << std::string("(");
     for (QuantifierTreeNode *child : children) {
-        out << std::string("(") << *child << std::string(")");
+        out << *child;
         // print the last element without operator
         if (size != 1) {
             out << std::string(" ") << op << std::string(" ");
         }
         --size;
     }
+    out << std::string(")");
     return out;
 }
 
@@ -432,10 +600,14 @@ std::ostream& QuantifierTree::print(std::ostream& out) const {
 /*********************************************************/
 
 QuantifierTreeFormula::QuantifierTreeFormula(const Cudd &mgr, QuantifiedVariablesManager &qvmgr)
-                            : QuantifiedVariablesManipulator(qvmgr), QuantifierTreeNode(qvmgr), Formula(mgr, qvmgr) {}
+                            : QuantifiedVariablesManipulator(qvmgr), QuantifierTreeNode(qvmgr), Formula(mgr, qvmgr) 
+                            {
+                            }
 
 QuantifierTreeFormula::QuantifierTreeFormula(const Cudd &mgr, QuantifiedVariablesManipulator &qvManipulator)
-                            : QuantifiedVariablesManipulator(qvManipulator), QuantifierTreeNode(*qvManipulator.getManager()), Formula(mgr, qvManipulator) {}
+                            : QuantifiedVariablesManipulator(qvManipulator), QuantifierTreeNode(*qvManipulator.getManager()), Formula(mgr, qvManipulator)
+                            {
+                            }
 
 void QuantifierTreeFormula::localise() {
     removeUnusedVars();
@@ -449,6 +621,35 @@ void QuantifierTreeFormula::negate() {
     setMatrix(!getMatrix());
 }
 
+// computes supportSet and uVarsSupportSet
+void QuantifierTreeFormula::computeSupportSets() {
+    if (needsToRecomputeSupportSet()) { // only if we need to compute it though
+        // this computes supportSet
+        Formula::getSupportSet();
+        // this computes uVarsSupportSet
+        uVarsSupportSet.clear();
+        for (const Variable &var : supportSet) {
+            if (isVarUniv(var)) {
+                uVarsSupportSet.insert(var);
+            } else if (isVarExist(var)) {
+                uVarsSupportSet.insert(getExistVarDependencies(var).begin(),
+                                       getExistVarDependencies(var).end());
+            }
+        }
+    }
+}
+
 VariableSet const& QuantifierTreeFormula::getSupportSet() {
-    return Formula::getSupportSet();
+    computeSupportSets();
+    return supportSet;
+}
+
+VariableSet const& QuantifierTreeFormula::getUVarsSupportSet() {
+    computeSupportSets();
+    return uVarsSupportSet;
+}
+
+
+void QuantifierTreeFormula::addToUVarsOutsideThisSubtree(const VariableSet &varsToAdd) {
+    uVarsOutsideThisSubtree.insert(varsToAdd.begin(), varsToAdd.end());
 }
