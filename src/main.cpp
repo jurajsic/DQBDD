@@ -38,6 +38,57 @@ enum ReturnCode {
 
 int main(int argc, char **argv)
 {
+    Cudd mgr1;
+    //mgr.AutodynDisable();
+    QuantifiedVariablesManager qvMgr1;
+    Variable x1(1, mgr1);
+    Variable x2(2, mgr1);
+    Variable x3(3, mgr1);
+    Variable y1(11, mgr1);
+    Variable y2(12, mgr1);
+    QuantifiedVariablesManipulator prefix(qvMgr1);
+    prefix.addUnivVar(x1);
+    prefix.addUnivVar(x2);
+    prefix.addUnivVar(x3);
+    prefix.addExistVar(y1, VariableSet{x1});
+    prefix.addExistVar(y2);
+    
+    QuantifierTreeFormula *qtx1 = new QuantifierTreeFormula(mgr1, qvMgr1);
+    qtx1->setMatrix(x1);
+    QuantifierTreeFormula *qtx21 = new QuantifierTreeFormula(mgr1, qvMgr1);
+    qtx21->setMatrix(x2);
+    QuantifierTreeFormula *qtx22 = new QuantifierTreeFormula(mgr1, qvMgr1);
+    qtx22->setMatrix(x2);
+    QuantifierTreeFormula *qtx23 = new QuantifierTreeFormula(mgr1, qvMgr1);
+    qtx23->setMatrix(!x2);
+    QuantifierTreeFormula *qtx3 = new QuantifierTreeFormula(mgr1, qvMgr1);
+    qtx3->setMatrix(x3);
+    QuantifierTreeFormula *qty11 = new QuantifierTreeFormula(mgr1, qvMgr1);
+    qty11->setMatrix(y1);
+    QuantifierTreeFormula *qty12 = new QuantifierTreeFormula(mgr1, qvMgr1);
+    qty12->setMatrix(y1);
+    QuantifierTreeFormula *qty21 = new QuantifierTreeFormula(mgr1, qvMgr1);
+    qty21->setMatrix(y2);
+    QuantifierTreeFormula *qty22 = new QuantifierTreeFormula(mgr1, qvMgr1);
+    qty22->setMatrix(!y2);
+    auto qtttt = new QuantifierTree(false, std::list<QuantifierTreeNode*>{
+        new QuantifierTree(true, std::list<QuantifierTreeNode*>{qtx1,qty11},qvMgr1),
+        new QuantifierTree(true, std::list<QuantifierTreeNode*>{qtx21,qty12},qvMgr1),
+        new QuantifierTree(true, std::list<QuantifierTreeNode*>{qtx22,qty21},qvMgr1),
+        new QuantifierTree(true, std::list<QuantifierTreeNode*>{qtx23,qty22,qtx3},qvMgr1),
+    },prefix);
+    prefix.clear();
+    
+    std::cout << qtttt->getSupportSet() << std::endl;
+    std::cout << qtttt->getUVarsOutsideThisSubtree() << std::endl;
+    std::cout << qtttt->getUVarsSupportSet() << std::endl;
+    std::cout << *qtttt << std::endl;
+    qtttt->localise();
+    std::cout << *qtttt << std::endl;
+    auto fffff = qtttt->changeToFormula(mgr1);
+    std::cout << *fffff << std::endl;
+    return 0;
+
     // argument parsing
     cxxopts::Options optionsParser("DQBDD", "A DQBF solver using BDDs.");
     optionsParser.add_options()
@@ -117,15 +168,15 @@ int main(int argc, char **argv)
             auto qtroot = parser->getQuantifierTree();
             if (!preprocessorSolved) {
                 std::cout << "Quantifier tree created" << std::endl
+                          << *qtroot << std::endl
                           << "Pushing quantifiers inside" << std::endl;
-                //std::cout << *qtroot << std::endl;
                 qtroot->localise();
-                //std::cout << *qtroot << std::endl;
                 std::cout << "Quantifiers pushed inside" << std::endl
+                          << *qtroot << std::endl
                           << "Creating BDD formula" << std::endl;
             }
             f = qtroot->changeToFormula(mgr);
-            //std::cout << *f <<std::endl;
+            std::cout << *f <<std::endl;
         }
     } catch(const std::exception &e) {
         std::cerr << e.what() << std::endl;
@@ -139,8 +190,8 @@ int main(int argc, char **argv)
         f->removeUnusedVars();
         std::cout << "BDD formula created" << std::endl;
         f->printStats();
-        //std::cout << "Universal variables: " << f->getUnivVars() << std::endl;
-        //std::cout << "Existential variables: " << f->getExistVars() << std::endl;
+        std::cout << "Universal variables: " << f->getUnivVars() << std::endl;
+        std::cout << "Existential variables: " << f->getExistVars() << std::endl;
         std::cout << "Eliminating universal variables in the created formula" << std::endl;
         try {
             f->eliminatePossibleVars();
