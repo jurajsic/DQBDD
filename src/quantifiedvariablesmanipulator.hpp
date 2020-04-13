@@ -38,6 +38,10 @@ public:
      * @brief returns the union of this set with vs
      */
     VariableSet unite(const VariableSet &vs) const;
+    /**
+     * @brief returns this set minus vs
+     */
+    VariableSet minus(const VariableSet &vs) const;
 };
 
 std::ostream& operator<<(std::ostream& os, const VariableSet& variableSet);

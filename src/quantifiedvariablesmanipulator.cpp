@@ -40,6 +40,16 @@ VariableSet VariableSet::unite(const VariableSet &vs) const {
     return unionn;
 }
 
+VariableSet VariableSet::minus(const VariableSet &vs) const {
+    VariableSet minus = {};
+    for (auto iter = this->begin(); iter != this->end(); ++iter) {
+        if (!vs.contains(*iter)) {
+            minus.insert(*iter);
+        }
+    }
+    return minus;
+}
+
 std::ostream& operator<<(std::ostream& os, const VariableSet& variableSet) {
     os << std::string("{");
     for (auto iter = variableSet.begin(); iter != variableSet.end(); ++iter) {
