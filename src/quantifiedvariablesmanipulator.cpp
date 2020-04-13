@@ -34,6 +34,12 @@ VariableSet VariableSet::intersect(const VariableSet &vs) const {
     return intersection;
 }
 
+VariableSet VariableSet::unite(const VariableSet &vs) const {
+    VariableSet unionn = vs;
+    unionn.insert(this->begin(),this->end());
+    return unionn;
+}
+
 std::ostream& operator<<(std::ostream& os, const VariableSet& variableSet) {
     os << std::string("{");
     for (auto iter = variableSet.begin(); iter != variableSet.end(); ++iter) {
