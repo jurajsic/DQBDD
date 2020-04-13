@@ -39,6 +39,10 @@ void Formula::setMatrix(const BDD &matrix) {
     needToRecomputeSupportSet = true;
 }
 
+bool Formula::needsToRecomputeSupportSet() const {
+    return needToRecomputeSupportSet;
+}
+
 VariableSet const &Formula::getSupportSet() {
     if (needToRecomputeSupportSet) {
         supportSet.clear();

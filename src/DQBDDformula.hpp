@@ -44,6 +44,9 @@ private:
     void initializeUnivVarEliminationOrder();
     Variable getUnivVarToEliminate();
 
+protected:
+    bool needsToRecomputeSupportSet() const;
+
 public:
     Formula() = delete;
     Formula(const Cudd &mgr, QuantifiedVariablesManager &qvmgr);
