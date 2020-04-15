@@ -39,7 +39,7 @@ private:
 
     bool needToRecomputeSupportSet = true;
 
-    // used for saving the order of universal variables to eliminate    
+    // used for saving the order of universal variables to eliminate (the last variable in vector is eliminated as first)    
     std::vector<Variable> univVarsOrderToRemove;
     void initializeUnivVarEliminationOrder();
     Variable getUnivVarToEliminate();

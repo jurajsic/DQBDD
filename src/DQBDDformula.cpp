@@ -163,8 +163,13 @@ void Formula::initializeUnivVarEliminationOrder() {
     {
         univVarsOrderToRemove.assign(getUnivVars().begin(), getUnivVars().end());
         std::sort(univVarsOrderToRemove.begin(), univVarsOrderToRemove.end(),
-                    [&](Variable a, Variable b) {
-                        return (getUnivVarDependencies(a).size() > getUnivVarDependencies(b).size());
+                    [&](const Variable &a, const Variable &b) {
+                        auto aDependenciesSize = getUnivVarDependencies(a).size();
+                        auto bDependenciesSize = getUnivVarDependencies(b).size();
+                        // variable with more dependencies should be earlier in the vector (so the one with less is chosen sooner)
+                        return (aDependenciesSize > bDependenciesSize
+                        // and in the case the dependencies have same size, the one with lower id should be eliminated sooner
+                                || (aDependenciesSize == bDependenciesSize && a.getId() > b.getId()));
                     }
                 );
         break;
@@ -193,8 +198,11 @@ Variable Formula::getUnivVarToEliminate() {
     case UnivVarElimChoice::NumOfDependenciesContinuous:
     {
         return *std::min_element(getUnivVars().begin(), getUnivVars().end(),
-                    [&](Variable a, Variable b) {
-                        return (getUnivVarDependencies(a).size() < getUnivVarDependencies(b).size());
+                    [&](const Variable &a, const Variable &b) {
+                        auto aDependenciesSize = getUnivVarDependencies(a).size();
+                        auto bDependenciesSize = getUnivVarDependencies(b).size();
+                        return (aDependenciesSize < bDependenciesSize
+                                || (aDependenciesSize == bDependenciesSize && a.getId() < b.getId()));
                     }
                 );
     }

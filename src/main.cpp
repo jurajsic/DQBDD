@@ -71,7 +71,7 @@ int main(int argc, char **argv)
     }
 
     if (result->count("version")) {
-        std::cout << "DQBDD 0.1" << std::endl;
+        std::cout << "DQBDD 0.2" << std::endl;
         return 0;
     }
     
