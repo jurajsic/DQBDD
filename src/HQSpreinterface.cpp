@@ -336,20 +336,39 @@ QuantifierTreeNode* HQSPreInterface::getQuantifierTree() {
         for (const auto c_nr: g._encoding_clauses) formulaPtr->formula.removeClause(c_nr);
     }
 
-    std::list<QuantifierTreeNode*> clauses;
-
+    // find only clauses which were not deleted during preprocessing
+    std::vector<hqspre::ClauseID> workingClausesNrs = {};
     for (hqspre::ClauseID c_nr = 0; c_nr <= formulaPtr->formula.maxClauseIndex(); c_nr++) {
         if (!formulaPtr->formula.clauseDeleted(c_nr)) {
-            const auto& clause = formulaPtr->formula.getClause(c_nr);
-            std::list<QuantifierTreeNode*> literals;
-            for (const hqspre::Literal lit: clause) {
-                literals.push_back(formulaPtr->literalToTree(mgr, lit, *DQBFPrefix.getManager()));
-            }
-            QuantifierTree *clauseTree = new QuantifierTree(false, literals, *DQBFPrefix.getManager());
-            clauses.push_back(clauseTree);
+            workingClausesNrs.push_back(c_nr);
         }
     }
 
+    // if we have only one clause, we make it a root...
+    if (workingClausesNrs.size() == 1) {
+        const auto& clause = formulaPtr->formula.getClause(workingClausesNrs[0]);
+        std::list<QuantifierTreeNode*> literals;
+        for (const hqspre::Literal lit: clause) {
+            literals.push_back(formulaPtr->literalToTree(mgr, lit, *DQBFPrefix.getManager()));
+        }
+        QuantifierTree *clauseTree = new QuantifierTree(false, literals, DQBFPrefix);
+        DQBFPrefix.clear();
+        return clauseTree;
+    }
+
+    // ...otherwise we save all the clauses...
+    std::list<QuantifierTreeNode*> clauses;
+    for (hqspre::ClauseID c_nr : workingClausesNrs) {
+        const auto& clause = formulaPtr->formula.getClause(c_nr);
+        std::list<QuantifierTreeNode*> literals;
+        for (const hqspre::Literal lit: clause) {
+            literals.push_back(formulaPtr->literalToTree(mgr, lit, *DQBFPrefix.getManager()));
+        }
+        QuantifierTree *clauseTree = new QuantifierTree(false, literals, *DQBFPrefix.getManager());
+        clauses.push_back(clauseTree);
+    }
+
+    // ...and then make a root from their conjuction
     auto qt = new QuantifierTree(true, clauses, DQBFPrefix);
     DQBFPrefix.clear();
     return qt;

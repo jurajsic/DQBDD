@@ -118,6 +118,45 @@ Formula* DQDIMACSParser::getFormula() {
 QuantifierTreeNode* DQDIMACSParser::getQuantifierTree() {
     std::list<QuantifierTreeNode*> qtClauses;
 
+    if (clauses.size() == 0) {
+        auto trueTree = new QuantifierTreeFormula(mgr, DQBFPrefix);
+        trueTree->setMatrix(mgr.bddOne());
+        DQBFPrefix.clear();
+        return trueTree;
+    }
+
+    if (clauses.size() == 1) {
+        // if we have only one clause, it will be a root
+        std::list<QuantifierTreeNode*> literals;
+        for (auto &lit : clauses[0]) {
+            QuantifierTreeFormula *varFormula;
+            if (clauses[0].size() == 1) {
+                varFormula = new QuantifierTreeFormula(mgr, DQBFPrefix);
+            } else {
+                varFormula = new QuantifierTreeFormula(mgr, *DQBFPrefix.getManager());
+            }
+            // literal is...
+            if (lit.first) { // ...non-negated variable
+                varFormula->setMatrix(lit.second);
+            } else { // ...negated variable
+                varFormula->setMatrix(!lit.second);
+            }
+            literals.push_back(varFormula);
+        }
+        QuantifierTreeNode *clauseTree;
+        if (literals.size() == 0) {
+            auto qtzero = new QuantifierTreeFormula(mgr, DQBFPrefix);
+            qtzero->setMatrix(mgr.bddZero());
+            clauseTree = qtzero;
+        } else if (literals.size() == 1) {
+            clauseTree = *literals.begin();
+        } else {
+            clauseTree = new QuantifierTree(false, literals, DQBFPrefix);
+        }
+        DQBFPrefix.clear();
+        return clauseTree;
+    }
+
     for (auto &clause : clauses) {
         std::list<QuantifierTreeNode*> literals;
         for (auto &lit : clause) {
@@ -130,7 +169,16 @@ QuantifierTreeNode* DQDIMACSParser::getQuantifierTree() {
             }
             literals.push_back(varFormula);
         }
-        QuantifierTree *clauseTree = new QuantifierTree(false, literals, *DQBFPrefix.getManager());
+        QuantifierTreeNode *clauseTree;
+        if (literals.size() == 0) {
+            auto qtzero = new QuantifierTreeFormula(mgr, *DQBFPrefix.getManager());
+            qtzero->setMatrix(mgr.bddZero());
+            clauseTree = qtzero;
+        } else if (literals.size() == 1) {
+            clauseTree = *literals.begin();
+        } else {
+            clauseTree = new QuantifierTree(false, literals, *DQBFPrefix.getManager());
+        }
         qtClauses.push_back(clauseTree);
     }
 

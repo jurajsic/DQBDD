@@ -244,7 +244,7 @@ bool Formula::eliminateSimpleUnivVars() {
             removeUnivVar(uVarToEliminate);
             std::cout << uVarToEliminate.getId() << " ";
         }
-        std::cout << std::endl;
+        std::cout << "without dependencies" << std::endl;
         setMatrix(matrix.UnivAbstract(CubeToRemove));
         somethingWasEliminated = true;
         removeUnusedVars();
@@ -283,6 +283,20 @@ void Formula::eliminatePossibleVars() {
         //reorder();
 
         Variable uVarToEliminate = getUnivVarToEliminate();
+        while (getUnivVarDependencies(uVarToEliminate).size() == 0) {
+            // if we have universal variable without dependencies, 
+            // we can eliminate multiple universal variables (without dependencies) at once
+            eliminateSimpleUnivVars();
+            if (getUnivVars().empty()) {
+                break;
+            }
+            uVarToEliminate = getUnivVarToEliminate();
+        }
+
+        if (getUnivVars().empty()) {
+            break;
+        }
+
         std::cout << "Eliminating univ variable " << uVarToEliminate.getId() << std::endl;
         eliminateUnivVar(uVarToEliminate);
         

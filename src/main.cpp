@@ -71,7 +71,7 @@ int main(int argc, char **argv)
     }
 
     if (result->count("version")) {
-        std::cout << "DQBDD 0.2" << std::endl;
+        std::cout << "DQBDD 0.3" << std::endl;
         return 0;
     }
     
@@ -119,6 +119,8 @@ int main(int argc, char **argv)
                 std::cout << "Quantifier tree created" << std::endl
                           //<< *qtroot << std::endl
                           << "Pushing quantifiers inside" << std::endl;
+                //std::cout << qtroot->getUnivVars() << std::endl
+                //          << qtroot->getExistVars() << std::endl;
                 qtroot->localise();
                 std::cout << "Quantifiers pushed inside" << std::endl
                           //<< *qtroot << std::endl

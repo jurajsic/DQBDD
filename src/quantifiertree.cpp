@@ -47,7 +47,9 @@ void QuantifierTreeNode::pushUnivVar(Variable var) {
     if (getSupportSet().contains(var)) { // only put var in this node if it is used in this node
         addUnivVar(var);
     } else { // otherwise we can basically eliminate it by removing dependencies 
-        for (const Variable &dependentExistVar : getUnivVarDependencies(var)) {
+        VariableSet dependentExistVars = getUnivVarDependencies(var);
+        for (const Variable &dependentExistVar : dependentExistVars) {
+            //std::cout << dependentExistVar << " is in support set:" << getSupportSet().contains(dependentExistVar) << std::endl;
             if (getSupportSet().contains(dependentExistVar)) { // we assume this is the only tree that contains dependentExistVar
                 removeDependency(dependentExistVar,var);
             }
@@ -95,7 +97,6 @@ QuantifierTree::QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> child
     }
 }
 
-
 QuantifierTree::QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> children, QuantifiedVariablesManager &qvMgr, 
                         const std::list<QuantifierTreeNode*> &siblings, QuantifierTree *parent) :QuantifiedVariablesManipulator(qvMgr), QuantifierTreeNode(qvMgr), isConj(isConj) {
     supportSet = {};
@@ -103,7 +104,6 @@ QuantifierTree::QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> child
     if (children.size() < 2) {
         throw DQBDDexception((std::string("You cannot create a quantifier tree with ") + std::to_string(children.size()) + std::string(" operands")).c_str());
     }
-
     
     // we do not need to update uVarsOutsideThisSubtree of children because of 
     // the assumption where this constructor can be used 
@@ -130,6 +130,8 @@ QuantifierTree::~QuantifierTree() {
 }
 
 bool QuantifierTree::removeFromOrderedListOtherOrderedListUsingChildrenOrder(std::list<QuantifierTreeNode*> &listToRemoveFrom, std::list<QuantifierTreeNode*> &listOfItemsToRemove) {
+    //std::cout << "Deleting from list of size " << listToRemoveFrom.size() << " the list of size " << listOfItemsToRemove.size() << " using children order of size " << children.size() << std::endl;
+    
     auto childrenCopy = children;
     auto orderIter = childrenCopy.begin();
     auto listToRemoveFromIter = listToRemoveFrom.begin();
@@ -137,7 +139,7 @@ bool QuantifierTree::removeFromOrderedListOtherOrderedListUsingChildrenOrder(std
 
     bool somethingWasDeleted = false;
 
-    while (orderIter != childrenCopy.end() || listToRemoveFromIter != listToRemoveFrom.end() || listOfItemsToRemoveIter != listOfItemsToRemove.end()) {
+    while (orderIter != childrenCopy.end() && listToRemoveFromIter != listToRemoveFrom.end() && listOfItemsToRemoveIter != listOfItemsToRemove.end()) {
         if (*orderIter == *listToRemoveFromIter && *listToRemoveFromIter == *listOfItemsToRemoveIter) {
             auto iterToDelete = listToRemoveFromIter;
             ++listToRemoveFromIter;
@@ -151,11 +153,16 @@ bool QuantifierTree::removeFromOrderedListOtherOrderedListUsingChildrenOrder(std
         }
 
         ++orderIter;
+        //if (listToRemoveFromIter == listToRemoveFrom.end()) std::cout << "we found end of listtoremovefrom" << std::endl;
+        //if (listOfItemsToRemoveIter == listOfItemsToRemove.end()) std::cout << "we found end of listofitemtoremove" << std::endl;
+        //if (orderIter == childrenCopy.end()) std::cout << "we found end of children" << std::endl;
     }
     return somethingWasDeleted;
 }
 
 void QuantifierTree::addPossibleUnivVarsToMapping(std::unordered_map<Variable, std::list<QuantifierTreeNode*>> &childrenToCombineMapping) {
+    //std::cout << "Finding new univ variables...." << std::endl;
+    
     // get all universal variables on which some leftover exist var depends (these vars cant be pushed)...
     VariableSet dependentUnivVars; 
     for (const Variable &existVar : getExistVars()) {
@@ -188,7 +195,10 @@ void QuantifierTree::addPossibleUnivVarsToMapping(std::unordered_map<Variable, s
             }
         }
     }
+
+    //std::cout << "....found" << std::endl;
 }
+
 
 void QuantifierTree::pushVarsWithCombining(std::unordered_map<Variable, std::list<QuantifierTreeNode*>> &childrenToCombineMapping, bool findNewUnivVars) {
     //std::cout << "We are planning to remove these with combining" << std::endl;
@@ -201,6 +211,7 @@ void QuantifierTree::pushVarsWithCombining(std::unordered_map<Variable, std::lis
         //for (auto i : childrenToCombineMapping) {
         //    std::cout << "  variable " << i.first << " with " << i.second.size() << " children to combine." << std::endl;
         //}
+
         // get variable that has minimal number of occurences in children
         auto varToPushAndItsChildren = std::min_element(childrenToCombineMapping.begin(), childrenToCombineMapping.end(), 
                     [](const std::pair<Variable, std::list<QuantifierTreeNode*>> &a, 
@@ -209,7 +220,7 @@ void QuantifierTree::pushVarsWithCombining(std::unordered_map<Variable, std::lis
                     }
                     );
         Variable varToPush = varToPushAndItsChildren->first;
-        //std::cout << "Pushing the variable " << varToPush << " to a new combined child." << std::endl;
+        //std::cout << "Pushing the " << (isVarUniv(varToPush) ? "universal" : "existential") << " variable " << varToPush << " to a new combined child." << std::endl;
         std::list<QuantifierTreeNode*> childrenToCombine = varToPushAndItsChildren->second;
         //std::cout << "The size of children to combine right after getting it: " << childrenToCombine.size() << std::endl;
 
@@ -237,6 +248,8 @@ void QuantifierTree::pushVarsWithCombining(std::unordered_map<Variable, std::lis
             continue;
         }
 
+        //std::cout << "Finding vars with changed children...." << std::endl;
+
         // for each variable v that we are planning to push later, we need to update
         // childrenToCombineMapping[v] by removing from them the set of children
         // which we are going to combine and also save them into varsWithChangedChildren
@@ -244,10 +257,14 @@ void QuantifierTree::pushVarsWithCombining(std::unordered_map<Variable, std::lis
         VariableSet varsWithChangedChildren = {};
         for (auto &varToBePushedWithChildren : childrenToCombineMapping) {
             Variable varToBePushed = varToBePushedWithChildren.first;
+            //std::cout << "   maybe var " << varToBePushed << " has changed children" << std::endl;
             if (removeFromOrderedListOtherOrderedListUsingChildrenOrder(childrenToCombineMapping[varToBePushed], childrenToCombine)) {
+                //std::cout << "   yes it does" << std::endl;
                 varsWithChangedChildren.insert(varToBePushed);
             }
         }
+        
+        //std::cout << ".....found" << std::endl;
 
         // create a new child to which varToPush is pushed
         removeFromOrderedListOtherOrderedListUsingChildrenOrder(children, childrenToCombine);
@@ -263,6 +280,9 @@ void QuantifierTree::pushVarsWithCombining(std::unordered_map<Variable, std::lis
             throw DQBDDexception("Found variable which is neither universal or existential, this should not happen");
         }
         children.push_back(newChild);
+
+        
+        //std::cout << "...combined tree created" << std::endl;
 
         // add the new child to each var in varsWithChangedChildren
         for (auto varWithChangedChildren : varsWithChangedChildren) {
@@ -395,6 +415,8 @@ void QuantifierTree::localiseAND() {
         if (!dependentUnivVars.contains(univVarToPush)) { // no leftover existential variable depends on univVarToPush --> can be pushed
             // push it into every child, pushUnivVar() will take care of deciding whether to keep it there or not
             for (QuantifierTreeNode *child : children) {
+                //std::cout << "Pushing " << univVarToPush << " to child " << *child << std::endl;
+                //std::cout << child->getSupportSet() << std::endl;
                 child->pushUnivVar(univVarToPush);
             }
             removeUnivVar(univVarToPush);
