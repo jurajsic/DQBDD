@@ -41,6 +41,8 @@ private:
 
     // used for saving the order of universal variables to eliminate (the last variable in vector is eliminated as first)    
     std::vector<Variable> univVarsOrderToRemove;
+    // used for NumOfLeftoverVarsInConjuncts, we save the conjuncts for minimal variable here
+    BDD minf1,minf2;
     void initializeUnivVarEliminationOrder();
     Variable getUnivVarToEliminate();
 
