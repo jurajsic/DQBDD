@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(DQBDD VERSION 0.4 LANGUAGES C CXX)
+project(DQBDD VERSION 0.5 LANGUAGES C CXX)
 
 # Enforce C++14
 set(CMAKE_CXX_STANDARD 14)

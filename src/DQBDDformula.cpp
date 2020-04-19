@@ -55,6 +55,12 @@ VariableSet const &Formula::getSupportSet() {
 }
 
 void Formula::eliminateUnivVar(Variable uVarToEliminate) {
+    if (!getSupportSet().contains(uVarToEliminate)) {
+        return;
+    }
+    
+    std::cout << "Eliminating universal variable " << uVarToEliminate.getId() << std::endl;
+
     // find existential variables that will be duplicated
     VariableSet eVarsToDuplicate;
     VariableSet dependentVars = getUnivVarDependencies(uVarToEliminate);
@@ -292,7 +298,7 @@ bool Formula::eliminateSimpleUnivVars() {
     };
     auto univVarsToEliminate = getUnivVarsToEliminate();
     while (!univVarsToEliminate.empty()) {
-        std::cout << "Eliminating universal variables ";
+        /*std::cout << "Eliminating universal variables ";
         BDD CubeToRemove = mgr.bddOne();
         for (const Variable &uVarToEliminate : univVarsToEliminate) {
             CubeToRemove = CubeToRemove & uVarToEliminate;
@@ -301,6 +307,14 @@ bool Formula::eliminateSimpleUnivVars() {
         }
         std::cout << "without dependencies" << std::endl;
         setMatrix(matrix.UnivAbstract(CubeToRemove));
+        */
+        std::vector<Variable> orderedVarsToEliminate(univVarsToEliminate.begin(), univVarsToEliminate.end()); 
+        std::sort(orderedVarsToEliminate.begin(), orderedVarsToEliminate.end(),
+                        [](const Variable &a, const Variable &b) 
+                                { return a.getId() < b.getId(); });
+        for (const Variable &uVarToEliminate : orderedVarsToEliminate) {
+            eliminateUnivVar(uVarToEliminate);
+        }
         somethingWasEliminated = true;
         removeUnusedVars();
         univVarsToEliminate = getUnivVarsToEliminate();
@@ -352,7 +366,6 @@ void Formula::eliminatePossibleVars() {
             break;
         }
 
-        std::cout << "Eliminating univ variable " << uVarToEliminate.getId() << std::endl;
         eliminateUnivVar(uVarToEliminate);
         
         removeUnusedVars();
