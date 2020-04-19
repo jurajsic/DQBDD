@@ -112,9 +112,3 @@ target_include_directories(cudd PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/cudd"
                                        "${CMAKE_CURRENT_SOURCE_DIR}/util"
                                        "${CMAKE_CURRENT_SOURCE_DIR}/cplusplus"
                                        "${CMAKE_CURRENT_BINARY_DIR}")
-
-install(TARGETS cudd
-        RUNTIME DESTINATION ${CMAKE_BINARY_DIR}/bin
-        LIBRARY DESTINATION ${CMAKE_BINARY_DIR}/bin
-        ARCHIVE DESTINATION ${CMAKE_BINARY_DIR}/bin
-       )

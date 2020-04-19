@@ -31,11 +31,3 @@ target_link_libraries(DQBDD PRIVATE ltdl)
 set_target_properties(DQBDD PROPERTIES LINK_SEARCH_END_STATIC 1)
 
 target_compile_options(DQBDD PRIVATE -Wall -Wextra -Wpedantic)
-
-install(TARGETS DQBDD
-        RUNTIME DESTINATION ${CMAKE_BINARY_DIR}/bin
-        LIBRARY DESTINATION ${CMAKE_BINARY_DIR}/lib
-        ARCHIVE DESTINATION ${CMAKE_BINARY_DIR}/lib
-        INCLUDES DESTINATION ${CMAKE_BINARY_DIR}/include
-       )
-
