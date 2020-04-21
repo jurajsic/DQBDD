@@ -55,6 +55,10 @@ VariableSet const &Formula::getSupportSet() {
 }
 
 void Formula::eliminateUnivVar(Variable uVarToEliminate) {
+    eliminateUnivVar(uVarToEliminate, false);
+}
+
+void Formula::eliminateUnivVar(Variable uVarToEliminate, bool useAlreadyComputedf1f2) {
     if (!getSupportSet().contains(uVarToEliminate)) {
         return;
     }
@@ -87,14 +91,13 @@ void Formula::eliminateUnivVar(Variable uVarToEliminate) {
     }
     //std::cout << std::endl;
 
-
     //std::cout << "Creating BDDs" << std::endl;
     // uVarToEliminate=false where we have old existential variables
-    BDD f1 = (qvMgr->options.uVarElimChoice == UnivVarElimChoice::NumOfLeftoverVarsInConjuncts) // if I already have the restriciton saved
+    BDD f1 = (useAlreadyComputedf1f2) // if I already have the restriciton saved
                     ? minf1 : matrix.Restrict(!uVarToEliminate.getBDD());
     //std::cout << "Restriction 1 finished" << std::endl;
     // uVarToEliminate=true where we have new existential variables
-    BDD f2 = (qvMgr->options.uVarElimChoice == UnivVarElimChoice::NumOfLeftoverVarsInConjuncts)
+    BDD f2 = (useAlreadyComputedf1f2)
                     ? minf2 : matrix.Restrict(uVarToEliminate);
     //std::cout << "Restriction 2 finished" << std::endl;
     f2 = f2.SwapVariables(varsToBeReplaced, varsToReplaceWith);
@@ -230,8 +233,8 @@ Variable Formula::getUnivVarToEliminate() {
         for (unsigned int index : minf2.SupportIndices()) {
             minf2SupportSet.insert(Variable(index, mgr));
         }
-            // we take the size of union of variables in both conjucts and add to that..
-        auto minNumberOfVariablesInConjuncts = minf1SupportSet.unite(minf2SupportSet).size() 
+        // we take the size of union of variables in both conjucts and add to that..
+        auto minNumberOfVariablesInConjuncts = minf1SupportSet.unite(minf2SupportSet.minus(getUnivVarDependencies(minUnivVar))).size() 
                         // ..what would be replaced existential variables in second conjuct
                         + getUnivVarDependencies(minUnivVar).intersect(minf2SupportSet).size();
 
@@ -252,7 +255,7 @@ Variable Formula::getUnivVarToEliminate() {
             }
 
             // we take the size of union of variables in both conjucts and add to that..
-            auto numberOfVariablesInConjuncts = f1SupportSet.unite(f2SupportSet).size() 
+            auto numberOfVariablesInConjuncts = f1SupportSet.unite(f2SupportSet.minus(getUnivVarDependencies(univVar))).size() 
                             // ..what would be replaced existential variables in second conjuct
                             + getUnivVarDependencies(univVar).intersect(f2SupportSet).size();
 
@@ -366,7 +369,11 @@ void Formula::eliminatePossibleVars() {
             break;
         }
 
-        eliminateUnivVar(uVarToEliminate);
+        if (qvMgr->options.uVarElimChoice == UnivVarElimChoice::NumOfLeftoverVarsInConjuncts) {
+            eliminateUnivVar(uVarToEliminate, true);
+        } else {
+            eliminateUnivVar(uVarToEliminate, false);
+        }
         
         removeUnusedVars();
     }

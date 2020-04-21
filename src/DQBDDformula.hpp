@@ -70,6 +70,16 @@ public:
      * and y1',...,yn' are new variables.
      */
     void eliminateUnivVar(Variable uVarToEliminate);
+    /**
+     * @brief Eliminates the universal variable uVarToEliminate
+     * Based on universal expansion:
+     * \forall x \psi = \psi[0/x] /\ \psi[y1',...,yn'/y1,...,yn][1/x]
+     * where y1,...,yn are all existential variables dependent on x
+     * and y1',...,yn' are new variables.
+     * @param useAlreadyComputedf1f2 If true, use minf1 and minf2 as 
+     * \psi[0/x] and \psi[y1',...,yn'/y1,...,yn][1/x]
+     */
+    void eliminateUnivVar(Variable uVarToEliminate, bool useAlreadyComputedf1f2);
 
     /**
      * @brief Eliminates the existential variable existVarToEliminate
