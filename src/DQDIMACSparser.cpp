@@ -29,6 +29,12 @@ bool DQDIMACSParser::parse(std::string fileName) {
     std::string line;
     std::ifstream inputFile(fileName);
 
+    if (!inputFile.is_open()) {
+        std::string errorMes = "Could not open file '";
+        errorMes += fileName + "'";
+        throw DQBDDexception(errorMes);
+    }
+
     while(std::getline(inputFile, line)) {
         if (line == "") {
             continue;
