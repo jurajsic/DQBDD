@@ -116,6 +116,10 @@ void Formula::eliminateExistVars(VariableSet existVarsToEliminate) {
     if (existVarsToEliminate.empty())
         return;
     
+    /* for eliminating multiple existential variables it was just a tiny bit
+     * better on benchmarks from QBFEVAL'19 to eliminate them at the same time 
+     * using ExistAbstract with the cube of exist vars to eliminate
+     */
     //std::cout << "Eliminating exist variables ";
     BDD CubeToRemove = mgr.bddOne();
     for (const Variable &eVarToEliminate : existVarsToEliminate) {
@@ -125,6 +129,11 @@ void Formula::eliminateExistVars(VariableSet existVarsToEliminate) {
     }
     //std::cout << std::endl;
     setMatrix(matrix.ExistAbstract(CubeToRemove));
+
+    // this is if we do it one by one, it was sometimes a tiny bit slower
+    //for (const Variable &eVarToEliminate : existVarsToEliminate) {
+    //    eliminateExistVar(eVarToEliminate);
+    //}
 }
 
 VariableSet Formula::getPossibleExistVarsToEliminate() {
