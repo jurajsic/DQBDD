@@ -17,7 +17,7 @@ to build DQBDD which will be located at `Release/src/`.
 
     DQBDD [OPTION...] <input file>
 
-`<input file>` should be formula to solve in DQDIMACS format, for the list of options run `DQBDD --help`. If the formula is satisfiable, the return value is 10, else it is 20.
+`<input file>` should be formula to solve in DQDIMACS format, for the list of options run `DQBDD --help`. If the formula is satisfiable, the return value is 10, otherwise it is 20.
 
 ## Examples
 
@@ -34,7 +34,7 @@ solves formula in file.dqdimacs without running the preprocessor HQSpre first (t
 ```
 DQBDD --localise 0 --uvar-choice 1 file.dqdimacs
 ```
-solves formula in file.dqdimacs without localising quantifiers (or creating quantifier tree) where the next universal variable for universal expansion is always the one that has the minimal number of dependent existential variables. The other options are:
+solves formula in file.dqdimacs without localising quantifiers (or creating quantifier tree) where the next universal variable for universal expansion is always the one that has the minimal number of dependent existential variables. The other options of `--uvar-choice` are:
 - 0 - the order of universal variables to expand is set at beginning from the smallest to largest number of dependencies (this is the default),
 - 2 - the next variable is chosen by the number of variables in BDDs representing the two conjucts of universal expansion.
 
@@ -57,4 +57,4 @@ There is no need to install any dependency, all of them are in `libs/` and are c
 ## Licence
 
 - **[LGPL v3](https://www.gnu.org/licenses/lgpl-3.0.en.html)**
-- Copyright 2020 Juraj Síč.
+- Copyright 2020 Juraj Síč
