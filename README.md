@@ -1,34 +1,60 @@
 # DQBDD
 
-Copyright 2020 Juraj Síč  
-This program is released under the version 3 of the
-GNU Lesser General Public License  
-(LGPL v3, see https://www.gnu.org/licenses/lgpl-3.0.en.html)  
+DQBDD is a dependency quantifier boolean formula (DQBF) solver that uses binary decision diagrams (BDDs) as an underlying representation of formulas. It reads DQBFs encoded in [DQDIMACS](https://doi.org/10.29007/1s5k) format and checks for their satisfiability using quantifier elimination.
 
+## Installation
 
-
-TODO: rewrite this, this is old info
-
-DQBF (Dependency quantifier boolean formulas) solver using BDDs (binary decision diagrams). This implementation uses cudd BDD library (https://github.com/ivmai/cudd). Just run make to compile.
+DQBDD is written in C++ and uses [CMake](https://cmake.org/) for building. Execute 
+```
+mkdir Release
+cd Release
+cmake -DCMAKE_BUILD_TYPE=Release ..
+make
+```
+to build DQBDD which will be located at `Release/src/`.
 
 ## Usage
 
-```
-./solve 0
-```
-runs test examples using simple solver
+    DQBDD [OPTION...] <input file>
+
+`<input file>` should be formula to solve in DQDIMACS format, for the list of options run `DQBDD --help`. If the formula is satisfiable, the return value is 10, else it is 20.
+
+## Examples
 
 ```
-./solve 1
+DQBDD file.dqdimacs
 ```
-runs test examples using solver that pushes quantifiers inside formula
+solves formula in file.dqdimacs with default settings.
 
 ```
-./solve 0 "name of file in .dqdimacs format"
+DQBDD --preprocess 0 file.dqdimacs
 ```
-reads DQBF from the file and checks its satisfiability using simple solver
+solves formula in file.dqdimacs without running the preprocessor HQSpre first (the default behaviour is to use preprocessing).
 
 ```
-./solve 1 "name of file in .dqdimacs format"
+DQBDD --localise 0 --uvar-choice 1 file.dqdimacs
 ```
-reads DQBF from the file and checks its satisfiability using solver that pushes quantifiers inside formula
+solves formula in file.dqdimacs without localising quantifiers (or creating quantifier tree) where the next universal variable for universal expansion is always the one that has the minimal number of dependent existential variables. The other options are:
+- 0 - the order of universal variables to expand is set at beginning from the smallest to largest number of dependencies (this is the default),
+- 2 - the next variable is chosen by the number of variables in BDDs representing the two conjucts of universal expansion.
+
+```
+DQBDD --localise 1 --elimination-choice 2 file.dqdimacs
+```
+solves formula in file.dqdimacs with localising quantifiers (this is the default behaviour) where it eliminates all universal and possible existential variables while creating the final BDD from the quantifier tree. The other options are:
+- 0 - does not eliminate any quantifiers,
+- 1 - eliminates only universal variables which do not have any dependencies and all possible existential variables (this is the default).
+
+## Dependencies
+There is no need to install any dependency, all of them are in `libs/` and are compiled with DQBDD. They are these:
+- [antom](https://projects.informatik.uni-freiburg.de/projects/antom) - SAT solver used in HQSpre
+- [CUDD v3.0.0](https://github.com/ivmai/cudd) - BDD library
+- [cxxopts v2.2.0](https://github.com/jarro2783/cxxopts) - argument parser
+- [Easylogging++ v9.96.7](https://github.com/zuhd-org/easyloggingpp) - C++ logger used in HQSpre
+- HQSpre - DQBF preprocessor
+- [PicoSAT](http://fmv.jku.at/picosat/) - SAT solver used in HQSpre
+
+## Licence
+
+- **[LGPL v3](https://www.gnu.org/licenses/lgpl-3.0.en.html)**
+- Copyright 2020 Juraj Síč.

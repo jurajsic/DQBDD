@@ -23,8 +23,6 @@
 #include "HQSpreinterface.hpp"
 #include "DQBDDexceptions.hpp"
 
-// TODO univ expand - 0 or 2?
-
 INITIALIZE_EASYLOGGINGPP
 
 class HQSPreInterface::HQSPreFormulaWrapper {

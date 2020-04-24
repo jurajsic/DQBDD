@@ -25,9 +25,6 @@
 #include "HQSpreinterface.hpp"
 #include "DQDIMACSparser.hpp"
 
-// TODO add some sort of checking (maybe creating dependency graph -> in manager but what 
-// to do with tree) of whether formula is in QBF form??
-
 enum ReturnCode {
     SAT = 10,
     UNSAT = 20,
@@ -43,13 +40,9 @@ int main(int argc, char **argv)
     optionsParser.add_options()
         ("h,help", "Print usage")
         ("v,version", "Print the version number")
-        ("l,localise", "Force pushing quantifiers inside the tree")
-        ("p,preprocess", "Use preprocessing")
-        ("e,elimination-choice", "Decide what to eliminate on each level of quantifier tree during transformation to formula"//\
-                0: Do not eliminate anything\
-                1: Eliminate only existential variables\
-              2: Eliminate all universal variables and possible existential variables"
-              , cxxopts::value<int>()->default_value("1"))
+        ("l,localise", "Use quantifier tree with localisation of quantifiers", cxxopts::value<int>()->default_value("1"))
+        ("p,preprocess", "Use preprocessing", cxxopts::value<int>()->default_value("1"))
+        ("e,elimination-choice", "Decide what to eliminate on each level of quantifier tree during transformation to formula", cxxopts::value<int>()->default_value("1"))
         ("u,uvar-choice", "The heuristics by which the next universal variable for elimination is chosen", cxxopts::value<int>()->default_value("0"))
         ("f,file","DQDIMACS file to solve",cxxopts::value<std::string>())
         ;
@@ -71,7 +64,7 @@ int main(int argc, char **argv)
     }
 
     if (result->count("version")) {
-        std::cout << "DQBDD 0.5" << std::endl;
+        std::cout << "DQBDD 1.0" << std::endl;
         return 0;
     }
     
@@ -81,15 +74,16 @@ int main(int argc, char **argv)
     }
 
     std::string fileName = (*result)["file"].as<std::string>();
-    bool localise = result->count("localise");
-    bool preprocess = result->count("preprocess");
+    bool localise = (*result)["localise"].as<int>();
+    bool preprocess = (*result)["preprocess"].as<int>();
     Options options;
     options.treeElimChoice = static_cast<TreeElimChoice>((*result)["elimination-choice"].as<int>());
     options.uVarElimChoice = static_cast<UnivVarElimChoice>((*result)["uvar-choice"].as<int>());
 
 
     Cudd mgr;
-    //mgr.AutodynDisable();
+    // TODO add argument which chooses this??
+    mgr.AutodynEnable(Cudd_ReorderingType::CUDD_REORDER_SIFT);
     QuantifiedVariablesManager qvMgr(options);
     Formula *f = nullptr;
     bool preprocessorSolved = false;
@@ -143,7 +137,7 @@ int main(int argc, char **argv)
         f->printStats();
         //std::cout << "Universal variables: " << f->getUnivVars() << std::endl;
         //std::cout << "Existential variables: " << f->getExistVars() << std::endl;
-        std::cout << "Eliminating universal variables in the created formula" << std::endl;
+        std::cout << "Eliminating variables in the created formula" << std::endl;
         try {
             f->eliminatePossibleVars();
         } catch(const std::exception &e) {

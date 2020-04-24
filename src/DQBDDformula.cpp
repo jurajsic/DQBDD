@@ -60,6 +60,7 @@ void Formula::eliminateUnivVar(Variable uVarToEliminate) {
 
 void Formula::eliminateUnivVar(Variable uVarToEliminate, bool useAlreadyComputedf1f2) {
     if (!getSupportSet().contains(uVarToEliminate)) {
+        removeUnivVar(uVarToEliminate);
         return;
     }
     
@@ -310,6 +311,8 @@ bool Formula::eliminateSimpleUnivVars() {
     };
     auto univVarsToEliminate = getUnivVarsToEliminate();
     while (!univVarsToEliminate.empty()) {
+
+        // this (eliminating all simple univ vars at the same time) was slower 
         /*std::cout << "Eliminating universal variables ";
         BDD CubeToRemove = mgr.bddOne();
         for (const Variable &uVarToEliminate : univVarsToEliminate) {
@@ -320,6 +323,8 @@ bool Formula::eliminateSimpleUnivVars() {
         std::cout << "without dependencies" << std::endl;
         setMatrix(matrix.UnivAbstract(CubeToRemove));
         */
+
+        // it is better to eliminate one by one
         std::vector<Variable> orderedVarsToEliminate(univVarsToEliminate.begin(), univVarsToEliminate.end()); 
         std::sort(orderedVarsToEliminate.begin(), orderedVarsToEliminate.end(),
                         [](const Variable &a, const Variable &b) 
@@ -327,6 +332,7 @@ bool Formula::eliminateSimpleUnivVars() {
         for (const Variable &uVarToEliminate : orderedVarsToEliminate) {
             eliminateUnivVar(uVarToEliminate);
         }
+        
         somethingWasEliminated = true;
         removeUnusedVars();
         univVarsToEliminate = getUnivVarsToEliminate();
