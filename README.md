@@ -4,7 +4,7 @@ DQBDD is a dependency quantifier boolean formula (DQBF) solver that uses binary 
 
 ## Installation
 
-DQBDD is written in C++ and uses [CMake](https://cmake.org/) for building. Execute 
+DQBDD is written in C++ (using C++14 standard) and uses [CMake](https://cmake.org/) for building. Execute 
 ```
 mkdir Release
 cd Release
