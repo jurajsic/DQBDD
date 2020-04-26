@@ -66,32 +66,18 @@ void Formula::eliminateUnivVar(Variable uVarToEliminate, bool useAlreadyComputed
     
     std::cout << "Eliminating universal variable " << uVarToEliminate.getId() << std::endl;
 
-    // find existential variables that will be duplicated
-    VariableSet eVarsToDuplicate;
-    VariableSet dependentVars = getUnivVarDependencies(uVarToEliminate);
-    for (const Variable &dependentVar : dependentVars) {
-        if (getSupportSet().contains(dependentVar)) {
-            eVarsToDuplicate.insert(dependentVar);
-            removeDependency(dependentVar, uVarToEliminate);
-        }
-    }
+    // find existential variables that should be duplicated
+    //VariableSet eVarsToDuplicate;
+    VariableSet dependentExistVars = getUnivVarDependencies(uVarToEliminate);
+    //for (const Variable &dependentVar : dependentVars) {
+    //    if (getSupportSet().contains(dependentVar)) {
+    //        eVarsToDuplicate.insert(dependentVar);
+    //        removeDependency(dependentVar, uVarToEliminate);
+    //    }
+    //}
 
     removeUnivVar(uVarToEliminate);
     
-    // pair used for replacing existential variables that depend on uVarToEliminate with new ones
-    std::vector<BDD> varsToBeReplaced;
-    std::vector<BDD> varsToReplaceWith;
-
-    //std::cout << "Duplicating vars ";
-    for (Variable eVarToDuplicate : eVarsToDuplicate) {
-        //std::cout << eVarToDuplicate.getId() << " ";
-        Variable newExistVar = eVarToDuplicate.newVarAtSameLevel();
-        addExistVar(newExistVar, getExistVarDependencies(eVarToDuplicate));
-        varsToBeReplaced.push_back(eVarToDuplicate);
-        varsToReplaceWith.push_back(newExistVar);
-    }
-    //std::cout << std::endl;
-
     //std::cout << "Creating BDDs" << std::endl;
     // uVarToEliminate=false where we have old existential variables
     BDD f1 = (useAlreadyComputedf1f2) // if I already have the restriciton saved
@@ -101,9 +87,37 @@ void Formula::eliminateUnivVar(Variable uVarToEliminate, bool useAlreadyComputed
     BDD f2 = (useAlreadyComputedf1f2)
                     ? minf2 : matrix.Restrict(uVarToEliminate);
     //std::cout << "Restriction 2 finished" << std::endl;
+
+    /* We have to replace existential variables depending on uVarToEliminate in f2 with copies
+     * but it is important to create them in mgr on the same level as thei original (so the created
+     * BDD will be done instantly). For that we have to turn off dynamic reordering, to not fuck up
+     * the order of the existential variables when we set it.
+     */
+    mgr.AutodynDisable();
+
+    // vectors used for replacing existential variables that depend on uVarToEliminate with new ones
+    std::vector<BDD> varsToBeReplaced;
+    std::vector<BDD> varsToReplaceWith;
+
+    VariableSet f2SupportSet = VariableSet::getSupportSetOfBDD(f2, mgr);
+
+    // create copies of existential variables in f2 depending on uVarToEliminate,
+    // but created in mgr on the same level as their original
+    //std::cout << "Duplicating vars ";
+    for (Variable eVarToDuplicate : dependentExistVars.intersect(f2SupportSet)) {
+        //std::cout << eVarToDuplicate.getId() << " ";
+        Variable newExistVar = eVarToDuplicate.newVarAtSameLevel();
+        addExistVar(newExistVar, getExistVarDependencies(eVarToDuplicate));
+        varsToBeReplaced.push_back(eVarToDuplicate);
+        varsToReplaceWith.push_back(newExistVar);
+    }
+    //std::cout << std::endl;
     f2 = f2.SwapVariables(varsToBeReplaced, varsToReplaceWith);
     //std::cout << "Replacing finished" << std::endl;
-    // get their conjuction and thus remove univ_id from the formula
+    //TODO: add some variable in which the reordering method is saved
+    mgr.AutodynEnable(Cudd_ReorderingType::CUDD_REORDER_SIFT);
+
+    // get their conjuction and thus remove uVarToEliminate from the formula
     setMatrix(f1 & f2);
     //std::cout << "BDD created" << std::endl;
 }
