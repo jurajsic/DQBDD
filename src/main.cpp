@@ -44,6 +44,7 @@ int main(int argc, char **argv)
         ("p,preprocess", "Use preprocessing", cxxopts::value<int>()->default_value("1"))
         ("e,elimination-choice", "Decide what to eliminate on each level of quantifier tree during transformation to formula", cxxopts::value<int>()->default_value("1"))
         ("u,uvar-choice", "The heuristics by which the next universal variable for elimination is chosen", cxxopts::value<int>()->default_value("0"))
+        ("d,dyn-reordering", "Allow dynamic reordering of variables in BDDs", cxxopts::value<int>()->default_value("1"))
         ("f,file","DQDIMACS file to solve",cxxopts::value<std::string>())
         ;
     optionsParser.parse_positional({"file"});
@@ -76,14 +77,19 @@ int main(int argc, char **argv)
     std::string fileName = (*result)["file"].as<std::string>();
     bool localise = (*result)["localise"].as<int>();
     bool preprocess = (*result)["preprocess"].as<int>();
+    bool dynReorder = (*result)["dyn-reordering"].as<int>();
     Options options;
     options.treeElimChoice = static_cast<TreeElimChoice>((*result)["elimination-choice"].as<int>());
     options.uVarElimChoice = static_cast<UnivVarElimChoice>((*result)["uvar-choice"].as<int>());
 
 
     Cudd mgr;
-    // TODO add argument which chooses this??
-    mgr.AutodynEnable(Cudd_ReorderingType::CUDD_REORDER_SIFT);
+    if (dynReorder) {
+        mgr.AutodynEnable(Cudd_ReorderingType::CUDD_REORDER_SIFT);
+    } else {
+        mgr.AutodynDisable();
+    }
+
     QuantifiedVariablesManager qvMgr(options);
     Formula *f = nullptr;
     bool preprocessorSolved = false;

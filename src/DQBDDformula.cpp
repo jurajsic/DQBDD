@@ -93,7 +93,10 @@ void Formula::eliminateUnivVar(Variable uVarToEliminate, bool useAlreadyComputed
      * BDD will be done instantly). For that we have to turn off dynamic reordering, to not fuck up
      * the order of the existential variables when we set it.
      */
-    mgr.AutodynDisable();
+    bool dynReordering = mgr.ReorderingStatus(NULL);
+    if (dynReordering) {
+        mgr.AutodynDisable();
+    }
 
     // vectors used for replacing existential variables that depend on uVarToEliminate with new ones
     std::vector<BDD> varsToBeReplaced;
@@ -114,8 +117,10 @@ void Formula::eliminateUnivVar(Variable uVarToEliminate, bool useAlreadyComputed
     //std::cout << std::endl;
     f2 = f2.SwapVariables(varsToBeReplaced, varsToReplaceWith);
     //std::cout << "Replacing finished" << std::endl;
-    //TODO: add some variable in which the reordering method is saved
-    mgr.AutodynEnable(Cudd_ReorderingType::CUDD_REORDER_SIFT);
+    if (dynReordering) {
+        //TODO: add some variable in which the reordering method is saved
+        mgr.AutodynEnable(Cudd_ReorderingType::CUDD_REORDER_SIFT);
+    }
 
     // get their conjuction and thus remove uVarToEliminate from the formula
     setMatrix(f1 & f2);
