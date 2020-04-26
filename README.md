@@ -51,7 +51,7 @@ There is no need to install any dependency, all of them are in `libs/` and are c
 - [CUDD v3.0.0](https://github.com/ivmai/cudd) - BDD library
 - [cxxopts v2.2.0](https://github.com/jarro2783/cxxopts) - argument parser
 - [Easylogging++ v9.96.7](https://github.com/zuhd-org/easyloggingpp) - C++ logger used in HQSpre
-- HQSpre - DQBF preprocessor
+- [HQSpre](https://abs.informatik.uni-freiburg.de/src/projects_view.php?projectID=21) - DQBF preprocessor
 - [PicoSAT](http://fmv.jku.at/picosat/) - SAT solver used in HQSpre
 
 ## Licence
