@@ -27,7 +27,7 @@ DQBDD file.dqdimacs
 solves formula in file.dqdimacs with default settings.
 
 ```
-DQBDD --preprocess 0 --dyn-reorder 0 file.dqdimacs
+DQBDD --preprocess 0 --dyn-reordering 0 file.dqdimacs
 ```
 solves formula in file.dqdimacs without running the preprocessor HQSpre first and without using dynamic reordering of variables in BDDs as implemented in CUDD (the default behaviour is to use both preprocessing and dynamic reordering).
 
