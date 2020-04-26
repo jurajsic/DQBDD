@@ -50,6 +50,14 @@ VariableSet VariableSet::minus(const VariableSet &vs) const {
     return minus;
 }
 
+VariableSet VariableSet::getSupportSetOfBDD(const BDD &b, Cudd &mgr) {
+    VariableSet bSupportSet;
+    for (unsigned int index : b.SupportIndices()) {
+        bSupportSet.insert(Variable(index, mgr));
+    }
+    return bSupportSet;
+}
+
 std::ostream& operator<<(std::ostream& os, const VariableSet& variableSet) {
     os << std::string("{");
     for (auto iter = variableSet.begin(); iter != variableSet.end(); ++iter) {

@@ -42,6 +42,10 @@ public:
      * @brief returns this set minus vs
      */
     VariableSet minus(const VariableSet &vs) const;
+    /**
+     * @brief Returns the set of variables occuring in BDD b
+     */
+    static VariableSet getSupportSetOfBDD(const BDD &b, Cudd &mgr);
 };
 
 std::ostream& operator<<(std::ostream& os, const VariableSet& variableSet);
