@@ -11,7 +11,7 @@ cd Release
 cmake -DCMAKE_BUILD_TYPE=Release ..
 make
 ```
-to build DQBDD which will be located at `Release/src/`.
+to build DQBDD which will be located in `Release/src/`. Rather than `master`, which is generally a work in progress, use a tagged release version.
 
 ## Usage
 
@@ -27,9 +27,9 @@ DQBDD file.dqdimacs
 solves formula in file.dqdimacs with default settings.
 
 ```
-DQBDD --preprocess 0 file.dqdimacs
+DQBDD --preprocess 0 --dyn-reorder 0 file.dqdimacs
 ```
-solves formula in file.dqdimacs without running the preprocessor HQSpre first (the default behaviour is to use preprocessing).
+solves formula in file.dqdimacs without running the preprocessor HQSpre first and without using dynamic reordering of variables in BDDs as implemented in CUDD (the default behaviour is to use both preprocessing and dynamic reordering).
 
 ```
 DQBDD --localise 0 --uvar-choice 1 file.dqdimacs
