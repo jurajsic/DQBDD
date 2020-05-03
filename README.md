@@ -1,17 +1,17 @@
 # DQBDD
 
-DQBDD is a dependency quantifier boolean formula (DQBF) solver that uses binary decision diagrams (BDDs) as an underlying representation of formulas. It reads DQBFs encoded in [DQDIMACS](https://doi.org/10.29007/1s5k) format and checks for their satisfiability using quantifier elimination.
+DQBDD is a dependency quantifier boolean formula (DQBF) solver that uses binary decision diagrams (BDDs) as an underlying representation of formulas. It is written in C++ and it reads DQBFs encoded in [DQDIMACS](https://doi.org/10.29007/1s5k) format and checks for their satisfiability using quantifier elimination. 
 
 ## Installation
 
-DQBDD is written in C++ (using C++14 standard) and uses [CMake](https://cmake.org/) for building. Execute 
+You can find binaries in tagged release versions. If you want to compile it yourself, you need C++ compiler supporting C++14 standard and [CMake](https://cmake.org/). Execute 
 ```
 mkdir Release
 cd Release
 cmake -DCMAKE_BUILD_TYPE=Release ..
 make
 ```
-to build DQBDD which will be located in `Release/src/`. Rather than `master`, which is generally a work in progress, use a tagged release version.
+to build DQBDD which will be located in `Release/src/`. However, do not use `master` branch as it is generally a work in progress.
 
 ## Usage
 
