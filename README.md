@@ -1,6 +1,6 @@
 # DQBDD
 
-DQBDD is a dependency quantifier boolean formula (DQBF) solver that uses binary decision diagrams (BDDs) as an underlying representation of formulas. It is written in C++ and it reads DQBFs encoded in [DQDIMACS](https://doi.org/10.29007/1s5k) format and checks for their satisfiability using quantifier elimination. 
+DQBDD is a dependency quantifier Boolean formula (DQBF) solver that uses binary decision diagrams (BDDs) as an underlying representation of formulas. It is written in C++ and it reads DQBFs encoded in [DQDIMACS](https://doi.org/10.29007/1s5k) format for which it checks their satisfiability using quantifier elimination. 
 
 ## Installation
 
@@ -24,24 +24,24 @@ to build DQBDD which will be located in `Release/src/`. However, do not use `mas
 ```
 DQBDD file.dqdimacs
 ```
-solves formula in file.dqdimacs with default settings.
+solves the formula in `file.dqdimacs` with the default settings.
 
 ```
 DQBDD --preprocess 0 --dyn-reordering 0 file.dqdimacs
 ```
-solves formula in file.dqdimacs without running the preprocessor HQSpre first and without using dynamic reordering of variables in BDDs as implemented in CUDD (the default behaviour is to use both preprocessing and dynamic reordering).
+solves the formula in `file.dqdimacs` without running the preprocessor HQSpre first and without using dynamic reordering of variables in BDDs as implemented in CUDD (the default behaviour is to use both preprocessing and dynamic reordering).
 
 ```
 DQBDD --localise 0 --uvar-choice 1 file.dqdimacs
 ```
-solves formula in file.dqdimacs without localising quantifiers (or creating quantifier tree) where the next universal variable for universal expansion is always the one that has the minimal number of dependent existential variables. The other options of `--uvar-choice` are:
+solves the formula in `file.dqdimacs` without localising quantifiers (or creating quantifier tree) where the next universal variable for universal expansion is always the one that has the minimal number of dependent existential variables. The other options of `--uvar-choice` are:
 - 0 - the order of universal variables to expand is set at beginning from the smallest to largest number of dependencies (this is the default),
 - 2 - the next variable is chosen by the number of variables in BDDs representing the two conjucts of universal expansion.
 
 ```
 DQBDD --localise 1 --elimination-choice 2 file.dqdimacs
 ```
-solves formula in file.dqdimacs with localising quantifiers (this is the default behaviour) where it eliminates all universal and possible existential variables while creating the final BDD from the quantifier tree. The other options are:
+solves the formula in `file.dqdimacs` with localising quantifiers (this is the default behaviour) where it eliminates all universal and possible existential variables while creating the final BDD from the quantifier tree. The other options are:
 - 0 - does not eliminate any quantifiers,
 - 1 - eliminates only universal variables which do not have any dependencies and all possible existential variables (this is the default).
 
