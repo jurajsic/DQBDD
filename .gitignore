@@ -1,13 +1,2 @@
 .vscode/*
-#results/*
-#hqspre/*
-#libs/*
-
-#HQSpreinterface.*
-debug/
-#parser.cpp
-#*.o
-#solver
 build/*
-
-#src/hqspresimple.cpp
