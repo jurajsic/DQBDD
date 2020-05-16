@@ -93,12 +93,14 @@ public:
 
     QuantifierTreeNode* literalToTree(Cudd &mgr, const hqspre::Literal lit, QuantifiedVariablesManager &qvm) {
         const hqspre::Variable var = hqspre::lit2var(lit);
+        //std::cout << "Processing variable " << var << std::endl;
 
         QuantifierTreeNode *result;
 
         if (formula.isGateOutput(var)) {
             result = gateToTree(mgr, *outputvarToGate[var], qvm);
         } else {
+            //std::cout << "not a gate" << std::endl;
             QuantifierTreeFormula *varFormula = new QuantifierTreeFormula(mgr, qvm);
             varFormula->setMatrix(Variable(var, mgr));
             result = varFormula;
@@ -115,6 +117,7 @@ public:
         switch (g._type) {
             case hqspre::GateType::AND_GATE:
             {
+                //std::cout << "AND GATE" << std::endl;
                 std::list<QuantifierTreeNode*> operands;
                 for (const hqspre::Literal lit : g._input_literals) {
                     operands.push_back(literalToTree(mgr, lit, qvm));
@@ -131,6 +134,7 @@ public:
 
             case hqspre::GateType::XOR_GATE:
             {
+                //std::cout << "XOR GATE" << std::endl;
                 // A XOR B = (A AND !B) OR (!A AND B)
                 QuantifierTreeNode *firstOp = literalToTree(mgr, g._input_literals[0], qvm);
                 QuantifierTreeNode *firstOpNeg = literalToTree(mgr, g._input_literals[0], qvm);
@@ -146,6 +150,7 @@ public:
 
             case hqspre::GateType::MUX_GATE:
             {
+                //std::cout << "MUX GATE" << std::endl;
                 // MUX(A,B,C) = (A AND B) OR (!A AND C)
                 QuantifierTreeNode *firstOp = literalToTree(mgr, g._input_literals[0], qvm);
                 QuantifierTreeNode *firstOpNeg = literalToTree(mgr, g._input_literals[0], qvm);
@@ -338,6 +343,7 @@ QuantifierTreeNode* HQSPreInterface::getQuantifierTree() {
     std::vector<hqspre::ClauseID> workingClausesNrs = {};
     for (hqspre::ClauseID c_nr = 0; c_nr <= formulaPtr->formula.maxClauseIndex(); c_nr++) {
         if (!formulaPtr->formula.clauseDeleted(c_nr)) {
+            //std::cout << "Clause " << c_nr << " will be processed" << std::endl;
             workingClausesNrs.push_back(c_nr);
         }
     }
@@ -357,8 +363,13 @@ QuantifierTreeNode* HQSPreInterface::getQuantifierTree() {
     // ...otherwise we save all the clauses...
     std::list<QuantifierTreeNode*> clauses;
     for (hqspre::ClauseID c_nr : workingClausesNrs) {
+        //std::cout << "Processing clause " << c_nr << " with literals:" << std::endl;
         const auto& clause = formulaPtr->formula.getClause(c_nr);
         std::list<QuantifierTreeNode*> literals;
+        //for (const hqspre::Literal lit: clause) {
+        //    std::cout << hqspre::lit2var(lit) << " ";
+        //}
+        //std::cout << std::endl;
         for (const hqspre::Literal lit: clause) {
             literals.push_back(formulaPtr->literalToTree(mgr, lit, *DQBFPrefix.getManager()));
         }
