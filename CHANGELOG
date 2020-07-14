@@ -1,0 +1,16 @@
+# Changelog
+
+## [Unreleased]
+
+## [1.1] - 26-04-2020
+### Fixes
+- dynamic reordering is temporarily turned off during creation of existential dependency copies
+
+### New
+- added option to turn on/off dynamic reordering (turned on by default)
+
+## [1.0] - 24-04-2020
+- initial release
+
+[1.1]: https://github.com/jurajsic/DQBDD/releases/tag/v1.1
+[1.0]: https://github.com/jurajsic/DQBDD/releases/tag/v1.0
