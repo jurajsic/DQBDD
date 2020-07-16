@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Fixes
+- added checks in DQDIMACS parser for errors and fixed parsing of free variables
 
 ## [1.1] - 26-04-2020
 ### Fixes
