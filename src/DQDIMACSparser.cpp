@@ -19,6 +19,7 @@
 
 #include <sstream>
 #include <fstream>
+#include <iostream>
 
 #include "DQDIMACSparser.hpp"
 #include "DQBDDexceptions.hpp"
@@ -31,56 +32,102 @@ bool DQDIMACSParser::parse(std::string fileName) {
 
     if (!inputFile.is_open()) {
         std::string errorMes = "Could not open file '";
-        errorMes += fileName + "'";
+        errorMes += fileName + "'.";
         throw DQBDDexception(errorMes);
     }
 
+    bool pLineProcessed = false;
+    bool prefixFinished = false;
+    unsigned expectedNumOfClauses = 0;
+    //int maximumVariable = 0;
+    std::string lastToken = "";
+
     while(std::getline(inputFile, line)) {
-        if (line == "") {
+        if (line == "") { // TODO whitespaces maybe also can be on empty line???
+            // TODO can we have empty lines? if not warning
             continue;
         }
         std::istringstream streamline(line);
         std::string token;
         streamline >> token;
-        if (token == "p" || token == "c") {
+        std::string currentFirstToken = token;
+        if (token == "c") {
             continue;
+        } else if (token == "p") {
+            if (pLineProcessed) {
+                throw DQBDDexception("There are multiple promblem lines in input DQDIMACS.");
+            }
+            streamline >> token;
+            if (token != "cnf") {
+                std::cerr << "WARNING: The problem line in input DQDIMCS should have the form 'p cnf <num> <num>'" << std::endl;
+            }
+            streamline >> token;
+            //maximumVariable = std::stoi(token);
+            streamline >> token;
+            expectedNumOfClauses = std::stoul(token);
+            pLineProcessed = true;
+        } else if (!pLineProcessed && (token == "a" || token == "e" || token == "d")) {
+            throw DQBDDexception("Input DQDIMACS file is missing the promblem line.");
+        } else if (prefixFinished && (token == "a" || token == "e" || token == "d")) {
+            throw DQBDDexception("Prefix in input DQDIMACS file cannot be between the definition of clauses.");
         } else if (token == "a") {
+            if (lastToken == "a") {
+                std::cerr << "WARNING: Multiple 'a' lines in input after each other." << std::endl;
+            }
             while (streamline >> token) {
-                if (token == "0") {
-                    continue;
+                if (token != "0") {
+                    Variable univVar(std::stoi(token), mgr);
+                    if (DQBFPrefix.isVarExist(univVar)) {
+                        throw DQBDDexception("Cannot have the same variable as both universal and existential.");
+                    }
+                    DQBFPrefix.addUnivVar(univVar);
                 }
-                Variable univVar(std::stoi(token), mgr);
-                DQBFPrefix.addUnivVar(univVar);
             }
         } else if (token == "e") {
+            if (lastToken == "e") {
+                std::cerr << "WARNING: Multiple 'e' lines in input after each other." << std::endl;
+            }
             while (streamline >> token) {
-                if (token == "0") {
-                    continue;
+                if (token != "0") {
+                    Variable existVar(std::stoi(token), mgr);
+                    if (DQBFPrefix.isVarUniv(existVar)) {
+                        throw DQBDDexception("Cannot have the same variable as both universal and existential.");
+                    }
+                    DQBFPrefix.addExistVar(existVar, DQBFPrefix.getUnivVars());
                 }
-                Variable existVar(std::stoi(token), mgr);
-                DQBFPrefix.addExistVar(existVar, DQBFPrefix.getUnivVars());
             }    
         } else if (token == "d") {
             streamline >> token;
             Variable existVar(std::stoi(token), mgr);
+            if (DQBFPrefix.isVarUniv(existVar)) {
+                throw DQBDDexception("Cannot have the same variable as both universal and existential.");
+            }
             DQBFPrefix.addExistVar(existVar);
             while (streamline >> token) {
-                if (token == "0") {
-                    continue;
+                if (token != "0") {
+                    Variable univVar(std::stoi(token), mgr);
+                    if (!DQBFPrefix.isVarUniv(univVar)) {
+                        throw DQBDDexception("Not able to add existential variable which has non universal variable in dependency list.");
+                    }
+                    DQBFPrefix.addDependency(existVar, univVar);
                 }
-                Variable univVar(std::stoi(token), mgr);
-                if (!DQBFPrefix.isVarUniv(univVar)) {
-                    throw DQBDDexception("Not able to add existential variable which has non universal variable in dependency list.");
-                }
-                DQBFPrefix.addDependency(existVar, univVar);
             }
         } else { // parse clause (disjunction of literals)
+            prefixFinished = true;
             auto getLiteralFromStr = [&](std::string tok) {
                 int i = std::stoi(tok);
                 if (i < 0) {
-                    return Literal(false, Variable(-i,mgr));
+                    Variable var = Variable(-i,mgr);
+                    if (!DQBFPrefix.isVarHereQuantified(var)) {
+                        DQBFPrefix.addExistVar(var);
+                    }
+                    return Literal(false, var);
                 } else {
-                    return Literal(true, Variable(i,mgr));
+                    Variable var = Variable(i,mgr);
+                    if (!DQBFPrefix.isVarHereQuantified(var)) {
+                        DQBFPrefix.addExistVar(var);
+                    }
+                    return Literal(true, var);
                 }
             };
             std::vector<Literal> disj;
@@ -93,7 +140,14 @@ bool DQDIMACSParser::parse(std::string fileName) {
             }
             clauses.push_back(disj);
         }
+        lastToken = currentFirstToken;
     }
+
+    if (expectedNumOfClauses != clauses.size()) {
+        std::cout << "WARNING: Expected number of clauses is different from the real number of clauses in input DQDIMACS file." << std::endl;
+    }
+    
+    // TODO check if maximumVariable is larger than the number of maximal variable in DQBFPrefix - if not, put warning
 
     return false;
 }
