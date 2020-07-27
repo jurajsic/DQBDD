@@ -4,7 +4,7 @@ DQBDD is a dependency quantified Boolean formula (DQBF) solver that uses binary 
 
 ## Installation
 
-You can find binaries in tagged release versions. If you want to compile it yourself, you need C++ compiler supporting C++14 standard and [CMake](https://cmake.org/). Execute 
+You can find binaries in [tagged release versions](https://github.com/jurajsic/DQBDD/releases). If you want to compile it yourself, you need C++ compiler supporting C++14 standard and [CMake](https://cmake.org/). Execute 
 ```
 mkdir Release
 cd Release
@@ -35,7 +35,7 @@ solves the formula in `file.dqdimacs` without running the preprocessor HQSpre fi
 DQBDD --localise 0 --uvar-choice 1 file.dqdimacs
 ```
 solves the formula in `file.dqdimacs` without localising quantifiers (or creating quantifier tree) where the next universal variable for universal expansion is always the one that has the minimal number of dependent existential variables. The other options of `--uvar-choice` are:
-- 0 - the order of universal variables to expand is set at beginning from the smallest to largest number of dependencies (this is the default),
+- 0 - the order of universal variables to expand is set at beginning from the smallest to the largest number of dependencies (this is the default),
 - 2 - the next variable is chosen by the number of variables in BDDs representing the two conjucts of universal expansion.
 
 ```
