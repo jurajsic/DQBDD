@@ -198,20 +198,20 @@ bool HQSPreInterface::parse(std::string fileName) {
 
     formulaPtr->formula.settings().consistency_check = false;
 
-    // Parse the file
-    std::string in_name(fileName);
-    if (in_name == "") {
-        throw DQBDDexception("No input file given.");
-    }
-    std::ifstream in(in_name);
-    if (!in) {
-        throw DQBDDexception("Could not open input file '");
-    }
-    in >> formulaPtr->formula;
-    in.close();
-
-    // do the preprocessing magic
     try {
+        // Parse the file
+        std::string in_name(fileName);
+        if (in_name == "") {
+            throw DQBDDexception("No input file given.");
+        }
+        std::ifstream in(in_name);
+        if (!in) {
+            throw DQBDDexception("Could not open input file '");
+        }
+        in >> formulaPtr->formula;
+        in.close();
+
+        // do the preprocessing magic
         formulaPtr->formula.determineGates(true, true, true, false);
         if (formulaPtr->formula.getGates().size() > 5) {
             // First do full preprocessing on a copy of the formula
