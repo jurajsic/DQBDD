@@ -28,7 +28,7 @@
  * \brief Manipulation of literals
  */
 
-#include "auxil.hpp"
+#include "aux.hpp"
 
 namespace hqspre {
 

@@ -25,7 +25,7 @@
 
 #define ELPP_STL_LOGGING
 #include <easylogging++.hpp>
-#include "auxil.hpp"
+#include "aux.hpp"
 #include "clause.hpp"
 #include "formula.hpp"
 #include "literal.hpp"
@@ -56,7 +56,7 @@ namespace hqspre {
  * except ID of the clause `clause` which should be skipped (as each clause
  * subsumes itself) \return true if the clause is subsumed
  */
-template<typename Container>
+template <typename Container>
 bool
 Formula::isForwardSubsumedByBinary(const Container& clause, int except)
 {
@@ -67,12 +67,16 @@ Formula::isForwardSubsumedByBinary(const Container& clause, int except)
         for (const BinaryClause& bin_clause : _implications[neg_lit]) {
             // Skip explicit stated exception clause
             const ClauseID clauseid = bin_clause.getClauseID();
-            if (static_cast<int>(clauseid) == except) continue;
+            if (static_cast<int>(clauseid) == except) {
+                continue;
+            }
 
             const Literal sec_lit = bin_clause.getLiteral();
             // If literal-ID is already larger than largest ID of current clause
             // the binary can never subsume the current clause
-            if (sec_lit > *clause.rbegin()) continue;
+            if (sec_lit > *clause.rbegin()) {
+                continue;
+            }
 
             // Found subsumption
             if (_seen[sec_lit]) {
@@ -105,7 +109,7 @@ Formula::isForwardSubsumedByBinary(const Container& clause, int except)
  * clause `clause` which should be skipped (as each clause subsumes itself)
  * \return true if the clause is subsumed
  */
-template<typename Container>
+template <typename Container>
 bool
 Formula::isForwardSubsumed(const Container& clause, const std::uint64_t sign, int except)
 {
@@ -115,31 +119,31 @@ Formula::isForwardSubsumed(const Container& clause, const std::uint64_t sign, in
     }
 #endif
 
-    if (isForwardSubsumedByBinary(clause, except)) return true;
+    if (isForwardSubsumedByBinary(clause, except)) {
+        return true;
+    }
 
     const Literal check_lit = getMinOccLit(clause);
 
     for (const ClauseID other_c_nr : _occ_list[check_lit]) {
         // Skip explicit stated exception clause
-        if (except == static_cast<int>(other_c_nr)) continue;
+        if (except == static_cast<int>(other_c_nr)) {
+            continue;
+        }
 
         const Clause& other_clause = _clauses[other_c_nr];
 
         // Skip to short clauses
-        if (other_clause.size() > clause.size()) continue;
-        // Check matching signatures
-        if ((other_clause.getSignature() & ~sign) != 0) continue;
-
-        bool is_subsumed = true;
-
-        for (const Literal lit : other_clause) {
-            // If there is a literal in "other_clause" which is not contained in
-            // "clause" "other_clause" cannot subsume "clause"
-            if (!_seen[lit]) {
-                is_subsumed = false;
-                break;
-            }
+        if (other_clause.size() > clause.size()) {
+            continue;
         }
+        // Check matching signatures
+        if ((other_clause.getSignature() & ~sign) != 0) {
+            continue;
+        }
+
+        const bool is_subsumed = std::all_of(other_clause.cbegin(), other_clause.cend(),
+                                             [this](const Literal lit) -> bool { return _seen[lit]; });
 
         if (is_subsumed) {
             VLOG(3) << __FUNCTION__ << " clause " << other_clause << " subsumes " << clause << '.';
@@ -179,7 +183,9 @@ Formula::removeSubsumedClauses()
     const std::size_t old_stat_subsumption = stat(Statistics::SUBSUMPTION);
 
     for (ClauseID c_nr = 0; c_nr < _clauses.size(); ++c_nr) {
-        if (clauseDeleted(c_nr)) continue;
+        if (clauseDeleted(c_nr)) {
+            continue;
+        }
         const auto num_del = isBackwardSubsuming(_clauses[c_nr], static_cast<int>(c_nr), true);
         if (num_del > 0) {
             _clauses[c_nr].setStatus(ClauseStatus::MANDATORY);
@@ -244,8 +250,7 @@ almostSubsumedByNary(const Clause& c, const Clause& c2, const Literal almostLit)
         }
     }
 
-    if (j != c2_size) return false;
-    return true;
+    return (j == c2_size);
 }
 
 /**
@@ -282,11 +287,17 @@ Formula::selfSubsumingResolution()
     _variable_score.resize(_clauses.size(), 0);
 
     for (ClauseID cl_nr = 0; cl_nr != _clauses.size(); ++cl_nr) {
-        if (clauseDeleted(cl_nr)) continue;
-        if (clauseOptional(cl_nr)) continue;
+        if (clauseDeleted(cl_nr)) {
+            continue;
+        }
+        if (clauseOptional(cl_nr)) {
+            continue;
+        }
         // ignore all clauses with size 2 -> they cannot be candidates for
         // selfsubsumption
-        if (_clauses[cl_nr].size() < 3) continue;
+        if (_clauses[cl_nr].size() < 3) {
+            continue;
+        }
         _variable_score[cl_nr] = static_cast<int>(_clauses[cl_nr].size());
         _candidates.insert(static_cast<Variable>(cl_nr));
     }
@@ -297,7 +308,9 @@ Formula::selfSubsumingResolution()
             VLOG(2) << "Terminate " << __FUNCTION__ << " due to process limit.";
             break;
         }
-        if (_interrupt) break;
+        if (_interrupt) {
+            break;
+        }
 
         bool           subsumed = false;
         const ClauseID c_nr     = _candidates.top();
@@ -305,12 +318,16 @@ Formula::selfSubsumingResolution()
         for (std::size_t i = 0; i != _clauses[c_nr].size(); ++i) {
             // Clause could be potentially deleted due to universal reduction after
             // removing a literal due to self-subsumption
-            if (clauseDeleted(c_nr)) break;
+            if (clauseDeleted(c_nr)) {
+                break;
+            }
             const auto& c = _clauses[c_nr];
 
             // Skip binary clauses, they can never be self-subsuming
             // Clause can get binary due selfsubsumption
-            if (c.size() < 3) break;
+            if (c.size() < 3) {
+                break;
+            }
 
             const Literal x = c[i];
 
@@ -335,10 +352,11 @@ Formula::selfSubsumingResolution()
 
                     // Reset index if literal was further reduced by universal reduction
                     // Otherwise
-                    if (removeLiteral(c_nr, x))
+                    if (removeLiteral(c_nr, x)) {
                         i = -1;
-                    else
+                    } else {
                         --i;
+                    }
                     subsumed                = true;
                     const ClauseID bin_c_nr = clause.getClauseID();
                     _clauses[bin_c_nr].setStatus(ClauseStatus::MANDATORY);
@@ -351,9 +369,13 @@ Formula::selfSubsumingResolution()
                 const Literal x_neg = negate(x);
                 for (const ClauseID c_nr2 : _occ_list[x_neg]) {
                     const auto& c2 = _clauses[c_nr2];
-                    if (c2.size() > c.size()) continue;
+                    if (c2.size() > c.size()) {
+                        continue;
+                    }
                     // We already have checked binary clauses
-                    if (c2.size() < 3) continue;
+                    if (c2.size() < 3) {
+                        continue;
+                    }
                     // Skip if signatures do not match
                     if ((c2.getVarSignature() & ~c.getVarSignature()) != 0) {
                         continue;
@@ -367,10 +389,11 @@ Formula::selfSubsumingResolution()
 
                         // Reset index if literal was further reduced by universal reduction
                         // Otherwise
-                        if (removeLiteral(c_nr, x))
+                        if (removeLiteral(c_nr, x)) {
                             i = -1;
-                        else
+                        } else {
                             --i;
+                        }
                         subsumed = true;
                         _clauses[c_nr2].setStatus(ClauseStatus::MANDATORY);
                         break;
@@ -382,8 +405,8 @@ Formula::selfSubsumingResolution()
         if (subsumed) {
             // Check whether reduced clause now subsumes other clauses
             // Clause size can be 0, if the clause is reduced to a unit due to
-            // universal reduction In this case we have nothing to do here
-            if (_clauses[c_nr].size() > 0) {
+            // universal reduction. In this case we have nothing to do here.
+            if (!_clauses[c_nr].empty()) {
                 isBackwardSubsuming(_clauses[c_nr], static_cast<int>(c_nr), true);
                 // Add new candidates which can be selfsubsumed with the newly generated
                 // clause

@@ -24,7 +24,7 @@
 
 #include <easylogging++.hpp>
 
-#include "auxil.hpp"
+#include "aux.hpp"
 #include "clause.hpp"
 #include "formula.hpp"
 #include "literal.hpp"
@@ -72,7 +72,7 @@ Formula::universalReduction(Clause& clause, const int c_nr)
         int max_level = -1;
         for (const Literal lit : clause) {
             if (isExistential(lit2var(lit))) {
-                max_level = std::max(max_level, (int)_qbf_prefix->getLevel(lit2var(lit)));
+                max_level = std::max(max_level, static_cast<int>(_qbf_prefix->getLevel(lit2var(lit))));
             }
         }
 
@@ -81,7 +81,7 @@ Formula::universalReduction(Clause& clause, const int c_nr)
         std::size_t next_free = 0;
         for (std::size_t curr_index = 0; curr_index < clause.size(); ++curr_index) {
             const Variable var = lit2var(clause[curr_index]);
-            if (isExistential(var) || (int)_qbf_prefix->getLevel(var) <= max_level) {
+            if (isExistential(var) || static_cast<int>(_qbf_prefix->getLevel(var)) <= max_level) {
                 // clause[curr_index] cannot be deleted
                 if (next_free != curr_index) {
                     clause[next_free] = clause[curr_index];
@@ -122,9 +122,9 @@ Formula::universalReduction(Clause& clause, const int c_nr)
 
             if (c_nr >= 0) {
                 // Check for unit clauses and implications
-                if (clause.empty())
+                if (clause.empty()) {
                     throw UNSATException("Universal reduction created an empty clause.");
-                else if (clause.size() == 1) {
+                } else if (clause.size() == 1) {
                     const Literal unit = clause[0];
                     removeClause(c_nr);
                     pushUnit(unit, PureStatus::UNIT);
@@ -134,8 +134,9 @@ Formula::universalReduction(Clause& clause, const int c_nr)
             }
             stat(Statistics::UNIV_REDUCTION) += _removed_lits.size();
             return true;
-        } else
+        } else {
             return false;
+        }
 
     } else {
         // formula is a DQBF
@@ -145,20 +146,26 @@ Formula::universalReduction(Clause& clause, const int c_nr)
 
         // If all literals are existential, we can skip the clause
         if (std::all_of(clause.cbegin(), clause.cend(),
-                        [this](const Literal lit) -> bool { return isExistential(lit2var(lit)); }))
+                        [this](const Literal lit) -> bool { return isExistential(lit2var(lit)); })) {
             return false;
+        }
 
         if (std::any_of(clause.cbegin(), clause.cend(),
-                        [this](const Literal lit) -> bool { return _dqbf_prefix->inRMB(lit2var(lit)); }))
+                        [this](const Literal lit) -> bool { return _dqbf_prefix->inRMB(lit2var(lit)); })) {
             return false;
+        }
 
         // Compute the union of the dependency sets of all existential variables
         // in the clause.
         std::set<Variable> dependencies;
         for (const Literal lit : clause) {
             const Variable var = lit2var(lit);
-            if (isExistential(var)) fast_set_union(_dqbf_prefix->getDependencies(var), dependencies);
-            if (dependencies.size() == num_univ) return false;
+            if (isExistential(var)) {
+                fast_set_union(_dqbf_prefix->getDependencies(var), dependencies);
+            }
+            if (dependencies.size() == num_univ) {
+                return false;
+            }
         }
 
         // Perform the reduction
@@ -221,8 +228,9 @@ Formula::universalReduction(Clause& clause, const int c_nr)
                 }
             }
             return true;
-        } else
+        } else {
             return false;
+        }
     }
     return false;
 }
@@ -248,8 +256,12 @@ Formula::universalReduction()
     bool modified = false;
 
     for (ClauseID c_nr = 0; c_nr <= maxClauseIndex(); ++c_nr) {
-        if (clauseDeleted(c_nr)) continue;
-        if (universalReduction(_clauses[c_nr], static_cast<int>(c_nr))) modified = true;
+        if (clauseDeleted(c_nr)) {
+            continue;
+        }
+        if (universalReduction(_clauses[c_nr], static_cast<int>(c_nr))) {
+            modified = true;
+        }
     }
 
     return modified;

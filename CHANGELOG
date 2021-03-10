@@ -4,6 +4,9 @@
 ### Fixes
 - added checks in DQDIMACS parser for errors and fixed parsing of free variables
 
+### New
+- updated HQSpre to the current (09-03-2021) version found with HQS at https://abs.informatik.uni-freiburg.de/src/projects_view.php?projectID=21
+
 ## [1.1] - 26-04-2020
 ### Fixes
 - dynamic reordering is temporarily turned off during creation of existential dependency copies

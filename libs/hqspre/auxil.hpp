@@ -27,7 +27,7 @@
 #include <utility>
 
 /**
- * \file auxil.hpp
+ * \file aux.hpp
  * \brief Auxiliary macros and functions (mainly optimized set operations)
  * \author Ralf Wimmer
  * \date 2015-16
@@ -100,7 +100,7 @@ enum class TruthValue : int
  * \brief Inserts the contents of set 'source' into the set 'target'
  * \pre Both ranges need to be sorted.
  */
-template<typename T1, typename T2>
+template <typename T1, typename T2>
 inline void
 fast_set_union(const T1& source, T2& target)
 {
@@ -121,7 +121,7 @@ fast_set_union(const T1& source, T2& target)
  * \param b_end Iterator pointing behind the last element of the second range
  * \return \f$A\setminus B=\emptyset\f$
  */
-template<typename InputIterator1, typename InputIterator2>
+template <typename InputIterator1, typename InputIterator2>
 bool
 set_difference_empty(InputIterator1 a_iter, InputIterator1 a_end, InputIterator2 b_iter, InputIterator2 b_end)
 {
@@ -151,7 +151,7 @@ set_difference_empty(InputIterator1 a_iter, InputIterator1 a_end, InputIterator2
  * \param b_end Iterator pointing behind the last element of the second range
  * \return \f$(A\setminus B=\emptyset, B\setminus A=\emptyset)\f$
  */
-template<typename InputIterator1, typename InputIterator2>
+template <typename InputIterator1, typename InputIterator2>
 std::pair<bool, bool>
 two_sided_difference_empty(InputIterator1 a_iter, InputIterator1 a_end, InputIterator2 b_iter, InputIterator2 b_end)
 {
@@ -198,7 +198,7 @@ two_sided_difference_empty(InputIterator1 a_iter, InputIterator1 a_end, InputIte
  * which the elements of \f$B\setminus A\f$ are stored \return a pair of
  * iterators pointing to the end of the constructed ranges.
  */
-template<typename InputIterator1, typename InputIterator2, typename OutputIterator1, typename OutputIterator2>
+template <typename InputIterator1, typename InputIterator2, typename OutputIterator1, typename OutputIterator2>
 std::pair<OutputIterator1, OutputIterator2>
 two_sided_difference(InputIterator1 a_iter, InputIterator1 a_end, InputIterator2 b_iter, InputIterator2 b_end,
                      OutputIterator1 a_minus_b, OutputIterator2 b_minus_a)
@@ -232,7 +232,7 @@ two_sided_difference(InputIterator1 a_iter, InputIterator1 a_end, InputIterator2
  * Given two sorted ranges A = [a_iter, a_end) and B = [minus_iter, minus_end)
  * without duplicates, this function returns \f$| A \setminus B |\f$.
  */
-template<typename InputIterator1, typename InputIterator2>
+template <typename InputIterator1, typename InputIterator2>
 std::size_t
 set_difference_count(InputIterator1 a_iter, InputIterator1 a_end, InputIterator2 b_iter, InputIterator2 b_end)
 {

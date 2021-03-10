@@ -20,6 +20,8 @@ add_library(hqspre STATIC
               formula_elim_set.cpp
               formula_equiv_contra.cpp
               formula_experimental.cpp
+              formula_findHidden.cpp
+              formula_forkExt.cpp
               formula_gate_interface.cpp
               formula_gates.cpp
               formula_inout.cpp
@@ -65,23 +67,22 @@ endif()
 target_include_directories(hqspre PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 
 
-
 # Create the HQSpre binary
-# add_executable(preprocess main.cpp)
-# if (STATIC)
-#     target_link_libraries(preprocess PRIVATE "-static")
-#     target_link_libraries(preprocess PRIVATE ltdl)
-#     set_target_properties(preprocess PROPERTIES LINK_SEARCH_END_STATIC 1)
-# endif()
-# set_target_properties(preprocess PROPERTIES OUTPUT_NAME "hqspre")
-# target_link_libraries(preprocess PUBLIC hqspre)
-# target_link_libraries(preprocess PUBLIC easylogging)
-# target_link_libraries(preprocess PUBLIC boost)
-# target_compile_options(preprocess PRIVATE "-Wconversion")
-
-# install(TARGETS preprocess
-#         RUNTIME DESTINATION ${CMAKE_BINARY_DIR}/bin
-#         LIBRARY DESTINATION ${CMAKE_BINARY_DIR}/lib
-#         ARCHIVE DESTINATION ${CMAKE_BINARY_DIR}/lib
-#         INCLUDES DESTINATION ${CMAKE_BINARY_DIR}/include
-#        )
+#add_executable(preprocess main.cpp)
+#if (STATIC)
+#    target_link_libraries(preprocess PRIVATE "-static")
+#    target_link_libraries(preprocess PRIVATE ltdl)
+#    set_target_properties(preprocess PROPERTIES LINK_SEARCH_END_STATIC 1)
+#endif()
+#set_target_properties(preprocess PROPERTIES OUTPUT_NAME "hqspre")
+#target_link_libraries(preprocess PUBLIC hqspre)
+#target_link_libraries(preprocess PUBLIC easylogging)
+#target_link_libraries(preprocess PUBLIC boost)
+#target_compile_options(preprocess PRIVATE "-Wconversion")
+#
+#install(TARGETS preprocess
+#        RUNTIME DESTINATION ${CMAKE_BINARY_DIR}/bin
+#        LIBRARY DESTINATION ${CMAKE_BINARY_DIR}/lib
+#        ARCHIVE DESTINATION ${CMAKE_BINARY_DIR}/lib
+#        INCLUDES DESTINATION ${CMAKE_BINARY_DIR}/include
+#       )

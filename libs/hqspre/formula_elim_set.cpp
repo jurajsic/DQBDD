@@ -1,4 +1,4 @@
-// $Id: formula_elim_set.cpp 2583 2019-06-03 08:32:04Z wimmer $
+// $Id: formula_elim_set.cpp 2644 2019-09-07 20:46:54Z wimmer $
 
 /*
  * This file is part of HQSpre.
@@ -33,18 +33,16 @@
 
 #include <easylogging++.hpp>
 
-#if defined(HAVE_GLPK)
-#    include <glpk.h>
-#endif
+#include <glpk.h>
 
-#include "auxil.hpp"
+#include "aux.hpp"
 #include "literal.hpp"
 #include "milp_solver.hpp"
 #include "prefix.hpp"
 #include "timer.hpp"
 
 namespace std {
-template<typename T1, typename T2>
+template <typename T1, typename T2>
 class hash<std::pair<T1, T2>>
 {
    public:
@@ -58,8 +56,6 @@ class hash<std::pair<T1, T2>>
 }  // end namespace std
 
 namespace hqspre {
-
-#if defined(HAVE_GLPK)
 
 namespace {
 
@@ -86,27 +82,37 @@ struct GlpkData
     unsigned int                                              _num_loop_cuts;
 };
 
-static void
+void
 glpk_callback(glp_tree* T, void* info)
 {
     // We need the callback only when requested to add new rows.
-    if (glp_ios_reason(T) != GLP_IROWGEN) return;
+    if (glp_ios_reason(T) != GLP_IROWGEN) {
+        return;
+    }
 
-    GlpkData* data   = (GlpkData*)info;
-    auto      solver = glp_ios_get_prob(T);
+    auto* data   = static_cast<GlpkData*>(info);
+    auto  solver = glp_ios_get_prob(T);
 
     // Only add a cut if an integer solution has been found.
     for (int y = 0; y < static_cast<int>(data->_graph.size()); ++y) {
-        if (data->_classuniv[y]) continue;
+        if (data->_classuniv[y]) {
+            continue;
+        }
         const double actual_val_zy = glp_get_col_prim(solver, data->_zy[y]);
-        if (std::floor(actual_val_zy) != actual_val_zy) return;
+        if (std::floor(actual_val_zy) != actual_val_zy) {
+            return;
+        }
         const double actual_val_fy = glp_get_col_prim(solver, data->_fy[y]);
-        if (std::floor(actual_val_fy) != actual_val_fy) return;
+        if (std::floor(actual_val_fy) != actual_val_fy) {
+            return;
+        }
     }
 
     for (const auto& d : data->_dxy) {
         const double val = glp_get_col_prim(solver, d.second);
-        if (std::floor(val) != val) return;
+        if (std::floor(val) != val) {
+            return;
+        }
     }
 
     // Now check if we can add lazy constraints.
@@ -116,7 +122,9 @@ glpk_callback(glp_tree* T, void* info)
 
     // First consider the exponential constraint zy = 2^{z_y}
     for (int y = 0; y < static_cast<int>(data->_graph.size()); ++y) {
-        if (data->_classuniv[y]) continue;
+        if (data->_classuniv[y]) {
+            continue;
+        }
 
         const double actual_val_zy = glp_get_col_prim(solver, data->_zy[y]);
         const double actual_val_fy = glp_get_col_prim(solver, data->_fy[y]);
@@ -146,15 +154,18 @@ glpk_callback(glp_tree* T, void* info)
         }
     }
 
-    if (added) return;
+    if (added) {
+        return;
+    }
 
     // Now check if the graph has become acyclic
     const std::function<bool(int, int)> edge_available = [solver, data](int x, int y) -> bool {
         const auto var = data->_dxy.find(std::make_pair(x, y));
-        if (var == data->_dxy.cend())
+        if (var == data->_dxy.cend()) {
             return true;
-        else
+        } else {
             return glp_get_col_prim(solver, var->second) < 0.1;
+        }
     };
 
     std::vector<bool> seen(data->_graph.size(), false);
@@ -169,7 +180,9 @@ glpk_callback(glp_tree* T, void* info)
     // the lasso.
     const std::function<bool(int)> findCycle
         = [data, &seen, &onPath, &path, &edge_available, &findCycle](int node) -> bool {
-        if (seen[node]) return false;
+        if (seen[node]) {
+            return false;
+        }
 
         if (onPath[node] > 0) {
             path.push_back(node);
@@ -181,7 +194,9 @@ glpk_callback(glp_tree* T, void* info)
         for (int succ : data->_graph[node]) {
             if (!data->_classuniv[node] || edge_available(node, succ)) {
                 bool result = findCycle(succ);
-                if (result) return result;
+                if (result) {
+                    return result;
+                }
             }
         }
         seen[node]          = true;
@@ -194,16 +209,18 @@ glpk_callback(glp_tree* T, void* info)
     // Now perform a depth-first search from every node. If a cycle is found, add
     // the corresponding cycle exclusion constraint.
     for (int x = 0; x < static_cast<int>(data->_graph.size()); ++x) {
-        if (!findCycle(x)) continue;
+        if (!findCycle(x)) {
+            continue;
+        }
 
         vars.resize(1);
         coeffs.resize(1);
 
         for (int node_pos = onPath[path.back()]; node_pos < static_cast<int>(path.size()); ++node_pos) {
-            const int x = path[node_pos];
-            if (data->_classuniv[x] && node_pos < static_cast<int>(path.size()) - 1) {
+            const int x2 = path[node_pos];
+            if (data->_classuniv[x2] && node_pos < static_cast<int>(path.size()) - 1) {
                 const int  y     = path[node_pos + 1];
-                const auto found = data->_dxy.find(std::make_pair(x, y));
+                const auto found = data->_dxy.find(std::make_pair(x2, y));
                 vars.push_back(found->second);
                 coeffs.push_back(1.0);
             }
@@ -218,7 +235,6 @@ glpk_callback(glp_tree* T, void* info)
 }
 
 }  // end anonymous namespace
-#endif
 
 static std::unordered_set<std::pair<int, int>>
 solveMilp(const std::vector<std::vector<int>>& graph, const std::vector<std::vector<Variable>>& class2vars,
@@ -226,9 +242,7 @@ solveMilp(const std::vector<std::vector<int>>& graph, const std::vector<std::vec
 {
     std::unique_ptr<MilpSolver> solver = nullptr;
 
-#if defined(HAVE_GLPK)
     solver = std::make_unique<GlpkSolver>();
-#endif
 
     val_assert(solver);
 
@@ -246,7 +260,9 @@ solveMilp(const std::vector<std::vector<int>>& graph, const std::vector<std::vec
     std::map<std::pair<int, int>, MilpSolver::VarType> dxy;
 
     for (int y = 0; y < static_cast<int>(class2vars.size()); ++y) {
-        if (classuniv[y]) continue;  // skip universal variables
+        if (classuniv[y]) {
+            continue;  // skip universal variables
+        }
 
         zy[y] = solver->addVariable(MilpSolver::VarSort::INT, true, 1.0, false, 0.0);
         fy[y] = solver->addVariable(MilpSolver::VarSort::INT, true, 0.0, false, 0.0);
@@ -257,7 +273,9 @@ solveMilp(const std::vector<std::vector<int>>& graph, const std::vector<std::vec
     }
 
     for (int x = 0; x < static_cast<int>(graph.size()); ++x) {
-        if (!classuniv[x]) continue;
+        if (!classuniv[x]) {
+            continue;
+        }
         for (const int y : graph[x]) {
             dxy[std::make_pair(x, y)] = solver->addVariable(MilpSolver::VarSort::INT, true, 0.0, true, 1.0);
         }
@@ -276,7 +294,9 @@ solveMilp(const std::vector<std::vector<int>>& graph, const std::vector<std::vec
     }
 
     for (int y = 0; y < static_cast<int>(class2vars.size()); ++y) {
-        if (classuniv[y]) continue;  // skip universal variables
+        if (classuniv[y]) {
+            continue;  // skip universal variables
+        }
         vars.clear();
         coeffs.clear();
 
@@ -294,10 +314,14 @@ solveMilp(const std::vector<std::vector<int>>& graph, const std::vector<std::vec
     vars.resize(2);
     coeffs.resize(2);
     for (std::size_t x1 = 0; x1 < graph.size(); ++x1) {
-        if (!classuniv[x1]) continue;
+        if (!classuniv[x1]) {
+            continue;
+        }
         for (std::size_t y1 : graph[x1]) {
             for (std::size_t x2 : graph[y1]) {
-                if (x2 <= x1) continue;
+                if (x2 <= x1) {
+                    continue;
+                }
                 for (std::size_t y2 : graph[x2]) {
                     if (std::find(graph[y2].cbegin(), graph[y2].cend(), x1) != graph[y2].cend()) {
                         // 4-cycle x1 -> y1 -> x2 -> y2 -> x1 found.
@@ -318,12 +342,10 @@ solveMilp(const std::vector<std::vector<int>>& graph, const std::vector<std::vec
 
     TruthValue result = TruthValue::UNKNOWN;
 
-#if defined(HAVE_GLPK)
     GlpkData callback_data(graph, classuniv, fy, zy, dxy);
     result = dynamic_cast<GlpkSolver*>(solver.get())->solve(glpk_callback, &callback_data);
     VLOG(2) << "Added " << callback_data._num_secant_cuts << " secant constraints.";
     VLOG(2) << "Added " << callback_data._num_loop_cuts << " loop exclusion constraints.";
-#endif
 
     std::unordered_set<std::pair<int, int>> to_eliminate;
 
@@ -333,8 +355,9 @@ solveMilp(const std::vector<std::vector<int>>& graph, const std::vector<std::vec
                 to_eliminate.insert(std::make_pair(d.first.first, d.first.second));
             }
         }
-    } else
+    } else {
         throw ElimSetException("MILP-solver did not find a solution.");
+    }
 
     return to_eliminate;
 }
@@ -354,7 +377,9 @@ topoSort(const std::vector<std::vector<int>>& graph, const std::function<bool(in
 
     for (int x = 0; x < static_cast<int>(graph.size()); ++x) {
         for (const int y : graph[x]) {
-            if (!edge_forbidden(x, y)) ++indegree[y];
+            if (!edge_forbidden(x, y)) {
+                ++indegree[y];
+            }
         }
     }
 
@@ -363,7 +388,9 @@ topoSort(const std::vector<std::vector<int>>& graph, const std::function<bool(in
     unsigned int              current_number = 0;
 
     for (int x = 0; x < static_cast<int>(graph.size()); ++x) {
-        if (indegree[x] == 0) queue.push_back(x);
+        if (indegree[x] == 0) {
+            queue.push_back(x);
+        }
     }
 
     while (!queue.empty()) {
@@ -375,7 +402,9 @@ topoSort(const std::vector<std::vector<int>>& graph, const std::function<bool(in
         for (int succ : graph[current_node]) {
             if (!edge_forbidden(current_node, succ)) {
                 --indegree[succ];
-                if (indegree[succ] == 0) queue.push_back(succ);
+                if (indegree[succ] == 0) {
+                    queue.push_back(succ);
+                }
             }
         }
     }
@@ -403,14 +432,16 @@ Formula::computeDepElimSet()
     // Perform symmetry reduction - all variables with the same dependencies
     // belong to the same class.
     for (Variable var = minVarIndex(); var <= maxVarIndex(); ++var) {
-        if (varDeleted(var) || _prefix->inRMB(var)) continue;
+        if (varDeleted(var) || _prefix->inRMB(var)) {
+            continue;
+        }
         const auto& deps = _dqbf_prefix->getDependencies(var);
 
         const auto found = dep2class.find(deps);
         if (found == dep2class.end()) {
             dep2class[deps] = class_index;
             var2class[var]  = class_index;
-            class2vars.push_back(std::vector<Variable>(1, var));
+            class2vars.emplace_back(1, var);
             classuniv.push_back(isUniversal(var));
             ++class_index;
         } else {
@@ -428,9 +459,9 @@ Formula::computeDepElimSet()
         for (int y = x; y < class_index; ++y) {
             const Variable var_y = class2vars[y].front();
 
-            if (isExistential(var_x) == isExistential(var_y))
+            if (isExistential(var_x) == isExistential(var_y)) {
                 continue;
-            else if (isExistential(var_y)) {
+            } else if (isExistential(var_y)) {
                 // x universal, y existential
                 if (_prefix->depends(var_y, var_x)) {
                     graph[x].push_back(y);

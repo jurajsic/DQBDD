@@ -20,7 +20,7 @@
 
 #include <utility>
 
-#include "auxil.hpp"
+#include "aux.hpp"
 #include "formula.hpp"
 #include "gate.hpp"
 #include "literal.hpp"
@@ -55,7 +55,9 @@ namespace hqspre {
 std::pair<Variable, Variable>
 Formula::elimDependency(const Variable x, const Variable y)
 {
-    if (!depends(x, y)) return std::make_pair(0u, 0u);
+    if (!depends(x, y)) {
+        return std::make_pair(0u, 0u);
+    }
 
     val_assert(_prefix);
     val_assert(_prefix->type() == PrefixType::DQBF);
@@ -129,9 +131,9 @@ Formula::elimDependency(const Variable x, const Variable y)
         // make y depend on all universal variables
         _prefix->moveToRMB(y);
 
-        const int c_nr1 = addClause({var2lit(x, false), var2lit(y0, false), var2lit(y, true)});
-        const int c_nr2 = addClause({var2lit(x, true), var2lit(y, false)});
-        const int c_nr3 = addClause({var2lit(x, false), var2lit(y, false), var2lit(y0, true)});
+        addClause({var2lit(x, false), var2lit(y0, false), var2lit(y, true)});
+        addClause({var2lit(x, true), var2lit(y, false)});
+        addClause({var2lit(x, false), var2lit(y, false), var2lit(y0, true)});
 
         /*
                 Gate g(GateType::MUX_GATE);
@@ -179,9 +181,9 @@ Formula::elimDependency(const Variable x, const Variable y)
         // make y depend on all universal variables
         _prefix->moveToRMB(y);
 
-        const int c_nr1 = addClause({var2lit(x, true), var2lit(y1, false), var2lit(y, true)});
-        const int c_nr2 = addClause({var2lit(x, false), var2lit(y, false)});
-        const int c_nr3 = addClause({var2lit(x, true), var2lit(y, false), var2lit(y1, true)});
+        addClause({var2lit(x, true), var2lit(y1, false), var2lit(y, true)});
+        addClause({var2lit(x, false), var2lit(y, false)});
+        addClause({var2lit(x, true), var2lit(y, false), var2lit(y1, true)});
 
         /*
                 Gate g(GateType::MUX_GATE);

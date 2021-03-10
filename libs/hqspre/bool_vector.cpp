@@ -23,7 +23,7 @@
 #include <cstring>
 #include <ostream>
 
-#include "auxil.hpp"
+#include "aux.hpp"
 
 /**
  * \file bool_vector.cpp
@@ -89,9 +89,7 @@ BoolVector::BoolVector(BoolVector&& v) noexcept :
  */
 BoolVector::~BoolVector() noexcept
 {
-    if (_bins) {
-        delete[] _bins;
-    }
+    delete[] _bins;
 }
 
 /**
@@ -100,16 +98,15 @@ BoolVector::~BoolVector() noexcept
 BoolVector&
 BoolVector::operator=(const BoolVector& v)
 {
-    if (this == &v) return *this;
+    if (this == &v) {
+        return *this;
+    }
 
     if (_binCount != v._binCount) {
         _binCount = v._binCount;
+        delete[] _bins;
 
-        if (_bins) {
-            delete[] _bins;
-        }
-
-        if (v._bins) {
+        if (v._bins != nullptr) {
             _bins = new BinType[_binCount];
         } else {
             _bins = nullptr;
@@ -119,7 +116,7 @@ BoolVector::operator=(const BoolVector& v)
     _size        = v._size;
     _lastBinMask = v._lastBinMask;
 
-    if (_binCount != 0) {
+    if (_binCount != 0 && _bins != nullptr) {
         memcpy(_bins, v._bins, _binCount * sizeof(BinType));
     }
 
@@ -132,8 +129,10 @@ BoolVector::operator=(const BoolVector& v)
 BoolVector&
 BoolVector::operator=(BoolVector&& v) noexcept
 {
-    if (this == &v) return *this;
-    if (_bins) delete[] _bins;
+    if (this == &v) {
+        return *this;
+    }
+    delete[] _bins;
 
     _size        = v._size;
     _lastBinMask = v._lastBinMask;
@@ -164,7 +163,9 @@ BoolVector::countTrue() const
     std::size_t count = 0;
 
     std::size_t fullBins = _binCount;
-    if (_lastBinMask != 0) --fullBins;
+    if (_lastBinMask != 0) {
+        --fullBins;
+    }
 
     /* use the fast method for the first "fullBins" bins */
     for (std::size_t i = 0; i != fullBins; ++i) {
@@ -193,20 +194,22 @@ BoolVector::countTrue() const
 /**
  * \brief Returns the first index whose value is `true`; -1 if none exists.
  */
-std::size_t
+int
 BoolVector::getFirstTrue() const
 {
     std::size_t fullBins = _binCount;
-    if (_lastBinMask != 0) --fullBins;
+    if (_lastBinMask != 0) {
+        --fullBins;
+    }
 
-    std::size_t index = 0;
+    int index = 0;
 
     for (std::size_t i = 0; i != fullBins; ++i) {
         BinType b = _bins[i];
 
         if (b != 0) {
             while (true) {
-                if (b & 1u) {
+                if ((b & 1u) != 0) {
                     return index;
                 } else {
                     b >>= 1u;
@@ -214,7 +217,7 @@ BoolVector::getFirstTrue() const
                 }
             }
         } else {
-            index += BinSize;
+            index += static_cast<int>(BinSize);
         }
     }
 
@@ -222,7 +225,7 @@ BoolVector::getFirstTrue() const
         BinType b = _bins[_binCount - 1] & _lastBinMask;
         if (b != 0) {
             while (true) {
-                if (b & 1) {
+                if ((b & 1u) != 0) {
                     return index;
                 } else {
                     b >>= 1;
@@ -251,17 +254,17 @@ BoolVector::initialize(std::size_t size, bool initial)
     if (_size % BinSize != 0) {
         ++_binCount;
 
-        std::size_t additionalBits = _size - ((_binCount - 1) * BinSize);
+        const std::size_t additionalBits = _size - ((_binCount - 1) * BinSize);
         val_assert(additionalBits > 0);
 
         for (std::size_t i = 0; i != additionalBits; ++i) {
-            _lastBinMask |= (BinType)1ul << i;
+            _lastBinMask |= static_cast<BinType>(1) << i;
         }
     }
 
     _bins = new BinType[_binCount];
 
-    memset(_bins, (initial ? ~0ul : 0ul), _binCount * sizeof(BinType));
+    memset(_bins, (initial ? std::numeric_limits<unsigned char>::max() : 0), _binCount * sizeof(BinType));
 }
 
 /**
@@ -274,9 +277,9 @@ BoolVector::set(const std::size_t index, const bool value)
     const std::size_t bit = index % BinSize;
 
     if (value) {
-        _bins[bin] |= (BinType)1ul << bit;
+        _bins[bin] |= static_cast<BinType>(1) << bit;
     } else {
-        _bins[bin] &= ~((BinType)1ul << bit);
+        _bins[bin] &= ~(static_cast<BinType>(1) << bit);
     }
 }
 
@@ -289,7 +292,7 @@ BoolVector::flip(const std::size_t index)
     const std::size_t bin = index / BinSize;
     const std::size_t bit = index % BinSize;
 
-    _bins[bin] ^= (BinType)1ul << bit;
+    _bins[bin] ^= static_cast<BinType>(1) << bit;
 }
 
 /**
@@ -299,7 +302,7 @@ void
 BoolVector::set(const bool value)
 {
     val_assert(_binCount != 0);
-    memset(_bins, (value ? ~0ul : 0ul), _binCount * sizeof(BinType));
+    memset(_bins, (value ? std::numeric_limits<unsigned char>::max() : 0), _binCount * sizeof(BinType));
 }
 
 /**
@@ -310,7 +313,7 @@ BoolVector::allTrue() const
 {
     if (_lastBinMask == 0) {
         for (std::size_t i = 0; i != _binCount; ++i) {
-            if (_bins[i] != ~(BinType)0ul) {
+            if (_bins[i] != ~static_cast<BinType>(0)) {
                 return false;
             }
         }
@@ -319,7 +322,7 @@ BoolVector::allTrue() const
     else {
         val_assert(_binCount >= 1);
         for (std::size_t i = 0; i != _binCount - 1; ++i) {
-            if (_bins[i] != ~(BinType)0ul) {
+            if (_bins[i] != ~static_cast<BinType>(0)) {
                 return false;
             }
         }
@@ -339,7 +342,7 @@ BoolVector::allFalse() const
 {
     if (_lastBinMask == 0) {
         for (std::size_t i = 0; i != _binCount; ++i) {
-            if (_bins[i] != (BinType)0ul) {
+            if (_bins[i] != static_cast<BinType>(0)) {
                 return false;
             }
         }
@@ -348,12 +351,12 @@ BoolVector::allFalse() const
     else {
         val_assert(_binCount >= 1);
         for (std::size_t i = 0; i != _binCount - 1; ++i) {
-            if (_bins[i] != (BinType)0ul) {
+            if (_bins[i] != static_cast<BinType>(0)) {
                 return false;
             }
         }
 
-        if ((_bins[_binCount - 1] & _lastBinMask) != (BinType)0ul) {
+        if ((_bins[_binCount - 1] & _lastBinMask) != static_cast<BinType>(0)) {
             return false;
         }
     }
@@ -367,7 +370,9 @@ BoolVector::allFalse() const
 bool
 BoolVector::operator==(const BoolVector& b) const
 {
-    if (_size != b._size) return false;
+    if (_size != b._size) {
+        return false;
+    }
 
     if (_lastBinMask == 0) {
         for (std::size_t i = 0; i != _binCount; ++i) {
@@ -485,15 +490,19 @@ BoolVector::intersectAndCheckEmpty(BoolVector& v1, const BoolVector& v2)
     if (v1._lastBinMask == 0) {
         for (std::size_t i = 0; i != v1._binCount; ++i) {
             v1._bins[i] &= v2._bins[i];
-            if (v1._bins[i] != (BinType)0ul) empty = false;
+            if (v1._bins[i] != static_cast<BinType>(0)) {
+                empty = false;
+            }
         }
     } else {
         for (unsigned int i = 0; i != v1._binCount - 1; ++i) {
             v1._bins[i] &= v2._bins[i];
-            if (v1._bins[i] != (BinType)0ul) empty = false;
+            if (v1._bins[i] != static_cast<BinType>(0)) {
+                empty = false;
+            }
         }
         v1._bins[v1._binCount - 1] &= v2._bins[v1._binCount - 1];
-        if ((v1._bins[v1._binCount - 1] & v1._lastBinMask) != (BinType)0) {
+        if ((v1._bins[v1._binCount - 1] & v1._lastBinMask) != static_cast<BinType>(0)) {
             empty = false;
         }
     }
@@ -505,10 +514,11 @@ std::ostream&
 operator<<(std::ostream& os, const BoolVector& b)
 {
     for (std::size_t i = 0; i != b.size(); ++i) {
-        if (b.get(i))
+        if (b.get(i)) {
             os << '1';
-        else
+        } else {
             os << '0';
+        }
     }
 
     return os;

@@ -25,7 +25,7 @@
 #include <vector>
 
 #include <easylogging++.hpp>
-#include "auxil.hpp"
+#include "aux.hpp"
 #include "clause.hpp"
 #include "formula.hpp"
 #include "literal.hpp"
@@ -47,12 +47,14 @@ Formula::pairBlockedClauses()
     unsigned int count = 0;
 
     for (ClauseID c_nr = 0; c_nr < _clauses.size(); ++c_nr) {
-        if (clauseDeleted(c_nr)) continue;
+        if (clauseDeleted(c_nr)) {
+            continue;
+        }
         Clause::ClauseData current_clause(_clauses[c_nr].size());
         for (std::size_t i = 0; i != _clauses[c_nr].size(); ++i) {
             current_clause[i] = _clauses[c_nr][i];
             val_assert(!_seen[current_clause[i]]);
-            _seen[current_clause[i]] = true;
+            _seen[current_clause[i]] = 1u;
         }
         auto sig = _clauses[c_nr].getSignature();
         addHiddenLiteralsBinary(static_cast<int>(c_nr), current_clause, sig);
@@ -64,7 +66,9 @@ Formula::pairBlockedClauses()
         for (auto lit1_pos = current_clause.cbegin(); lit1_pos != current_clause.cend(); ++lit1_pos) {
             const Literal  lit1 = *lit1_pos;
             const Variable var1 = lit2var(lit1);
-            if (!isExistential(var1)) continue;
+            if (!isExistential(var1)) {
+                continue;
+            }
             found1 = true;
 
             auto lit2_pos = lit1_pos;
@@ -72,7 +76,9 @@ Formula::pairBlockedClauses()
             for (; lit2_pos != current_clause.cend(); ++lit2_pos) {
                 const Literal  lit2 = *lit2_pos;
                 const Variable var2 = lit2var(lit2);
-                if (!isExistential(var2)) continue;
+                if (!isExistential(var2)) {
+                    continue;
+                }
                 found2 = true;
 
                 std::set<ClauseID> res_candidates;
@@ -87,16 +93,18 @@ Formula::pairBlockedClauses()
                     bool lit1_found = false;
                     bool lit2_found = false;
                     for (Literal ell : current_clause) {
-                        if (ell == lit1 || ell == lit2)
+                        if (ell == lit1 || ell == lit2) {
                             continue;
-                        else
+                        } else {
                             resolvent.insert(ell);
+                        }
                     }
                     for (Literal ell : other_clause) {
-                        if (ell == negate(lit1))
+                        if (ell == negate(lit1)) {
                             lit1_found = true;
-                        else if (ell == negate(lit2))
+                        } else if (ell == negate(lit2)) {
                             lit2_found = true;
+                        }
                         resolvent.insert(ell);
                     }
                     auto it1 = resolvent.cbegin();
@@ -121,9 +129,13 @@ Formula::pairBlockedClauses()
                         break;
                     }
                 }
-                if (blocked) break;
+                if (blocked) {
+                    break;
+                }
             }
-            if (blocked) break;
+            if (blocked) {
+                break;
+            }
         }
 
         if (blocked && found1 && found2) {
