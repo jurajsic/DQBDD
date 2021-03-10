@@ -28,7 +28,7 @@
 
 #include <easylogging++.hpp>
 
-#include "aux.hpp"
+#include "auxil.hpp"
 #include "formula.hpp"
 #include "gate.hpp"
 #include "literal.hpp"

@@ -31,7 +31,7 @@
 #include <solver/antombase.h>
 #include <easylogging++.hpp>
 
-#include "aux.hpp"
+#include "auxil.hpp"
 #include "clause.hpp"
 #include "exceptions.hpp"
 #include "formula.hpp"

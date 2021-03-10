@@ -35,7 +35,7 @@
 
 #include <glpk.h>
 
-#include "aux.hpp"
+#include "auxil.hpp"
 #include "literal.hpp"
 #include "milp_solver.hpp"
 #include "prefix.hpp"
