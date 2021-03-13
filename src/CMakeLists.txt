@@ -15,6 +15,8 @@ add_executable(DQBDD
                 DQBDDvariable.hpp
                 DQDIMACSparser.cpp
                 DQDIMACSparser.hpp
+                prenexcleansedqcirparser.cpp
+                prenexcleansedqcirparser.hpp
                 )
 target_link_libraries(DQBDD PUBLIC cudd
                             PUBLIC hqspre
