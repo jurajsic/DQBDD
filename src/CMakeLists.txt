@@ -29,7 +29,7 @@ target_link_libraries(DQBDD PUBLIC cudd
 
 # statically link to stuff
 target_link_libraries(DQBDD PRIVATE -static)
-target_link_libraries(DQBDD PRIVATE ltdl)
+#target_link_libraries(DQBDD PRIVATE ltdl)
 set_target_properties(DQBDD PROPERTIES LINK_SEARCH_END_STATIC 1)
 
 target_compile_options(DQBDD PRIVATE -Wall -Wextra -Wpedantic)
