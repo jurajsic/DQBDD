@@ -17,7 +17,7 @@ add_library(hqspre STATIC
               formula_debug.cpp
               formula_dep_elim.cpp
               formula_dep_schemes.cpp
-              formula_elim_set.cpp
+              #formula_elim_set.cpp
               formula_equiv_contra.cpp
               formula_experimental.cpp
               formula_findHidden.cpp
@@ -38,8 +38,8 @@ add_library(hqspre STATIC
               gate.hpp
               gate.cpp
               literal.hpp
-              milp_solver.hpp
-              milp_solver.cpp
+              #milp_solver.hpp
+              #milp_solver.cpp
               prefix.hpp
               prefix.ipp
               prefix.cpp
@@ -58,7 +58,8 @@ target_link_libraries(hqspre PUBLIC antom
                              PUBLIC picosat
                              PUBLIC easylogging
                              PUBLIC rt
-                             PUBLIC glpk)
+                             #PUBLIC glpk
+                             )
 target_compile_options(hqspre PRIVATE "-Wconversion" "-Wuninitialized" "-Wpedantic")
 
 if(HAVE_VALGRIND)

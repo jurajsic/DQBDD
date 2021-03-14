@@ -377,7 +377,7 @@ class Formula
     //@{
     /**\name Elimination routines
      */
-    std::vector<std::vector<Variable>> computeDepElimSet();
+    //std::vector<std::vector<Variable>> computeDepElimSet();
     std::vector<Variable>              computeVarElimSet();
     void                               elimEVar(Variable var, std::unordered_set<Variable>* recalc_vars = nullptr);
     bool elimEVarLimit(Variable var, std::int64_t max_cost, std::unordered_set<Variable>* recalc_vars = nullptr);
