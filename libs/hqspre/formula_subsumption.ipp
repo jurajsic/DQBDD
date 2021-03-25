@@ -48,7 +48,7 @@ Formula::isBackwardSubsuming(const Clause& short_clause, const int c_nr, bool de
     return isBackwardSubsuming(short_clause.getLiterals(), short_clause.getSignature(), c_nr, delete_subsumed);
 }
 
-template<typename Container>
+template <typename Container>
 inline std::size_t
 Formula::isBackwardSubsuming(const Container& short_clause, const std::uint64_t signature, const int c_nr,
                              bool delete_subsumed)
@@ -97,8 +97,8 @@ Formula::isBackwardSubsuming(const Container& short_clause, const std::uint64_t 
                 // care that the implications are not deleted when deleting the
                 // subsumed clause.
                 removeClause(del_c_nr);
-                addImplication(negate(short_clause[0]), short_clause[1], c_nr);
-                addImplication(negate(short_clause[1]), short_clause[0], c_nr);
+                addImplication(negate(short_clause[0]), short_clause[1], static_cast<ClauseID>(c_nr));
+                addImplication(negate(short_clause[1]), short_clause[0], static_cast<ClauseID>(c_nr));
             } else {
                 removeClause(del_c_nr);
             }

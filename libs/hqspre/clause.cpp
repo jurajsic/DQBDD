@@ -72,7 +72,9 @@ Clause::Clause(ClauseData&& literals, const bool needs_check, const ClauseStatus
 bool
 Clause::isTautology() const noexcept
 {
-    if (_literals.empty()) return false;
+    if (_literals.empty()) {
+        return false;
+    }
 
     for (std::size_t pos = 0; pos < _literals.size() - 1; ++pos) {
         val_assert(_literals[pos] != _literals[pos + 1]);
@@ -124,12 +126,16 @@ Clause::computeSignature()
  * \param other the clause that is checked if it contains the current clause
  * \param other_signature the signature of the clause `other`
  */
-template<typename Container>
+template <typename Container>
 bool
 Clause::subsetOf(const Container& other, const std::uint64_t other_signature) const
 {
-    if (this->size() > other.size()) return false;
-    if ((this->getSignature() & ~(other_signature)) != 0) return false;
+    if (this->size() > other.size()) {
+        return false;
+    }
+    if ((this->getSignature() & ~(other_signature)) != 0) {
+        return false;
+    }
 
     return std::includes(this->cbegin(), this->cend(), other.cbegin(), other.cend());
 }
@@ -152,7 +158,7 @@ template bool Clause::subsetOf(const Clause& other, const std::uint64_t other_si
 Clause
 resolve(const Clause& c_pos, const Clause& c_neg, const Variable var)
 {
-    val_assert(c_pos.size() >= 1 && c_neg.size() >= 1);
+    val_assert(!c_pos.empty() && !c_neg.empty());
     val_assert(c_pos.containsLiteral(var2lit(var, false)));
     val_assert(c_neg.containsLiteral(var2lit(var, true)));
 
@@ -168,7 +174,9 @@ resolve(const Clause& c_pos, const Clause& c_neg, const Variable var)
         // Have we reached the end of the positive clause?
         if (iter_pos == c_pos.cend()) {
             while (iter_neg != c_neg.cend()) {
-                if (*iter_neg != lit_neg) result.push_back(*iter_neg);
+                if (*iter_neg != lit_neg) {
+                    result.push_back(*iter_neg);
+                }
                 ++iter_neg;
             }
             break;
@@ -177,7 +185,9 @@ resolve(const Clause& c_pos, const Clause& c_neg, const Variable var)
         // Have we reached the end of the negative clause?
         if (iter_neg == c_neg.cend()) {
             while (iter_pos != c_pos.cend()) {
-                if (*iter_pos != lit_pos) result.push_back(*iter_pos);
+                if (*iter_pos != lit_pos) {
+                    result.push_back(*iter_pos);
+                }
                 ++iter_pos;
             }
             break;
@@ -189,10 +199,14 @@ resolve(const Clause& c_pos, const Clause& c_neg, const Variable var)
             ++iter_pos;
             ++iter_neg;
         } else if (*iter_pos < *iter_neg) {
-            if (*iter_pos != lit_pos) result.push_back(*iter_pos);
+            if (*iter_pos != lit_pos) {
+                result.push_back(*iter_pos);
+            }
             ++iter_pos;
         } else if (*iter_neg < *iter_pos) {
-            if (*iter_neg != lit_neg) result.push_back(*iter_neg);
+            if (*iter_neg != lit_neg) {
+                result.push_back(*iter_neg);
+            }
             ++iter_neg;
         }
     }
@@ -224,11 +238,11 @@ operator<<(std::ostream& stream, const Clause& clause)
 bool
 Clause::checkConsistency() const
 {
-    for (const Literal lit : _literals) {
-        if (lit < 2) {
-            LOG(ERROR) << "Invalid literal in clause: " << lit;
-            return false;
-        }
+    const auto error_lit
+        = std::find_if(_literals.cbegin(), _literals.cend(), [](const Literal lit) -> bool { return lit < 2; });
+    if (error_lit != _literals.cend()) {
+        LOG(ERROR) << "Invalid literal in clause: " << *error_lit;
+        return false;
     }
 
     if (!std::is_sorted(_literals.cbegin(), _literals.cend())) {

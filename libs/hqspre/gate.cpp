@@ -113,7 +113,6 @@ GateInfo::addGate(Gate&& gate)
     val_assert(gate._output_literal >= 2);
     val_assert(_gate_output[lit2var(gate._output_literal)] == false);
 
-    _gates.push_back(std::move(gate));
     _gate_output[lit2var(gate._output_literal)] = true;
     for (const Literal lit : gate._input_literals) {
         ++_gate_input[lit2var(lit)];
@@ -128,6 +127,8 @@ GateInfo::addGate(Gate&& gate)
         _clause_modified[c_nr] = false;
         _gate_clause[c_nr]     = true;
     }
+
+    _gates.push_back(std::move(gate));
 }
 
 /**
@@ -151,7 +152,9 @@ GateInfo::numValidGates() const
 void
 GateInfo::invalidateGate(Gate& g)
 {
-    if (!gateValid(g)) return;
+    if (!gateValid(g)) {
+        return;
+    }
 
     _gate_output[lit2var(g._output_literal)] = false;
 
@@ -181,11 +184,15 @@ GateInfo::invalidateGate(Gate& g)
 bool
 GateInfo::gateValid(const Gate& g) const
 {
-    if (g._encoding_clauses.empty() || g._output_literal == 0) return false;
+    if (g._encoding_clauses.empty() || g._output_literal == 0) {
+        return false;
+    }
 
     for (const ClauseID c_nr : g._encoding_clauses) {
         val_assert(c_nr < _clause_modified.size());
-        if (_clause_modified[c_nr]) return false;
+        if (_clause_modified[c_nr]) {
+            return false;
+        }
     }
 
     return true;
@@ -236,14 +243,18 @@ GateInfo::update()
 void
 GateInfo::sort()
 {
-    if (_gates.empty()) return;
+    if (_gates.empty()) {
+        return;
+    }
 
     // create dependency graph
     const std::size_t num_vars = _gate_input.size();
 
     std::vector<std::vector<Variable>> gateDep(num_vars);
     for (const auto& gate : _gates) {
-        if (!gateValid(gate)) continue;
+        if (!gateValid(gate)) {
+            continue;
+        }
         const Variable out_var = lit2var(gate._output_literal);
         for (const Literal in_lit : gate._input_literals) {
             gateDep[out_var].push_back(lit2var(in_lit));
@@ -268,13 +279,17 @@ GateInfo::sort()
     std::function<void(Variable)> dfs = [&gateDep, &processed, &dfs, &order](Variable var) -> void {
         processed[var] = true;
         for (Variable dep : gateDep[var]) {
-            if (!processed[dep]) dfs(dep);
+            if (!processed[dep]) {
+                dfs(dep);
+            }
         }
         order.push_back(var);
     };  // end lambda function
 
     for (Variable var = 1; var < num_vars; ++var) {
-        if (!processed[var] && _gate_input[var] == 0 && _gate_output[var]) dfs(var);
+        if (!processed[var] && _gate_input[var] == 0 && _gate_output[var]) {
+            dfs(var);
+        }
     }
 
     std::vector<Gate> result;
@@ -320,11 +335,12 @@ GateInfo::checkConsistency() const
     }
 
     for (const auto& g : _gates) {
-        for (const ClauseID c_nr : g._encoding_clauses) {
-            if (c_nr >= _gate_clause.size()) {
-                LOG(ERROR) << "gate_clause too small for encoding clause " << c_nr << '!';
-                return false;
-            }
+        const auto error = std::find_if(g._encoding_clauses.cbegin(), g._encoding_clauses.cend(),
+                                        [this](const ClauseID c_nr) -> bool { return c_nr >= _gate_clause.size(); });
+
+        if (error != g._encoding_clauses.cend()) {
+            LOG(ERROR) << "gate_clause too small for encoding clause " << *error << '!';
+            return false;
         }
     }
 

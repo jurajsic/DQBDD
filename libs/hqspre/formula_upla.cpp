@@ -57,8 +57,12 @@ Formula::upla()
     std::vector<Literal> bin_clause(2, 0);
 
     for (Variable var = minVarIndex(); var <= maxVarIndex(); ++var) {
-        if (_interrupt) break;
-        if (varDeleted(var)) continue;
+        if (_interrupt) {
+            break;
+        }
+        if (varDeleted(var)) {
+            continue;
+        }
 
         const Literal pos_lit  = var2lit(var, false);
         const Literal neg_lit  = var2lit(var, true);
@@ -73,7 +77,9 @@ Formula::upla()
             units.push_back(neg_lit);
             conflict = true;
         }
-        if (conflict) continue;
+        if (conflict) {
+            continue;
+        }
 
         std::vector<Literal>& pos_impl = propagate_pos.getUnits();
         std::sort(pos_impl.begin(), pos_impl.end());
@@ -87,7 +93,9 @@ Formula::upla()
             units.push_back(pos_lit);
             conflict = true;
         }
-        if (conflict) continue;
+        if (conflict) {
+            continue;
+        }
 
         std::vector<Literal>& neg_impl = propagate_neg.getUnits();
         std::sort(neg_impl.begin(), neg_impl.end());
@@ -95,12 +103,14 @@ Formula::upla()
         // check for subsuming binary clauses for the positive implications
         bin_clause[0] = neg_lit;
         for (const Literal implied : pos_impl) {
-            if (implied == pos_lit) continue;
+            if (implied == pos_lit) {
+                continue;
+            }
             bin_clause[1]     = implied;
             std::uint64_t sig = 0;
             addSignatureLit(sig, bin_clause[0]);
             addSignatureLit(sig, bin_clause[1]);
-            if (!hasImplication(pos_lit, implied) && isBackwardSubsuming(bin_clause, sig, -1, false)) {
+            if ((hasImplication(pos_lit, implied) == 0) && (isBackwardSubsuming(bin_clause, sig, -1, false) != 0u)) {
                 to_add.push_back(bin_clause);
             }
         }
@@ -108,13 +118,15 @@ Formula::upla()
         // check for subsuming binary clauses for the negative implications
         bin_clause[0] = pos_lit;
         for (const Literal implied : neg_impl) {
-            if (implied == pos_lit) continue;
+            if (implied == pos_lit) {
+                continue;
+            }
 
             bin_clause[1]     = implied;
             std::uint64_t sig = 0;
             addSignatureLit(sig, bin_clause[0]);
             addSignatureLit(sig, bin_clause[1]);
-            if (!hasImplication(neg_lit, implied) && isBackwardSubsuming(bin_clause, sig, -1, false)) {
+            if ((hasImplication(neg_lit, implied) == 0) && (isBackwardSubsuming(bin_clause, sig, -1, false) != 0u)) {
                 to_add.push_back(bin_clause);
             }
         }
@@ -140,10 +152,11 @@ Formula::upla()
                 ++pos_ptr;
                 ++neg_ptr;
             } else {
-                if (*pos_ptr < *neg_ptr)
+                if (*pos_ptr < *neg_ptr) {
                     ++pos_ptr;
-                else
+                } else {
                     ++neg_ptr;
+                }
             }
         }
 
@@ -152,8 +165,12 @@ Formula::upla()
     VLOG(2) << __FUNCTION__ << " found " << units.size() << " unit literals and added " << to_add.size()
             << " binary clauses.";
 
-    for (auto& clause : to_add) addClause(std::move(clause));
-    for (const Literal lit : units) pushUnit(lit, PureStatus::UNIT);
+    for (auto& clause : to_add) {
+        addClause(std::move(clause));
+    }
+    for (const Literal lit : units) {
+        pushUnit(lit, PureStatus::UNIT);
+    }
     fastPreprocess();
 
     return !units.empty() && !to_add.empty();

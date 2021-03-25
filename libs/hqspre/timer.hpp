@@ -18,7 +18,7 @@
  * along with HQSpre. If not, see <http://www.gnu.org/licenses/>.
  */
 
-// $Id: timer.hpp 2352 2019-01-27 19:34:01Z wimmer $
+// $Id: timer.hpp 2641 2019-09-06 06:19:10Z wimmer $
 
 #ifndef HQSPRE_TIMER_HPP_
 #define HQSPRE_TIMER_HPP_
@@ -41,8 +41,6 @@ class Timer
     double read() const noexcept;
 
    private:
-    double gettime() const noexcept;
-
     double _current_time{0.0};  ///< The amount of time that has already passed
     double _start_time{0.0};    ///< The point in time when the timer has been started the last time
     bool   _running{false};     ///< Is the Timer running?

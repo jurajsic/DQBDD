@@ -19,11 +19,13 @@
 
 #include <fstream>
 #include <iostream>
+#include <algorithm>
 
 #include <cxxopts.hpp>
 
 #include "HQSpreinterface.hpp"
 #include "DQDIMACSparser.hpp"
+#include "prenexcleansedqcirparser.hpp"
 
 enum ReturnCode {
     SAT = 10,
@@ -33,6 +35,25 @@ enum ReturnCode {
     UNKNOWN = 0
 };
 
+std::string getLowercaseFileType(std::string path) {
+    auto sep = path.find_last_of("\\/");
+    if (sep != std::string::npos) {
+        path = path.substr(sep + 1, path.size() - sep - 1);
+    }
+
+    auto dot = path.find_last_of(".");
+    if (dot != std::string::npos)
+    {
+        path = path.substr(dot + 1, path.size() - dot - 1);
+        transform(path.begin(), path.end(), path.begin(), [](unsigned char c){ return std::tolower(c); });
+        return path;
+    }
+    else
+    {
+        return "";
+    }
+}
+
 int main(int argc, char **argv)
 {
     // argument parsing
@@ -41,11 +62,12 @@ int main(int argc, char **argv)
         ("h,help", "Print usage")
         ("v,version", "Print the version number")
         ("l,localise", "Use quantifier tree with localisation of quantifiers", cxxopts::value<int>()->default_value("1"))
-        ("p,preprocess", "Use preprocessing", cxxopts::value<int>()->default_value("1"))
+        ("p,preprocess", "Use preprocessing (only for (DQ)DIMACS files)", cxxopts::value<int>()->default_value("1"))
         ("e,elimination-choice", "Decide what to eliminate on each level of quantifier tree during transformation to formula", cxxopts::value<int>()->default_value("1"))
         ("u,uvar-choice", "The heuristics by which the next universal variable for elimination is chosen", cxxopts::value<int>()->default_value("0"))
         ("d,dyn-reordering", "Allow dynamic reordering of variables in BDDs", cxxopts::value<int>()->default_value("1"))
-        ("f,file","DQDIMACS file to solve",cxxopts::value<std::string>())
+        ("force-filetype", "Forces the filetype (0 - (DQ)DIMACS, 1 - QCIR)", cxxopts::value<int>())
+        ("f,file","(DQ)DIMACS/QCIR file to solve",cxxopts::value<std::string>())
         ;
     optionsParser.parse_positional({"file"});
     optionsParser.positional_help("<input file>");
@@ -65,7 +87,7 @@ int main(int argc, char **argv)
     }
 
     if (result->count("version")) {
-        std::cout << "DQBDD 1.1" << std::endl;
+        std::cout << "DQBDD 1.2-beta1" << std::endl;
         return 0;
     }
     
@@ -81,7 +103,22 @@ int main(int argc, char **argv)
     Options options;
     options.treeElimChoice = static_cast<TreeElimChoice>((*result)["elimination-choice"].as<int>());
     options.uVarElimChoice = static_cast<UnivVarElimChoice>((*result)["uvar-choice"].as<int>());
-
+    
+    // fileType = 0 - (DQ)DIMACS, filetype = 1 - QCIR
+    int fileType = 0;
+    if (!result->count("force-filetype")) { // try to guess filetype automatically
+        std::string fileExt = getLowercaseFileType(fileName);
+        if (fileExt == "dimacs" || fileExt == "qdimacs" || fileExt == "dqdimacs") {
+            fileType = 0;
+        } else if (fileExt == "qcir") {
+            fileType = 1;
+        } else {
+            std::cout << "The filetype could not be determined, defaulting to (DQ)DIMACS" << std::endl;
+            fileType = 0;
+        }
+    } else {
+        fileType = (*result)["force-filetype"].as<int>();
+    }
 
     Cudd mgr;
     if (dynReorder) {
@@ -97,11 +134,18 @@ int main(int argc, char **argv)
     try {
         std::unique_ptr<Parser> parser;
         std::cout << "Parsing" << std::endl;
-        if (preprocess) {
-            parser = std::make_unique<HQSPreInterface>(mgr, qvMgr);
-            std::cout << "Starting HQSpre" << std::endl;
+        if (fileType == 0) {
+            if (preprocess) {
+                parser = std::make_unique<HQSPreInterface>(mgr, qvMgr);
+                std::cout << "Starting HQSpre" << std::endl;
+            } else {
+                parser = std::make_unique<DQDIMACSParser>(mgr,qvMgr);
+            }
+        } else if (fileType == 1) {
+            parser = std::make_unique<PrenexCleansedQCIRParser>(mgr,qvMgr);
         } else {
-            parser = std::make_unique<DQDIMACSParser>(mgr,qvMgr);
+            std::cerr << "Unknown filetype (this should not happen)" << std::endl;
+            return -1;
         }
         preprocessorSolved = parser->parse(fileName);
         std::cout << "Parsing finished" << std::endl;

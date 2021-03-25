@@ -185,9 +185,7 @@ Formula::addAndGate(const std::vector<Literal>& inputs)
     clause.clear();
 
     // negate(all inputs), output
-    for (const Literal lit : inputs) {
-        clause.push_back(negate(lit));
-    }
+    std::transform(inputs.cbegin(), inputs.cend(), std::back_inserter(clause), negate);
     clause.push_back(var2lit(output_var, false));
 
     const ClauseID c_nr = addClause(clause);
@@ -228,9 +226,7 @@ Formula::addOrGate(const std::vector<Literal>& inputs)
     clause.clear();
 
     // negate(all inputs), output
-    for (const Literal lit : inputs) {
-        clause.push_back(negate(lit));
-    }
+    std::transform(inputs.cbegin(), inputs.cend(), std::back_inserter(clause), negate);
     clause.push_back(var2lit(output_var, true));
 
     const ClauseID c_nr = addClause(clause);

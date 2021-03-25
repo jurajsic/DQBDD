@@ -1,12 +1,21 @@
 cmake_minimum_required(VERSION 3.5)
-project(DQBDD VERSION 1.1 LANGUAGES C CXX)
+project(DQBDD VERSION 1.2 LANGUAGES C CXX)
+
 
 # Enforce C++14
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# use only static libraries
-set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+# Static linking is enabled by default
+option(STATIC "Use static linking" ON)
+if (STATIC)
+    if (WIN32)
+        set(CMAKE_FIND_LIBRARY_SUFFIXES ".lib .a ${CMAKE_FIND_LIBRARY_SUFFIXES}")
+    else()
+        set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+    endif()
+    message("-- Enabled static linking.")
+endif()
 
 ########################################################################################
 ################################### Stuff for HQSpre ###################################
@@ -24,34 +33,39 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 add_definitions("-DLOGGING=true")
 
 # Find librt (used for timeout handling in HQSpre)
-find_package(RT REQUIRED)
-add_library(rt IMPORTED INTERFACE)
-set_property(TARGET rt PROPERTY INTERFACE_LINK_LIBRARIES  "${RT_LIBRARIES}")
-set_property(TARGET rt PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${RT_INCLUDES}")
+# find_package(RT REQUIRED)
+# add_library(rt IMPORTED INTERFACE)
+# set_property(TARGET rt PROPERTY INTERFACE_LINK_LIBRARIES  "${RT_LIBRARIES}")
+# set_property(TARGET rt PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${RT_INCLUDES}")
 
 # Try to find GLPK (used as MILP solver in HQSpre)
-find_package(GLPK)
-if (GLPK_FOUND)
-    add_library(glpk IMPORTED INTERFACE)
-    set_property(TARGET glpk PROPERTY INTERFACE_COMPILE_OPTIONS     "-DHAVE_GLPK")
-    set_property(TARGET glpk PROPERTY INTERFACE_LINK_LIBRARIES      "${GLPK_LIBRARIES};${LTDL_LIBRARIES}")
-    set_property(TARGET glpk PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${GLPK_INCLUDE_DIRS}")
-endif()
+#find_package(GLPK)
+#if (GLPK_FOUND)
+#    add_library(glpk IMPORTED INTERFACE)
+#    set_property(TARGET glpk PROPERTY INTERFACE_COMPILE_OPTIONS     "-DHAVE_GLPK")
+#    set_property(TARGET glpk PROPERTY INTERFACE_LINK_LIBRARIES      "${GLPK_LIBRARIES};${LTDL_LIBRARIES}")
+#    set_property(TARGET glpk PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${GLPK_INCLUDE_DIRS}")
+#endif()
 
-find_package(LTDL REQUIRED)
-add_library(ltdl IMPORTED INTERFACE)
-set_property(TARGET ltdl PROPERTY INTERFACE_LINK_LIBRARIES  "${LTDL_LIBRARIES}")
-set_property(TARGET ltdl PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${LTDL_INCLUDES}")
+#find_package(LTDL REQUIRED)
+#add_library(ltdl IMPORTED INTERFACE)
+#set_property(TARGET ltdl PROPERTY INTERFACE_LINK_LIBRARIES  "${LTDL_LIBRARIES}")
+#set_property(TARGET ltdl PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${LTDL_INCLUDES}")
 
 # Enable OpenMP (used by the Antom SAT solver which is used in HQSpre)
-find_package(OpenMP REQUIRED)
-add_library(openmp IMPORTED INTERFACE)
-set_property(TARGET openmp PROPERTY INTERFACE_COMPILE_OPTIONS ${OpenMP_CXX_FLAGS})
-set_property(TARGET openmp PROPERTY INTERFACE_LINK_LIBRARIES  ${OpenMP_CXX_FLAGS})
+# find_package(OpenMP REQUIRED)
+# add_library(openmp IMPORTED INTERFACE)
+# set_property(TARGET openmp PROPERTY INTERFACE_COMPILE_OPTIONS ${OpenMP_CXX_FLAGS})
+# set_property(TARGET openmp PROPERTY INTERFACE_LINK_LIBRARIES  ${OpenMP_CXX_FLAGS})
+
+# defining -pthread with cmake according to https://stackoverflow.com/questions/1620918/cmake-and-libpthread
+# (used in HQSpre, which uses rt library which needs -pthread)
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
 
 # Check if valgrind is installed. This is used by the macro
 # val_assert(...) to print a stack trace when the condition
-# is violated and run through valgrind.
+# is violated and run through valgrind. (used in HQSpre)
 check_include_files("valgrind/valgrind.h" HAVE_VALGRIND)
 if(HAVE_VALGRIND)
   add_definitions("-DHAVE_VALGRIND")

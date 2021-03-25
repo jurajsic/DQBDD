@@ -38,16 +38,18 @@ namespace hqspre {
  * \pre Assumes that "_seen" vector was initialized with current_clause
  * \note The clause does not need to be contained in the formula.
  */
-template<typename Container>
+template <typename Container>
 inline Literal
 Formula::clauseBlocked(const Container& current_clause) const
 {
     val_assert(_unit_stack.empty());
 
-    for (const Literal blocking_lit : current_clause) {
-        if (_prefix->isExistential(lit2var(blocking_lit)) && clauseBlockedByLit(blocking_lit)) {
-            return blocking_lit;
-        }
+    const auto blocking_lit = std::find_if(current_clause.cbegin(), current_clause.cend(), [this](const Literal lit) {
+        return _prefix->isExistential(lit2var(lit)) && clauseBlockedByLit(lit);
+    });
+
+    if (blocking_lit != current_clause.cend()) {
+        return *blocking_lit;
     }
 
     return 0;

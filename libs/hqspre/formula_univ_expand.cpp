@@ -66,22 +66,29 @@ Formula::computeExpansionCosts(const Variable uvar) const
     int result_clauses = 0;  // number of additional clauses
 
     for (Variable var = minVarIndex(); var <= maxVarIndex(); ++var) {
-        if (isExistential(var) && depends(var, uvar)) ++result_vars;
+        if (isExistential(var) && depends(var, uvar)) {
+            ++result_vars;
+        }
     }
 
     for (ClauseID c_nr = 0; c_nr < _clauses.size(); ++c_nr) {
-        if (clauseDeleted(c_nr) || clauseOptional(c_nr)) continue;
+        if (clauseDeleted(c_nr) || clauseOptional(c_nr)) {
+            continue;
+        }
         bool contains_uvar = false;
         bool to_copy       = false;
 
         for (Literal lit : _clauses[c_nr]) {
             const Variable var = lit2var(lit);
-            if (var == uvar)
+            if (var == uvar) {
                 contains_uvar = true;
-            else if (isExistential(var) && depends(var, uvar))
+            } else if (isExistential(var) && depends(var, uvar)) {
                 to_copy = true;
+            }
         }
-        if (to_copy && !contains_uvar) result_clauses += 1;
+        if (to_copy && !contains_uvar) {
+            result_clauses += 1;
+        }
     }
 
     return std::make_pair(result_vars, result_clauses);
@@ -110,10 +117,10 @@ Formula::markTransitiveUnits(std::stack<Literal>& units, std::vector<bool>& mark
  * This number is an over-approxmimation as further units and subsumptions
  * are not taken into account.
  */
-long int
+std::int64_t
 Formula::computeExpansionCosts2(const Literal ulit, const std::set<Variable>& pseudo_deps)
 {
-    long int result_lits = 0;  // number of additional literals
+    std::int64_t result_lits = 0;  // number of additional literals
 
     const Variable uvar = lit2var(ulit);
     // mark new units
@@ -155,7 +162,9 @@ Formula::computeExpansionCosts2(const Literal ulit, const std::set<Variable>& ps
     std::size_t neg_clause_size   = 0;
 
     for (ClauseID c_nr = 0; c_nr < _clauses.size(); ++c_nr) {
-        if (clauseDeleted(c_nr)) continue;
+        if (clauseDeleted(c_nr)) {
+            continue;
+        }
         if (clauseOptional(c_nr)) {
             result_lits -= _clauses[c_nr].size();
             continue;
@@ -232,8 +241,12 @@ Formula::computeExpansionCosts2(const Literal ulit, const std::set<Variable>& ps
         // -> will be possibly copied
         else {
             // Reset clause size in case clause will be satisfied
-            if (pos_satisfied) pos_clause_size = 0;
-            if (neg_satisfied) neg_clause_size = 0;
+            if (pos_satisfied) {
+                pos_clause_size = 0;
+            }
+            if (neg_satisfied) {
+                neg_clause_size = 0;
+            }
 
             result_lits += pos_clause_size;
             // We have to copy the clause
@@ -261,13 +274,17 @@ Formula::applyUniversalExpansion()
     if (numUVars() <= 6) {
         const std::size_t old_num_clauses = numClauses();
         for (Variable uvar = minVarIndex(); uvar <= maxVarIndex(); ++uvar) {
-            if (_interrupt) break;
+            if (_interrupt) {
+                break;
+            }
 
             if (isUniversal(uvar)) {
                 elimUVar(var2lit(uvar));
                 ++count;
             }
-            if (numClauses() > 2 * old_num_clauses) break;
+            if (numClauses() > 2 * old_num_clauses) {
+                break;
+            }
         }
 
         VLOG(2) << __FUNCTION__ << "() expanded " << count << " universal variables.";
@@ -278,37 +295,52 @@ Formula::applyUniversalExpansion()
         const std::size_t  old_size = numLiterals();
         std::set<Variable> pseudo_deps;
         for (auto level = static_cast<int>(_qbf_prefix->getMaxLevel()); level >= 0; --level) {
-            if (_interrupt) break;
-            if (_qbf_prefix->getLevelQuantifier(level) != VariableStatus::UNIVERSAL) continue;
+            if (_interrupt) {
+                break;
+            }
+            if (_qbf_prefix->getLevelQuantifier(level) != VariableStatus::UNIVERSAL) {
+                continue;
+            }
 
             const auto& block = _qbf_prefix->getVarBlock(level);
-            if (block.size() > 20) continue;
+            if (block.size() > 20) {
+                continue;
+            }
 
             while (!block.empty()) {
-                if (static_cast<double>(numLiterals()) > 1.5 * static_cast<double>(old_size)) break;
+                if (static_cast<double>(numLiterals()) > 1.5 * static_cast<double>(old_size)) {
+                    break;
+                }
                 int next_var = -1;
                 int min_cost = std::numeric_limits<int>::max();
                 int varcost  = 0;
                 for (Variable uvar : block) {
-                    if (_interrupt) break;
+                    if (_interrupt) {
+                        break;
+                    }
                     auto cost = computeExpansionCosts(uvar);
-                    sstdQuadDep(uvar, true, true, &pseudo_deps);
-                    cost.first -= static_cast<int>(pseudo_deps.size());
-                    pseudo_deps.clear();
+                    if (_settings.univ_expand_dep) {
+                        sstdQuadDep(uvar, true, true, &pseudo_deps);
+                        cost.first -= static_cast<int>(pseudo_deps.size());
+                        pseudo_deps.clear();
+                    }
                     varcost = cost.first;
                     if (cost.second < min_cost) {
                         next_var = uvar;
                         min_cost = cost.second;
                     }
                 }
-                if (_interrupt) break;
+                if (_interrupt) {
+                    break;
+                }
 
                 if (next_var > 0 && varcost < 20 && min_cost < 100) {
                     elimUVar(var2lit(next_var));
                     applyResolution();
                     ++count;
-                } else
+                } else {
                     break;
+                }
             }
         }
 
@@ -336,11 +368,13 @@ Formula::applyUniversalExpansion2()
         // maximum formula size after expansion
         if (_settings.max_expansion_size == 0) {
             // set fixed value in first call.
-            _settings.max_expansion_size = numLiterals() << 1;
+            _settings.max_expansion_size = numLiterals() << 1u;
         }
 
         while (true) {
-            if (_interrupt) break;
+            if (_interrupt) {
+                break;
+            }
 
             if (numUVars() <= 6) {
                 const std::size_t old_num_clauses = numClauses();
@@ -349,7 +383,9 @@ Formula::applyUniversalExpansion2()
                         elimUVar(var2lit(uvar));
                         ++count;
                     }
-                    if (numClauses() > 3 * old_num_clauses) break;
+                    if (numClauses() > 3 * old_num_clauses) {
+                        break;
+                    }
                 }
 
                 if (numUVars() == 0) {
@@ -368,20 +404,26 @@ Formula::applyUniversalExpansion2()
                     return count > 0;
                 }
 
-                if (_qbf_prefix->getLevelQuantifier(level) != VariableStatus::UNIVERSAL) continue;
+                if (_qbf_prefix->getLevelQuantifier(level) != VariableStatus::UNIVERSAL) {
+                    continue;
+                }
 
                 const auto& block = _qbf_prefix->getVarBlock(level);
-                if (block.size() > 20) continue;
+                if (block.size() > 20) {
+                    continue;
+                }
                 VLOG(3) << __FUNCTION__ << " trying to remove quantifier level " << level << " with " << block.size()
                         << " variables";
 
                 const std::size_t old_size = literals;
                 while (!block.empty()) {
-                    int      next_var = -1;
-                    long int min_cost = std::numeric_limits<int>::max();
+                    int          next_var = -1;
+                    std::int64_t min_cost = std::numeric_limits<std::int64_t>::max();
                     for (Variable uvar : block) {
-                        // sstdQuadDep(uvar, true, true, &pseudo_deps);
-                        const long int cost = computeExpansionCosts2(var2lit(uvar, false), pseudo_deps);
+                        // if (_settings.univ_expan_deps) {
+                        //      sstdQuadDep(uvar, true, true, &pseudo_deps);
+                        // }
+                        const std::int64_t cost = computeExpansionCosts2(var2lit(uvar, false), pseudo_deps);
                         pseudo_deps.clear();
                         if (cost < min_cost) {
                             next_var = uvar;
@@ -390,14 +432,18 @@ Formula::applyUniversalExpansion2()
                     }
 
                     elimUVar(var2lit(next_var, false));
-                    if (_interrupt) break;
+                    if (_interrupt) {
+                        break;
+                    }
                     if (applyResolution()) {
                         fastPreprocess();
                     }
 
                     literals = numLiterals();
                     ++count;
-                    if (static_cast<double>(literals) > 1.5 * static_cast<double>(old_size)) break;
+                    if (static_cast<double>(literals) > 1.5 * static_cast<double>(old_size)) {
+                        break;
+                    }
                 }
 
                 if (block.empty()) {
@@ -406,8 +452,12 @@ Formula::applyUniversalExpansion2()
                 }
             }
             // We have done nothing -> break routine
-            if (count == current_count) break;
-            if (_interrupt) break;
+            if (count == current_count) {
+                break;
+            }
+            if (_interrupt) {
+                break;
+            }
         }
         VLOG(2) << __FUNCTION__ << " expanded " << count << " universal variables.";
 
@@ -428,10 +478,16 @@ Formula::computeVarElimSet()
 
     // Add hard constraints: eliminate all 2-cycles
     for (Variable var1 = minVarIndex(); var1 < maxVarIndex(); ++var1) {
-        if (!isExistential(var1) || _prefix->inRMB(var1)) continue;
+        if (!isExistential(var1) || _prefix->inRMB(var1)) {
+            continue;
+        }
         for (Variable var2 = var1 + 1; var2 <= maxVarIndex(); ++var2) {
-            if (!isExistential(var2) || _prefix->inRMB(var2)) continue;
-            if (dependenciesSubset(var1, var2) || dependenciesSubset(var2, var1)) continue;
+            if (!isExistential(var2) || _prefix->inRMB(var2)) {
+                continue;
+            }
+            if (dependenciesSubset(var1, var2) || dependenciesSubset(var2, var1)) {
+                continue;
+            }
             var1_minus_var2.clear();
             var2_minus_var1.clear();
             const auto& dep1 = _dqbf_prefix->getDependencies(var1);
@@ -512,13 +568,17 @@ Formula::applyUniversalExpansionDQBF()
     std::size_t        count = 0;
 
     while (!to_eliminate.empty()) {
-        int      next_pos = -1;
-        long int min_cost = std::numeric_limits<long int>::max();
+        int          next_pos = -1;
+        std::int64_t min_cost = std::numeric_limits<std::int64_t>::max();
         for (std::size_t pos = 0; pos < to_eliminate.size(); ++pos) {
             const Variable uvar = to_eliminate[pos];
-            if (!isUniversal(uvar)) continue;
-            sstdQuadDep(uvar, true, true, &pseudo_deps);
-            const long int cost = computeExpansionCosts2(var2lit(uvar, false), pseudo_deps);
+            if (!isUniversal(uvar)) {
+                continue;
+            }
+            if (_settings.univ_expand_dep) {
+                sstdQuadDep(uvar, true, true, &pseudo_deps);
+            }
+            const std::int64_t cost = computeExpansionCosts2(var2lit(uvar, false), pseudo_deps);
             pseudo_deps.clear();
             if (cost < min_cost) {
                 next_pos = static_cast<int>(pos);
@@ -535,12 +595,19 @@ Formula::applyUniversalExpansionDQBF()
 
             elimUVar(var2lit(uvar));
             ++count;
-            if (_interrupt) break;
+            if (_interrupt) {
+                break;
+            }
             applyResolution();
-            if (_interrupt) break;
-            if (static_cast<double>(numLiterals()) > 1.1 * static_cast<double>(old_size)) break;
-        } else
+            if (_interrupt) {
+                break;
+            }
+            if (static_cast<double>(numLiterals()) > 1.1 * static_cast<double>(old_size)) {
+                break;
+            }
+        } else {
             break;
+        }
     }
 
     if (_prefix->type() == PrefixType::DQBF && isQBF()) {
@@ -581,11 +648,15 @@ Formula::elimUVar(const Literal lit)
 
     VLOG(2) << __FUNCTION__ << "(" << var << ") -> size before: " << numLiterals();
 
-    if (!_unit_stack.empty()) unitPropagation();
+    if (!_unit_stack.empty()) {
+        unitPropagation();
+    }
 
     // Remove all pseudo-dependencies of the expanded variable.
     std::set<Variable> pseudo_deps;
-    sstdQuadDep(var, true, true, &pseudo_deps);
+    if (_settings.univ_expand_dep) {
+        sstdQuadDep(var, true, true, &pseudo_deps);
+    }
 
     const Literal u_pos = lit;
     const Literal u_neg = negate(lit);
@@ -610,7 +681,9 @@ Formula::elimUVar(const Literal lit)
             lit_map[var2lit(e_var, true)]  = var2lit(e_var_copy, true);
         }
 
-        if (_interrupt) return;
+        if (_interrupt) {
+            return;
+        }
     }
 
     VLOG_IF(!pseudo_deps.empty(), 2) << "Dependency scheme removed " << pseudo_deps.size() << " out of "
@@ -620,7 +693,9 @@ Formula::elimUVar(const Literal lit)
     new_clause.reserve(50);
 
     for (ClauseID c_nr = 0; c_nr < _clauses.size(); ++c_nr) {
-        if (clauseDeleted(c_nr)) continue;
+        if (clauseDeleted(c_nr)) {
+            continue;
+        }
 
         Occurrence contains_u             = NOT_AT_ALL;
         bool       contains_dependent_var = false;
@@ -628,11 +703,11 @@ Formula::elimUVar(const Literal lit)
         // Check if the clause contains the eliminated universal variables
         // or any variable which needs to be copied.
         for (const Literal cl_lit : _clauses[c_nr]) {
-            if (cl_lit == u_pos)
+            if (cl_lit == u_pos) {
                 contains_u = POSITIVE;
-            else if (cl_lit == u_neg)
+            } else if (cl_lit == u_neg) {
                 contains_u = NEGATIVE;
-            else if (isExistential(lit2var(cl_lit)) && lit_map[cl_lit] != cl_lit) {
+            } else if (isExistential(lit2var(cl_lit)) && lit_map[cl_lit] != cl_lit) {
                 contains_dependent_var = true;
             }
         }
@@ -652,7 +727,9 @@ Formula::elimUVar(const Literal lit)
             // clause contains 'var' negatively
             // -> remove ~var and replace the dependent variables by their copies
             for (const Literal cl_lit : _clauses[c_nr]) {
-                if (cl_lit == u_neg) continue;
+                if (cl_lit == u_neg) {
+                    continue;
+                }
                 new_clause.push_back(lit_map[cl_lit]);
             }
 
@@ -662,9 +739,8 @@ Formula::elimUVar(const Literal lit)
         } else if (contains_u == NOT_AT_ALL && contains_dependent_var) {
             // clause does not contain 'var', but exist. vars that depend upon it
             // -> Add a copy of the clause with replaced variables.
-            for (const Literal cl_lit : _clauses[c_nr]) {
-                new_clause.push_back(lit_map[cl_lit]);
-            }
+            std::transform(_clauses[c_nr].cbegin(), _clauses[c_nr].cend(), std::back_inserter(new_clause),
+                           [&lit_map](Literal cl_lit) { return lit_map[cl_lit]; });
 
             to_add.push_back(std::move(new_clause));
             new_clause.clear();
@@ -672,8 +748,12 @@ Formula::elimUVar(const Literal lit)
     }  // end for c_nr
 
     // Remove old and add new clauses
-    for (const ClauseID c_nr : to_delete) removeClause(c_nr);
-    for (auto& clause : to_add) addClause(std::move(clause));
+    for (const ClauseID c_nr : to_delete) {
+        removeClause(c_nr);
+    }
+    for (auto& clause : to_add) {
+        addClause(std::move(clause));
+    }
 
     // Delete the expanded variable
     removeVar(var);
@@ -683,7 +763,9 @@ Formula::elimUVar(const Literal lit)
 
     VLOG(2) << "Size after univ. expansion: " << numLiterals();
 
-    if (numClauses() == 0) throw SATException("No clauses left after universal expansion");
+    if (numClauses() == 0) {
+        throw SATException("No clauses left after universal expansion");
+    }
 }
 
 }  // end namespace hqspre
