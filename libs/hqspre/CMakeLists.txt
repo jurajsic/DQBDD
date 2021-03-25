@@ -57,9 +57,15 @@ add_library(hqspre STATIC
 target_link_libraries(hqspre PUBLIC antom
                              PUBLIC picosat
                              PUBLIC easylogging
-                             PUBLIC rt
+                             #PUBLIC rt
                              #PUBLIC glpk
                              )
+
+# Link to real time library only on Linux (not needed for Mac)
+if(UNIX AND NOT APPLE)
+    target_link_libraries(hqspre PUBLIC rt)
+endif()
+
 target_compile_options(hqspre PRIVATE "-Wconversion" "-Wuninitialized" "-Wpedantic")
 
 if(HAVE_VALGRIND)
