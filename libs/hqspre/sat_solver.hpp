@@ -29,7 +29,7 @@
 extern "C" {
 #include <picosat.h>
 }
-#include "aux.hpp"
+#include "auxil.hpp"
 #include "literal.hpp"
 #include "timer.hpp"
 
