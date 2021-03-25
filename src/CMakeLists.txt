@@ -22,8 +22,8 @@ target_link_libraries(DQBDD PUBLIC cudd
                             PUBLIC hqspre
                             PUBLIC cxxopts)
 
-# 
-if (STATIC)
+# if we want, we can link DQBDD statically to standard library (except on mac, where it is not possible)
+if (STATIC AND NOT APPLE)
     target_link_libraries(DQBDD PUBLIC "-static")
     set_target_properties(DQBDD PROPERTIES LINK_SEARCH_END_STATIC 1)
 endif()

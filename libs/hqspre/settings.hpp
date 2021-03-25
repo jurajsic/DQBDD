@@ -25,6 +25,8 @@
 #include <iosfwd>
 #include <string>
 
+#include <cstddef>
+
 /**
  * \file settings.hpp
  * \brief Settings for DQBF preprocessor.

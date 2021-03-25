@@ -6,10 +6,12 @@ project(DQBDD VERSION 1.2 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Static linking is enabled by default
+# Static linking is enabled by default...
 option(STATIC "Use static linking" ON)
-if (STATIC)
+# ... except for mac, where static linking does not work
+if (STATIC AND NOT APPLE)
     if (WIN32)
+        # this is only for completness, compiling DQBDD for windows will almost definitely not work
         set(CMAKE_FIND_LIBRARY_SUFFIXES ".lib .a ${CMAKE_FIND_LIBRARY_SUFFIXES}")
     else()
         set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
