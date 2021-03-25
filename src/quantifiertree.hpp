@@ -21,6 +21,7 @@
 #define DQBDD_QUANTIFIERTREE_HPP
 
 #include <list>
+#include <ostream>
 
 #include "DQBDDvariable.hpp"
 #include "DQBDDformula.hpp"

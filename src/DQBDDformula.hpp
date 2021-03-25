@@ -22,6 +22,7 @@
 
 #include <unordered_map>
 #include <unordered_set>
+#include <ostream>
 
 #include <cuddObj.hh>
 

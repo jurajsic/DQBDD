@@ -21,6 +21,7 @@
 #define DQBDD_QUANTIFIEDVARIABLESMANIPULATOR_HPP
 
 #include <unordered_map>
+#include <ostream>
 
 #include "DQBDDvariable.hpp"
 #include "DQBDDoptions.hpp"

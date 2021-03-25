@@ -21,6 +21,7 @@
 #define DQBDD_VARIABLE_HPP
 
 #include <unordered_set>
+#include <ostream>
 
 #include "cuddObj.hh"
 
