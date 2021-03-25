@@ -22,14 +22,11 @@ target_link_libraries(DQBDD PUBLIC cudd
                             PUBLIC hqspre
                             PUBLIC cxxopts)
 
-# old way to link to cudd
-#include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../cudd/)
-#target_link_libraries(solver ${CMAKE_CURRENT_SOURCE_DIR}/../cudd/libs/libobj.a)
-#target_link_libraries(solver ${CMAKE_CURRENT_SOURCE_DIR}/../cudd/libs/libcudd.a)
+# 
+if (STATIC)
+    target_link_libraries(DQBDD PUBLIC "-static")
+    set_target_properties(DQBDD PROPERTIES LINK_SEARCH_END_STATIC 1)
+endif()
 
-# statically link to stuff
-target_link_libraries(DQBDD PRIVATE -static)
-#target_link_libraries(DQBDD PRIVATE ltdl)
-set_target_properties(DQBDD PROPERTIES LINK_SEARCH_END_STATIC 1)
 
 target_compile_options(DQBDD PRIVATE -Wall -Wextra -Wpedantic)

@@ -6,8 +6,16 @@ project(DQBDD VERSION 1.2 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# use only static libraries
-set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+# Static linking is enabled by default
+option(STATIC "Use static linking" ON)
+if (STATIC)
+    if (WIN32)
+        set(CMAKE_FIND_LIBRARY_SUFFIXES ".lib .a ${CMAKE_FIND_LIBRARY_SUFFIXES}")
+    else()
+        set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+    endif()
+    message("-- Enabled static linking.")
+endif()
 
 ########################################################################################
 ################################### Stuff for HQSpre ###################################
