@@ -55,7 +55,7 @@ bool DQDIMACSParser::parse(std::string fileName) {
             continue;
         } else if (token == "p") {
             if (pLineProcessed) {
-                throw DQBDDexception("There are multiple promblem lines in input DQDIMACS.");
+                throw DQBDDexception("There are multiple problem lines (lines starting with 'p') in input DQDIMACS.");
             }
             streamline >> token;
             if (token != "cnf") {
@@ -67,7 +67,7 @@ bool DQDIMACSParser::parse(std::string fileName) {
             expectedNumOfClauses = std::stoul(token);
             pLineProcessed = true;
         } else if (!pLineProcessed && (token == "a" || token == "e" || token == "d")) {
-            throw DQBDDexception("Input DQDIMACS file is missing the promblem line.");
+            throw DQBDDexception("Input DQDIMACS file is missing the problem line (line starting with 'p').");
         } else if (prefixFinished && (token == "a" || token == "e" || token == "d")) {
             throw DQBDDexception("Prefix in input DQDIMACS file cannot be between the definition of clauses.");
         } else if (token == "a") {
