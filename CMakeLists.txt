@@ -53,14 +53,19 @@ add_definitions("-DLOGGING=true")
 #set_property(TARGET ltdl PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${LTDL_INCLUDES}")
 
 # Enable OpenMP (used by the Antom SAT solver which is used in HQSpre)
-find_package(OpenMP REQUIRED)
-add_library(openmp IMPORTED INTERFACE)
-set_property(TARGET openmp PROPERTY INTERFACE_COMPILE_OPTIONS ${OpenMP_CXX_FLAGS})
-set_property(TARGET openmp PROPERTY INTERFACE_LINK_LIBRARIES  ${OpenMP_CXX_FLAGS})
+# find_package(OpenMP REQUIRED)
+# add_library(openmp IMPORTED INTERFACE)
+# set_property(TARGET openmp PROPERTY INTERFACE_COMPILE_OPTIONS ${OpenMP_CXX_FLAGS})
+# set_property(TARGET openmp PROPERTY INTERFACE_LINK_LIBRARIES  ${OpenMP_CXX_FLAGS})
+
+# defining -pthread with cmake according to https://stackoverflow.com/questions/1620918/cmake-and-libpthread
+# (used in HQSpre, which uses rt library which needs -pthread)
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
 
 # Check if valgrind is installed. This is used by the macro
 # val_assert(...) to print a stack trace when the condition
-# is violated and run through valgrind.
+# is violated and run through valgrind. (used in HQSpre)
 check_include_files("valgrind/valgrind.h" HAVE_VALGRIND)
 if(HAVE_VALGRIND)
   add_definitions("-DHAVE_VALGRIND")

@@ -59,6 +59,7 @@ target_link_libraries(hqspre PUBLIC antom
                              PUBLIC easylogging
                              #PUBLIC rt
                              #PUBLIC glpk
+                             PUBLIC Threads::Threads
                              )
 
 # Link to real time library only on Linux (not needed for Mac)
