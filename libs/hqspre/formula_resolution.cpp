@@ -27,7 +27,7 @@
 
 #include <easylogging++.hpp>
 
-#include "auxil.hpp"
+#include "aux.hpp"
 #include "clause.hpp"
 #include "formula.hpp"
 #include "gate.hpp"
@@ -488,7 +488,6 @@ Literal
 Formula::checkImplicationChain(const Literal lit)
 {
     val_assert(minLitIndex() <= lit && lit <= maxLitIndex());
-
     const Variable var = lit2var(lit);
 
     if (!isExistential(var)) {
@@ -515,10 +514,15 @@ Formula::checkImplicationChain(const Literal lit)
         VLOG(3) << __FUNCTION__ << "() replaced literal " << lit2dimacs(neg_lit) << " by literal "
                 << lit2dimacs(other_lit);
         result = other_lit;
-/*
-    } else if (!strong_only) {  // also weak impl. chains
+
+    } else if (_settings.impl_chains > 1) {  // also semi and weak impl. chains
         const Clause& clause = _clauses[_occ_list[lit][0]];
-        if (clause.size() > 3) return 0; // clause too long
+
+        if (_settings.impl_chains == 2
+            && (clause.size() > 4 || _prefix->inRMB(var))) return 0;  // clause too long for semi
+
+        if (_settings.impl_chains == 3 && clause.size() > 3) return 0; // clause too long for weak
+
         for (const Literal other_lit : clause) {
             if (other_lit == lit) continue;
             if (!dependenciesSubset(lit2var(other_lit), var)) {
@@ -527,9 +531,9 @@ Formula::checkImplicationChain(const Literal lit)
         }
         elimEVar(var, NULL);
 
-        VLOG(3) << __FUNCTION__ << "() eliminated weak implication chain of literal " << lit2dimacs(lit);
+        VLOG(2) << __FUNCTION__ << "() eliminated weak implication chain of literal " << lit2dimacs(lit);
         result = 1;
-*/
+
     } else {
         return 0;
     }

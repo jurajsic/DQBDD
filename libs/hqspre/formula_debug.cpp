@@ -23,7 +23,7 @@
 #include <ostream>
 
 #include <easylogging++.hpp>
-#include "auxil.hpp"
+#include "aux.hpp"
 #include "clause.hpp"
 #include "formula.hpp"
 #include "literal.hpp"

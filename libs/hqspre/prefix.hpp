@@ -25,7 +25,7 @@
 #include <set>
 #include <vector>
 
-#include "auxil.hpp"
+#include "aux.hpp"
 #include "literal.hpp"
 
 /**

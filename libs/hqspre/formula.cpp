@@ -32,7 +32,7 @@
 #include <vector>
 
 #include <easylogging++.hpp>
-#include "auxil.hpp"
+#include "aux.hpp"
 #include "clause.hpp"
 #include "gate.hpp"
 #include "literal.hpp"
@@ -40,19 +40,16 @@
 #include "timer.hpp"
 #include "varheap.hpp"
 
-#define TEST
-
-
-
 
 /**
  * \file formula.cpp
  * \brief Implementation of basic functions for variable, clause, and dependency
- * management \author Ralf Wimmer \date 12/2015-03/2016
+ * management
+ * \author Ralf Wimmer
+ * \date 12/2015-01/2021
  */
 
 namespace hqspre {
-
 
 /**
  * \brief Performs preprocessing on the formula.
@@ -73,24 +70,20 @@ Formula::preprocess()
     // Do initial unit and pure propagation
     fastPreprocess();
 
-	/*
-	// try to perform forkSplitting
-	if (!isQBF() && _settings.enableFork) {
-	std::cout << "entering forkext" << std::endl;
-		_settings.forkExt = forkExtension();
-	}
 
-	if (_settings.forkExt) {
-	std::cout << "formula is disjunct" << std::endl;
-		_settings.findHidden = resolveAfterForkSplit();
-	}
-	
-	if (_settings.findHidden) {
-		findHiddenEquivalences();
-		solveSAT();
-	}
-	*/
+    // try to perform forkSplitting
+    if (!isQBF() && _settings.enableFork) {
+        VLOG(2) << "Entering forkext\n";
+        if (forkExtension()) {
+            VLOG(2) << "Formula is disjunct.\n";
+            _settings.findHidden = resolveAfterForkSplit();
+        }
+    }
 
+    if (_settings.findHidden) {
+        findHiddenEquivalences();
+        solveSAT();
+    }
 
     val_assert(checkConsistency());
 
@@ -135,21 +128,32 @@ Formula::preprocess()
             again = true;
             fastPreprocess();
             val_assert(checkConsistency());
-        }
 
-        // Subsumption checks
-        if (_settings.subsumption && removeSubsumedClauses()) {
-            again = true;
-            fastPreprocess();
-            val_assert(checkConsistency());
-            if (_interrupt) {
-                return;
+            // Subsumption checks
+            if (_settings.subsumption && removeSubsumedClauses()) {
+                again = true;
+                fastPreprocess();
+                val_assert(checkConsistency());
+                if (_interrupt) {
+                    return;
+                }
             }
         }
 
         // Always skip hidden literals in first run
         if (stat(Statistics::PREPRO_LOOPS) == 1) {
             _settings.hidden = 0u;
+        }
+
+        if (_settings.hec && findHiddenEquivAndContraDefinitions()) {
+            again = true;
+            fastPreprocess();
+            val_assert(checkConsistency());
+            if (_interrupt) {
+                return;
+            }
+        } else {
+            _settings.hec = false;
         }
 
         // Blocked clause and friends (tautology/subsumption) elimination
@@ -164,17 +168,6 @@ Formula::preprocess()
         }
         if (stat(Statistics::PREPRO_LOOPS) == 1) {
             _settings.hidden = temp_hidden;
-        }
-
-        if (_settings.hec && findHiddenEquivAndContraDefinitions()) {
-            again = true;
-            fastPreprocess();
-            val_assert(checkConsistency());
-            if (_interrupt) {
-                return;
-            }
-        } else {
-            _settings.hec = false;
         }
 
         // Self-subsuming resolution
@@ -298,28 +291,19 @@ Formula::preprocess()
         // Apply universal expansion
         if (_settings.univ_expand == 1 && _qbf_prefix != nullptr && applyUniversalExpansion()) {
             again = true;
-            val_assert(checkConsistency());
-            if (_interrupt) {
-                return;
-            }
         } else if (_settings.univ_expand == 2 && _qbf_prefix != nullptr && applyUniversalExpansion2()) {
             again = true;
-            val_assert(checkConsistency());
-            if (_interrupt) {
-                return;
-            }
-        } else if (_settings.univ_expand > 0) {
-            if (_dqbf_prefix != nullptr && applyUniversalExpansionDQBF()) {
-                again = true;
-                val_assert(checkConsistency());
-                if (_interrupt) {
-                    return;
-                }
-            }
+        } else if (_settings.univ_expand > 0 && _dqbf_prefix != nullptr && applyUniversalExpansionDQBF()) {
+            again = true;
+        }
+        val_assert(checkConsistency());
+        if (_interrupt) {
+            return;
         }
 
-        if (numUVars() == 0 && _settings.sat_decide) {
-            checkSAT();
+        if (numUVars() == 0) {
+            if (_settings.sat_decide) checkSAT();
+            return;
         }
 
         // Subsumption checks

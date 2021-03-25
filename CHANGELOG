@@ -6,7 +6,7 @@
 - some solved instances by the preprocessor HQSpre were not caught, causing a thrown exception
 
 ### New
-- updated HQSpre to the current (09-03-2021) version found with HQS at https://abs.informatik.uni-freiburg.de/src/projects_view.php?projectID=21
+- updated HQSpre to the current (18-03-2021) version found with HQS at https://abs.informatik.uni-freiburg.de/src/projects_view.php?projectID=21
 - added parser for QBFs in prenex cleansed QCIR format and an option to force file format (otherwise it is selected automatically by file type)
 
 ## [1.1] - 26-04-2020

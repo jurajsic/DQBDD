@@ -25,7 +25,7 @@
 
 #include <vector>
 
-#include "auxil.hpp"
+#include "aux.hpp"
 
 struct glp_tree;
 struct glp_prob;

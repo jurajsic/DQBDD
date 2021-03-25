@@ -29,7 +29,7 @@
 
 #include <easylogging++.hpp>
 
-#include "auxil.hpp"
+#include "aux.hpp"
 #include "bool_vector.hpp"
 #include "clause.hpp"
 #include "exceptions.hpp"

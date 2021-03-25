@@ -23,6 +23,7 @@
 
 #include <cstdint>
 #include <iosfwd>
+#include <string>
 
 /**
  * \file settings.hpp
@@ -100,7 +101,7 @@ struct Settings
                                                   ///< hidden or covered extension
     bool          hse                   = true;   ///< Use hidden subsumption elimination (HSE)
     bool          hec                   = false;  ///< Find hidden equivalences and contradiction
-    std::uint32_t impl_chains           = 1;      ///< Eliminate implication chains (0 = no, 1 = strong, 2 = weak)
+    std::uint32_t impl_chains           = 1;      ///< Eliminate implication chains (0 = no, 1 = strong, 2 = semi, 3 = weak)
     bool          contradictions        = true;   ///< Detect contradicting implication chains
     bool          substitution          = true;   ///< Eliminate Tseitin variables by substitution
     int           max_substitution_cost = 100;    ///< Maximal increase of the number of literals in the formula by

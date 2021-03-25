@@ -28,7 +28,7 @@
 #include <vector>
 
 #include <easylogging++.hpp>
-#include "auxil.hpp"
+#include "aux.hpp"
 #include "formula.hpp"
 #include "literal.hpp"
 #include "prefix.hpp"

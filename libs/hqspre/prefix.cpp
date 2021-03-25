@@ -27,7 +27,7 @@
 #include <utility>
 
 #include <easylogging++.hpp>
-#include "auxil.hpp"
+#include "aux.hpp"
 
 /**
  * \file prefix.cpp

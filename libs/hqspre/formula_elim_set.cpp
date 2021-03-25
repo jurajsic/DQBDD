@@ -1,4 +1,4 @@
-// $Id: formula_elim_set.cpp 2644 2019-09-07 20:46:54Z wimmer $
+// $Id: formula_elim_set.cpp 2850 2021-01-01 20:54:20Z wimmer $
 
 /*
  * This file is part of HQSpre.
@@ -35,7 +35,7 @@
 
 #include <glpk.h>
 
-#include "auxil.hpp"
+#include "aux.hpp"
 #include "literal.hpp"
 #include "milp_solver.hpp"
 #include "prefix.hpp"
@@ -62,7 +62,7 @@ namespace {
 struct GlpkData
 {
     GlpkData(const std::vector<std::vector<int>>& graph, const std::vector<bool>& classuniv,
-             const std::vector<MilpSolver::VarType>& fy, const std::vector<MilpSolver::VarType>& zy,
+             const std::vector<MilpSolver::VarType>* const fy, const std::vector<MilpSolver::VarType>* const zy,
              const std::map<std::pair<int, int>, MilpSolver::VarType>& dxy) noexcept :
         _graph(graph),
         _classuniv(classuniv),
@@ -70,16 +70,35 @@ struct GlpkData
         _zy(zy),
         _dxy(dxy),
         _num_secant_cuts(0),
-        _num_loop_cuts(0)
+        _num_loop_cuts(0),
+        _unit_costs(false)
+    {}
+
+    GlpkData(const std::vector<std::vector<int>>& graph, const std::vector<bool>& classuniv,
+             const std::map<std::pair<int, int>, MilpSolver::VarType>& dxy) noexcept :
+        _graph(graph),
+        _classuniv(classuniv),
+        _fy(nullptr),
+        _zy(nullptr),
+        _dxy(dxy),
+        _num_secant_cuts(0),
+        _num_loop_cuts(0),
+        _unit_costs(true)
     {}
 
     const std::vector<std::vector<int>>&                      _graph;
     const std::vector<bool>&                                  _classuniv;
-    const std::vector<MilpSolver::VarType>&                   _fy;
-    const std::vector<MilpSolver::VarType>&                   _zy;
+    const std::vector<MilpSolver::VarType>* const             _fy;
+    const std::vector<MilpSolver::VarType>* const             _zy;
     const std::map<std::pair<int, int>, MilpSolver::VarType>& _dxy;
     unsigned int                                              _num_secant_cuts;
     unsigned int                                              _num_loop_cuts;
+
+    // If _unit_costs == true, then we minimize the number of dependencies to
+    // eliminiate; otherwise the number of existential variables after elimination.
+    // In the latter case, the costs can grow so large that glpk cannot find a
+    // solution anymore; then an ElimSetException is thrown.
+    bool                                                      _unit_costs;
 };
 
 void
@@ -98,13 +117,17 @@ glpk_callback(glp_tree* T, void* info)
         if (data->_classuniv[y]) {
             continue;
         }
-        const double actual_val_zy = glp_get_col_prim(solver, data->_zy[y]);
-        if (std::floor(actual_val_zy) != actual_val_zy) {
-            return;
+        if (data->_zy != nullptr) {
+            const double actual_val_zy = glp_get_col_prim(solver, (*data->_zy)[y]);
+            if (std::floor(actual_val_zy) != actual_val_zy) {
+                return;
+            }
         }
-        const double actual_val_fy = glp_get_col_prim(solver, data->_fy[y]);
-        if (std::floor(actual_val_fy) != actual_val_fy) {
-            return;
+        if (data->_fy != nullptr) {
+            const double actual_val_fy = glp_get_col_prim(solver, (*data->_fy)[y]);
+            if (std::floor(actual_val_fy) != actual_val_fy) {
+                return;
+            }
         }
     }
 
@@ -120,43 +143,48 @@ glpk_callback(glp_tree* T, void* info)
     std::vector<double>              coeffs;
     bool                             added = false;
 
-    // First consider the exponential constraint zy = 2^{z_y}
-    for (int y = 0; y < static_cast<int>(data->_graph.size()); ++y) {
-        if (data->_classuniv[y]) {
-            continue;
+
+    if (!data->_unit_costs) {
+        val_assert(data->_fy != nullptr && data->_zy != nullptr);
+
+        // First consider the exponential constraint zy = 2^{z_y}
+        for (int y = 0; y < static_cast<int>(data->_graph.size()); ++y) {
+            if (data->_classuniv[y]) {
+                continue;
+            }
+
+            const double actual_val_zy = glp_get_col_prim(solver, (*data->_zy)[y]);
+            const double actual_val_fy = glp_get_col_prim(solver, (*data->_fy)[y]);
+            const double wanted_val_zy = std::pow(2.0, actual_val_fy);
+
+            if (actual_val_zy < wanted_val_zy) {
+                vars.clear();
+                coeffs.clear();
+
+                vars.push_back(0);
+                coeffs.push_back(0.0);  // Glpk ignores position 0 in the vectors!
+                vars.push_back((*data->_fy)[y]);
+                coeffs.push_back(wanted_val_zy);
+                vars.push_back((*data->_zy)[y]);
+                coeffs.push_back(-1.0);
+                const auto rownr = glp_add_rows(solver, 2);
+
+                glp_set_mat_row(solver, rownr, static_cast<int>(vars.size()) - 1, &vars[0], &coeffs[0]);
+                glp_set_row_bnds(solver, rownr, GLP_UP, 0.0, wanted_val_zy * (actual_val_fy - 1.0));
+
+                coeffs[1] *= 0.5;
+                glp_set_mat_row(solver, rownr + 1, static_cast<int>(vars.size()) - 1, &vars[0], &coeffs[0]);
+                glp_set_row_bnds(solver, rownr + 1, GLP_UP, 0.0, 0.5 * wanted_val_zy * (actual_val_fy - 2.0));
+
+                data->_num_secant_cuts += 2;
+                added = true;
+            }
         }
 
-        const double actual_val_zy = glp_get_col_prim(solver, data->_zy[y]);
-        const double actual_val_fy = glp_get_col_prim(solver, data->_fy[y]);
-        const double wanted_val_zy = std::pow(2.0, actual_val_fy);
-
-        if (actual_val_zy < wanted_val_zy) {
-            vars.clear();
-            coeffs.clear();
-
-            vars.push_back(0);
-            coeffs.push_back(0.0);  // Glpk ignores position 0 in the vectors!
-            vars.push_back(data->_fy[y]);
-            coeffs.push_back(wanted_val_zy);
-            vars.push_back(data->_zy[y]);
-            coeffs.push_back(-1.0);
-            const auto rownr = glp_add_rows(solver, 2);
-
-            glp_set_mat_row(solver, rownr, static_cast<int>(vars.size()) - 1, &vars[0], &coeffs[0]);
-            glp_set_row_bnds(solver, rownr, GLP_UP, 0.0, wanted_val_zy * (actual_val_fy - 1.0));
-
-            coeffs[1] *= 0.5;
-            glp_set_mat_row(solver, rownr + 1, static_cast<int>(vars.size()) - 1, &vars[0], &coeffs[0]);
-            glp_set_row_bnds(solver, rownr + 1, GLP_UP, 0.0, 0.5 * wanted_val_zy * (actual_val_fy - 2.0));
-
-            data->_num_secant_cuts += 2;
-            added = true;
+        if (added) {
+            return;
         }
-    }
-
-    if (added) {
-        return;
-    }
+    } // end if (!data->_unit_costs)
 
     // Now check if the graph has become acyclic
     const std::function<bool(int, int)> edge_available = [solver, data](int x, int y) -> bool {
@@ -237,13 +265,13 @@ glpk_callback(glp_tree* T, void* info)
 }  // end anonymous namespace
 
 static std::unordered_set<std::pair<int, int>>
-solveMilp(const std::vector<std::vector<int>>& graph, const std::vector<std::vector<Variable>>& class2vars,
-          const std::vector<bool>& classuniv)
+solveMilp(
+    const std::vector<std::vector<int>>& graph,
+    const std::vector<std::vector<Variable>>& class2vars,
+    const std::vector<bool>& classuniv,
+    bool unit_costs)
 {
-    std::unique_ptr<MilpSolver> solver = nullptr;
-
-    solver = std::make_unique<GlpkSolver>();
-
+    auto solver = std::make_unique<GlpkSolver>();
     val_assert(solver);
 
     solver->setVerbosity(false);
@@ -259,17 +287,19 @@ solveMilp(const std::vector<std::vector<int>>& graph, const std::vector<std::vec
     std::vector<MilpSolver::VarType>                   fy(class2vars.size());
     std::map<std::pair<int, int>, MilpSolver::VarType> dxy;
 
-    for (int y = 0; y < static_cast<int>(class2vars.size()); ++y) {
-        if (classuniv[y]) {
-            continue;  // skip universal variables
+    if (!unit_costs) {
+        for (int y = 0; y < static_cast<int>(class2vars.size()); ++y) {
+            if (classuniv[y]) {
+                continue;  // skip universal variables
+            }
+
+            zy[y] = solver->addVariable(MilpSolver::VarSort::INT, true, 1.0, false, 0.0);
+            fy[y] = solver->addVariable(MilpSolver::VarSort::INT, true, 0.0, false, 0.0);
+
+            // create the objective function
+            vars.push_back(zy[y]);
+            coeffs.push_back(static_cast<double>(class2vars[y].size()));
         }
-
-        zy[y] = solver->addVariable(MilpSolver::VarSort::INT, true, 1.0, false, 0.0);
-        fy[y] = solver->addVariable(MilpSolver::VarSort::INT, true, 0.0, false, 0.0);
-
-        // create the objective function
-        vars.push_back(zy[y]);
-        coeffs.push_back(static_cast<double>(class2vars[y].size()));
     }
 
     for (int x = 0; x < static_cast<int>(graph.size()); ++x) {
@@ -278,6 +308,10 @@ solveMilp(const std::vector<std::vector<int>>& graph, const std::vector<std::vec
         }
         for (const int y : graph[x]) {
             dxy[std::make_pair(x, y)] = solver->addVariable(MilpSolver::VarSort::INT, true, 0.0, true, 1.0);
+            if (unit_costs) {
+                vars.push_back(dxy[std::make_pair(x,y)]);
+                coeffs.push_back(static_cast<double>(class2vars[y].size() * class2vars[x].size()));
+            }
         }
     }
 
@@ -285,29 +319,31 @@ solveMilp(const std::vector<std::vector<int>>& graph, const std::vector<std::vec
     solver->setObjectiveDirection(MilpSolver::ObjectiveType::MINIMIZE);
     solver->setObjective(vars, coeffs);
 
-    // For defining the f_y constraints, we need the reversed graph
-    std::vector<std::vector<int>> reverse_graph(graph.size());
-    for (int u = 0; u < static_cast<int>(graph.size()); ++u) {
-        for (const int v : graph[u]) {
-            reverse_graph[v].push_back(u);
-        }
-    }
-
-    for (int y = 0; y < static_cast<int>(class2vars.size()); ++y) {
-        if (classuniv[y]) {
-            continue;  // skip universal variables
-        }
-        vars.clear();
-        coeffs.clear();
-
-        vars.push_back(fy[y]);
-        coeffs.push_back(-1.0);
-        for (const int x : reverse_graph[y]) {
-            vars.push_back(dxy[std::make_pair(x, y)]);
-            coeffs.push_back(static_cast<double>(class2vars[x].size()));
+    if (!unit_costs) {
+        // For defining the f_y constraints, we need the reversed graph
+        std::vector<std::vector<int>> reverse_graph(graph.size());
+        for (int u = 0; u < static_cast<int>(graph.size()); ++u) {
+            for (const int v : graph[u]) {
+                reverse_graph[v].push_back(u);
+            }
         }
 
-        solver->addConstraint(vars, coeffs, true, 0.0, true, 0.0);
+        for (int y = 0; y < static_cast<int>(class2vars.size()); ++y) {
+            if (classuniv[y]) {
+                continue;  // skip universal variables
+            }
+            vars.clear();
+            coeffs.clear();
+
+            vars.push_back(fy[y]);
+            coeffs.push_back(-1.0);
+            for (const int x : reverse_graph[y]) {
+                vars.push_back(dxy[std::make_pair(x, y)]);
+                coeffs.push_back(static_cast<double>(class2vars[x].size()));
+            }
+
+            solver->addConstraint(vars, coeffs, true, 0.0, true, 0.0);
+        }
     }
 
     // Find all cycles of length 4
@@ -342,10 +378,16 @@ solveMilp(const std::vector<std::vector<int>>& graph, const std::vector<std::vec
 
     TruthValue result = TruthValue::UNKNOWN;
 
-    GlpkData callback_data(graph, classuniv, fy, zy, dxy);
-    result = dynamic_cast<GlpkSolver*>(solver.get())->solve(glpk_callback, &callback_data);
-    VLOG(2) << "Added " << callback_data._num_secant_cuts << " secant constraints.";
-    VLOG(2) << "Added " << callback_data._num_loop_cuts << " loop exclusion constraints.";
+    if (unit_costs) {
+        GlpkData callback_data(graph, classuniv, dxy);
+        result = dynamic_cast<GlpkSolver*>(solver.get())->solve(glpk_callback, &callback_data);
+        VLOG(2) << "Added " << callback_data._num_loop_cuts << " loop exclusion constraints.";
+     } else {
+        GlpkData callback_data(graph, classuniv, &fy, &zy, dxy);
+        result = dynamic_cast<GlpkSolver*>(solver.get())->solve(glpk_callback, &callback_data);
+        VLOG(2) << "Added " << callback_data._num_secant_cuts << " secant constraints.";
+        VLOG(2) << "Added " << callback_data._num_loop_cuts   << " loop exclusion constraints.";
+    }
 
     std::unordered_set<std::pair<int, int>> to_eliminate;
 
@@ -363,7 +405,7 @@ solveMilp(const std::vector<std::vector<int>>& graph, const std::vector<std::vec
 }
 
 /**
- * \brief Kahn's algorithm for topogical sorting
+ * \brief Kahn's algorithm for topological sorting
  *
  * For details see:<br>
  * Arthur B. Kahn: <i>Topological sorting of large networks</i>,
@@ -415,9 +457,13 @@ topoSort(const std::vector<std::vector<int>>& graph, const std::function<bool(in
 /**
  * \brief Computes a cost-minimal set of dependencies whose elimination turns
  * the DQBF into a QBF.
+ * \param unit_costs If _unit_costs == true, then we minimize the number of dependencies to
+ *    eliminiate; otherwise the number of existential variables after elimination.
+ *    In the latter case, the costs can grow so large that glpk cannot find a
+ *    solution anymore; then an hqspre::ElimSetException is thrown.
  */
 std::vector<std::vector<Variable>>
-Formula::computeDepElimSet()
+Formula::computeDepElimSet(bool unit_costs)
 {
     ScopeTimer et(getTimer(WhichTimer::DEP_ELIM_SET));
 
@@ -481,7 +527,7 @@ Formula::computeDepElimSet()
 
     // We determine an elimination set of the symmetry-reduced graph by solving an
     // MILP
-    const auto to_elim = solveMilp(graph, class2vars, classuniv);
+    const auto to_elim = solveMilp(graph, class2vars, classuniv, unit_costs);
 
     // Compute a topological ordering of the dependency graph without the selected
     // edges. Insert the selected edges such that they point into the right

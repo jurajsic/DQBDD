@@ -3,7 +3,7 @@
 #include <iostream>
 #include <fstream>
 
-#include "auxil.hpp"
+#include "aux.hpp"
 #include "formula.hpp"
 #include "literal.hpp"
 #include "prefix.hpp"
@@ -217,7 +217,7 @@ Formula::checkForEquivalence(Node* node, std::vector<Node*>& equivNodesLeft, std
 
 
 void 
-Formula::replaceEquivalentLiterals(std::vector<Node*>& equivNodesLeft, std::vector<Node*>& equivNodesRight)
+Formula::replaceEquivalentLiterals(const std::vector<Node*>& equivNodesLeft, const std::vector<Node*>& equivNodesRight)
 {
 	const Literal representative = equivNodesLeft[0]->lit;
 
@@ -250,7 +250,7 @@ Formula::replaceEquivalentLiterals(std::vector<Node*>& equivNodesLeft, std::vect
 
 
 /** 
- * \brief calls MPhaseSAT64 SAT solver to solve forksplitted instances
+ * \brief calls MPhaseSAT64 SAT solver to solve forksplit instances
  */
 void
 Formula::solveSAT()
@@ -284,17 +284,7 @@ Formula::solveSAT()
 
 	if ( result == 2560 ) throw SATException("Solved by MPhase");
 	else if ( result == 5120 ) throw UNSATException("Solved by Mphase");
-}	
-
-Formula::Node::Node()
-	:
-	side(unknown),
-	seen(false)
-{}
-
-
-Formula::Node::~Node()
-{}
+}
 
 
 }

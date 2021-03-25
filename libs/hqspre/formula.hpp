@@ -32,7 +32,7 @@
 #include <utility>
 #include <vector>
 
-#include "auxil.hpp"
+#include "aux.hpp"
 #include "clause.hpp"
 #include "exceptions.hpp"
 #include "gate.hpp"
@@ -377,7 +377,7 @@ class Formula
     //@{
     /**\name Elimination routines
      */
-    //std::vector<std::vector<Variable>> computeDepElimSet();
+    std::vector<std::vector<Variable>> computeDepElimSet(bool unit_costs = false);
     std::vector<Variable>              computeVarElimSet();
     void                               elimEVar(Variable var, std::unordered_set<Variable>* recalc_vars = nullptr);
     bool elimEVarLimit(Variable var, std::int64_t max_cost, std::unordered_set<Variable>* recalc_vars = nullptr);
@@ -828,7 +828,7 @@ class Formula
 	bool resolveAfterForkSplit();
 	bool resolveRmb();
 
-	long max_resolveRmb_cost; // cost used while performing resolveRmb 
+	long max_resolveRmb_cost = 0; // cost used while performing resolveRmb 
 	
 	void findHiddenEquivalences();
 
@@ -838,13 +838,11 @@ class Formula
 	public:
 
 		enum Side {unknown, left, right};
-		Node();
-		~Node();
 
-		Literal lit;
-		Side side;
+		Literal lit = 0;
+		Side side = unknown;
 		std::vector<Node*> adjacents;
-		bool seen;
+		bool seen = false;
 	};
 
 	std::vector<Node*> nodes;
@@ -854,7 +852,7 @@ class Formula
 	// TODO: find test cases for case that var occur on one side but in different polarities
 	bool checkForEquivalence(Node* node, std::vector<Node*>& equivNodesLeft, std::vector<Node*>& equivNodesRight);
 
-	void replaceEquivalentLiterals(std::vector<Node*>& equivNodesLeft, std::vector<Node*>& equivNodesRight);
+	void replaceEquivalentLiterals(const std::vector<Node*>& equivNodesLeft, const std::vector<Node*>& equivNodesRight);
 
 	void solveSAT();
 };

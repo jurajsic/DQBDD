@@ -28,7 +28,7 @@
 
 #include <easylogging++.hpp>
 
-#include "auxil.hpp"
+#include "aux.hpp"
 #include "formula.hpp"
 #include "gate.hpp"
 #include "literal.hpp"
@@ -470,7 +470,9 @@ Formula::sstdQuadDep(Variable u_var, bool resolution_paths, bool quadrangle, std
         const Literal en = var2lit(e_var, true);
 
         if (quadrangle) {
-            if (((seen_pos[ep] == 0u) || (seen_neg[ep] == 0u)) || ((seen_neg[ep] == 0u) && (seen_pos[en] == 0u))) {
+            // dependent if (x --> y /\ ~x --> ~y) \/ (~x --> y /\ x --> ~y)
+            // so: independent if (x -/-> y \/ ~x -/-> ~y) /\ (~x -/-> y \/ x -/-> ~y)
+            if (((seen_pos[ep] == 0u) || (seen_neg[en] == 0u)) && ((seen_neg[ep] == 0u) || (seen_pos[en] == 0u))) {
                 if (pseudo_deps == nullptr) {
                     removeDependency(e_var, u_var);
                 } else {

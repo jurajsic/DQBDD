@@ -24,7 +24,7 @@
 #include <cstdint>
 #include <vector>
 
-#include "auxil.hpp"
+#include "aux.hpp"
 
 
 /**
@@ -84,17 +84,15 @@ class VarHeap
     {}
 
     VarHeap(VarHeap<Order, Key, Value>&& other) noexcept = delete;
-    //VarHeap& operator=(const VarHeap<Order, Key, Value>& other) = delete;
     VarHeap& operator=(VarHeap<Order, Key, Value>&& other) noexcept = delete;
-	VarHeap& operator=(VarHeap& other)
-	{
-		_heap = other._heap;
+    VarHeap& operator=(const VarHeap& other)
+    {
+        _heap = other._heap;
         _position = other._position;
         _size = other._size;
         _variables = other._variables;
-        //_comp = other._comp;
-		return *this;
-	}
+        return *this;
+    }
 
     ~VarHeap()                                                      = default;
 

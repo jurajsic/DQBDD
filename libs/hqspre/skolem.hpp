@@ -23,7 +23,7 @@
 
 #include <map>
 #include <vector>
-#include "auxil.hpp"
+#include "aux.hpp"
 #include "clause.hpp"
 #include "gate.hpp"
 #include "literal.hpp"

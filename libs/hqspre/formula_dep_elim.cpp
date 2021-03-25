@@ -20,7 +20,7 @@
 
 #include <utility>
 
-#include "auxil.hpp"
+#include "aux.hpp"
 #include "formula.hpp"
 #include "gate.hpp"
 #include "literal.hpp"

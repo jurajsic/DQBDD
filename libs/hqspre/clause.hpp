@@ -32,7 +32,7 @@
 
 // #include <boost/pool/pool_alloc.hpp>
 
-#include "auxil.hpp"
+#include "aux.hpp"
 #include "literal.hpp"
 
 /**
