@@ -103,7 +103,7 @@ private:
      * 
      * @param child - the root of subtree of the child to add
      */
-    void addChild(QuantifierTreeNode *child);
+    void addChild(QuantifierTreeNode *child, bool collapseChildren = true);
 
     /**
      * @brief Removes from one ordered list another where both are assumed to be ordered by the ordering in of children list
@@ -176,12 +176,23 @@ private:
      * We assume that children used to be children of parent, siblings are the remaining children of parent,
      * after creating this tree, it should be added to parent as a child.
      */
-    QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> children, QuantifiedVariablesManager &qvMgr, 
-                        const std::list<QuantifierTreeNode*> &siblings, QuantifierTree *parent);
+    //QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> children, QuantifiedVariablesManager &qvMgr, 
+    //                    const std::list<QuantifierTreeNode*> &siblings, QuantifierTree *parent);
 
 public:
-    QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> children, QuantifiedVariablesManager &qvMgr);
-    QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> children, QuantifiedVariablesManipulator &qvManipulator);
+    /**
+     * @brief Construct a new Quantifier Tree object
+     * 
+     * @param collapseChildren - should we collapse children (i.e. the children of children with the same operation are moved into this node)
+     */
+    QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> children, QuantifiedVariablesManager &qvMgr, bool collapseChildren = true);
+    /**
+     * @brief Construct a new Quantifier Tree object from some existing QuantifiedVariablesManipulator (i.e. it copies the quantifiers from the manipulator here)
+     * 
+     * @param qvManipulator - the QuantifiedVariablesManipulator whose quantifiers will be copied here
+     * @param collapseChildren - should we collapse children (i.e. the children of children with the same operation are moved into this node)
+     */
+    QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> children, QuantifiedVariablesManipulator &qvManipulator, bool collapseChildren = true);
     QuantifierTree(const QuantifierTree&) = delete;
     QuantifierTree& operator=(const QuantifierTree&) = delete;
 

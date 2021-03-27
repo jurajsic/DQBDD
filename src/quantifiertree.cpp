@@ -67,42 +67,25 @@ VariableSet const& QuantifierTreeNode::getUVarsSupportSet() {
 /*******************************************/
 /*******************************************/ 
 
-QuantifierTree::QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> children, QuantifiedVariablesManager &qvMgr) : QuantifiedVariablesManipulator(qvMgr), QuantifierTreeNode(qvMgr), isConj(isConj) {
+QuantifierTree::QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> children, QuantifiedVariablesManager &qvMgr, bool collapseChildren) : QuantifiedVariablesManipulator(qvMgr), QuantifierTreeNode(qvMgr), isConj(isConj) {
     supportSet = {};
     uVarsSupportSet = {};
     if (children.size() < 2) {
         throw DQBDDexception((std::string("You cannot create a quantifier tree with ") + std::to_string(children.size()) + std::string(" operands")).c_str());
     }
     for (QuantifierTreeNode *child : children) {
-        addChild(child);
+        addChild(child, collapseChildren);
     }
 }
 
-QuantifierTree::QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> children, QuantifiedVariablesManipulator &qvManipulator) : QuantifiedVariablesManipulator(qvManipulator), QuantifierTreeNode(*qvManipulator.getManager()), isConj(isConj) {
+QuantifierTree::QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> children, QuantifiedVariablesManipulator &qvManipulator, bool collapseChildren) : QuantifiedVariablesManipulator(qvManipulator), QuantifierTreeNode(*qvManipulator.getManager()), isConj(isConj) {
     supportSet = {};
     uVarsSupportSet = {};
     if (children.size() < 2) {
         throw DQBDDexception((std::string("You cannot create a quantifier tree with ") + std::to_string(children.size()) + std::string(" operands")).c_str());
     }
     for (QuantifierTreeNode *child : children) {
-        addChild(child);
-    }
-}
-
-QuantifierTree::QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> children, QuantifiedVariablesManager &qvMgr, 
-                        const std::list<QuantifierTreeNode*> &siblings, QuantifierTree *parent) :QuantifiedVariablesManipulator(qvMgr), QuantifierTreeNode(qvMgr), isConj(isConj) {
-    supportSet = {};
-    uVarsSupportSet = {};
-    if (children.size() < 2) {
-        throw DQBDDexception((std::string("You cannot create a quantifier tree with ") + std::to_string(children.size()) + std::string(" operands")).c_str());
-    }
-
-    for (QuantifierTreeNode *child : children) {
-        supportSet.insert(child->getSupportSet().begin(),
-                          child->getSupportSet().end());
-        uVarsSupportSet.insert(child->getUVarsSupportSet().begin(),
-                               child->getUVarsSupportSet().end());
-        this->children.push_back(child);
+        addChild(child, collapseChildren);
     }
 }
 
@@ -285,7 +268,7 @@ void QuantifierTree::pushVarsWithCombining() {
         // create a new child to which varToPush is pushed
         removeFromOrderedListOtherOrderedListUsingChildrenOrder(children, childrenToCombine);
         //std::cout << "The size of children to combine right before creating new child: " << childrenToCombine.size() << std::endl;
-        QuantifierTree *newChild = new QuantifierTree(isConj, childrenToCombine, *qvMgr, children, this);
+        QuantifierTree *newChild = new QuantifierTree(isConj, childrenToCombine, *qvMgr, false);
         if (isVarExist(varToPush)) {
             newChild->pushExistVar(varToPush);
             removeExistVar(varToPush);
@@ -583,16 +566,7 @@ void QuantifierTree::negate() {
     }
 }
 
-
-// void QuantifierTree::addToUVarsOutsideThisSubtree(const VariableSet &varsToAdd) {
-//     for (auto child : children) {
-//         child->addToUVarsOutsideThisSubtree(varsToAdd);
-//     }
-
-//     uVarsOutsideThisSubtree.insert(varsToAdd.begin(), varsToAdd.end());
-// }
-
-void QuantifierTree::addChild(QuantifierTreeNode *child) {
+void QuantifierTree::addChild(QuantifierTreeNode *child, bool collapseChildren) {
 
     // add variables of the child to the support sets here
     supportSet.insert(child->getSupportSet().begin(),
@@ -600,17 +574,20 @@ void QuantifierTree::addChild(QuantifierTreeNode *child) {
     uVarsSupportSet.insert(child->getUVarsSupportSet().begin(),
                         child->getUVarsSupportSet().end());
 
-    // check if this child is not quantifier tree with the same operator like here and empty quantifier prefix
+    // collapsing children
     auto treeChild = dynamic_cast<QuantifierTree*>(child);
-    if (treeChild != nullptr && treeChild->isConj == isConj 
-                && treeChild->getExistVars().empty() && treeChild->getUnivVars().empty()) {
+    if (collapseChildren                        // if we want to collapse children...
+            && treeChild != nullptr             // ...and the child is QuantifierTree...
+            && treeChild->isConj == isConj      // ...with the same operation...
+            // ...and with empty quantifier prefix...
+            && treeChild->getExistVars().empty() && treeChild->getUnivVars().empty()) {
 
-        // if it is, set its children as current children, not itself
+        // ...then we collapse children, i.e. set its children as current children, not itself...
         for (auto childOfChild : treeChild->children) {
             children.push_back(childOfChild);
         }
 
-        // and finally delete it
+        // ...and finally delete it
         treeChild->children.clear();
         delete child;
     } else {
