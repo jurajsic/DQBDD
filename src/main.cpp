@@ -110,7 +110,7 @@ int main(int argc, char **argv)
         std::string fileExt = getLowercaseFileType(fileName);
         if (fileExt == "dimacs" || fileExt == "qdimacs" || fileExt == "dqdimacs") {
             fileType = 0;
-        } else if (fileExt == "qcir") {
+        } else if (fileExt == "qcir" || fileExt == "dqcir") {
             fileType = 1;
         } else {
             std::cout << "The filetype could not be determined, defaulting to (DQ)DIMACS" << std::endl;

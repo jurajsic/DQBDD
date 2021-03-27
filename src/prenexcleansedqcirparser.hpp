@@ -29,7 +29,12 @@
 #include "parser.hpp"
 
 /**
- * @brief Parser of formulas in prenex cleansed QCIR format
+ * @brief Parser of formulas in prenex cleansed (D)QCIR format
+ * 
+ * Prenex cleansed QCIR format is defined at qbflib website, we define prenex cleansed DQCIR format as QCIR 
+ * where whenever quantifier of type henkin(v, v1, ..., vn) can be used whenever quantifier can be used and
+ * represents existential variable v with dependency set Dv = {v1, ..., vn}. It is assumed that v1, ..., vn
+ * were already defined as universal variables.
  */
 class PrenexCleansedQCIRParser : public Parser {
     Cudd &mgr;

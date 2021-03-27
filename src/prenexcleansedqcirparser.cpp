@@ -170,6 +170,20 @@ bool PrenexCleansedQCIRParser::parse(std::string fileName) {
                     }
                     DQBFPrefix.addUnivVar(univVar);
                 }
+            } else if (token == "henkin") {
+                streamLine >> token;
+                Variable existVar(std::stoul(token), mgr);
+                if (DQBFPrefix.isVarUniv(existVar)) {
+                    throw DQBDDexception("Cannot have the same variable as both universal and existential.");
+                }
+                DQBFPrefix.addExistVar(existVar);
+                while (streamLine >> token) {
+                    Variable univVar(std::stoul(token), mgr);
+                    if (!DQBFPrefix.isVarUniv(univVar)) {
+                        throw DQBDDexception("Not able to add existential variable which has non universal variable in dependency list.");
+                    }
+                    DQBFPrefix.addDependency(existVar, univVar);
+                }
             } else if (token == "output") {
                 streamLine >> token;
                 outputGate = getLiteralFromString(token);
