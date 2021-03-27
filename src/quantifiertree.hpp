@@ -44,8 +44,14 @@ protected:
 public:
     QuantifierTreeNode(QuantifiedVariablesManager &qvmgr);
     virtual ~QuantifierTreeNode() = default;
-    // pushes quantifiers inside the subtree rooted in this node
-    virtual void localise() = 0;
+    /**
+     * @brief pushes quantifiers inside the subtree rooted in this node
+     * 
+     * @param uVarsOutsideThisSubtree - universal variables which are in uVarsSupportSet
+     * of nodes outside this subtree (but only those which are in this node's
+     *  uVarsSupportSet); used during localisation for disjunction
+     */
+    virtual void localise(const VariableSet &uVarsOutsideThisSubtree) = 0;
     // pushes the existential variable var into this node
     void pushExistVar(Variable var);
     // pushes the universal variable var into this node
@@ -58,9 +64,9 @@ public:
     virtual void negate() = 0;
 
     virtual VariableSet const &getUVarsSupportSet();
-    VariableSet const &getUVarsOutsideThisSubtree() const;
-    void addToUVarsOutsideThisSubtree(const Variable &varToAdd);
-    void virtual addToUVarsOutsideThisSubtree(const VariableSet &varsToAdd) = 0;
+    //VariableSet const &getUVarsOutsideThisSubtree() const;
+    //void addToUVarsOutsideThisSubtree(const Variable &varToAdd);
+    //void virtual addToUVarsOutsideThisSubtree(const VariableSet &varsToAdd) = 0;
 };
 
 /**
@@ -72,13 +78,13 @@ private:
 public:
     QuantifierTreeFormula(const Cudd &mgr, QuantifiedVariablesManager &qvmgr);
     QuantifierTreeFormula(const Cudd &mgr, QuantifiedVariablesManipulator &qvManipulator);
-    void localise() override;
+    void localise(const VariableSet &uVarsOutsideThisSubtree) override;
     QuantifierTreeFormula* changeToFormula(Cudd &) override;
     void negate() override;
 
     VariableSet const &getSupportSet() override;
     VariableSet const &getUVarsSupportSet() override;
-    void addToUVarsOutsideThisSubtree(const VariableSet &varsToAdd) override;
+    //void addToUVarsOutsideThisSubtree(const VariableSet &varsToAdd) override;
 };
 
 /**
@@ -110,18 +116,60 @@ private:
     bool removeFromOrderedListOtherOrderedListUsingChildrenOrder(std::list<QuantifierTreeNode*> &listToRemoveFrom, std::list<QuantifierTreeNode*> &listOfItemsToRemove);
 
     /**
-     * @brief Combines and creates new children from existing children and pushes variables to it based on mapping
-     * childrenToCombineMapping[v] = the children which should be combined to a new child and to which v will be pushed
-     * if findNewUnivVars is true, then if we push existential variable, we check if some universal variable does not become pushable
-     * and add it to childrenToCombineMapping with a plan to push it
+     * This mapping maps each variable that we will want to push during localisation
+     * and which is not possible to push to every child (for conjuction this means all exist
+     * vars, for disjunction this is all univ vars and those exist vars which do not fulfill
+     * the conditions for pushing into every child). This means that for var v
+     * childrenToCombineMapping[v] will contain all children which either contain v or contain
+     * some exist var dependent on v (this is only if v is univ var). At the beginning, this 
+     * mappind does not contain any variables, they have to be added by using functions
+     * addExistVarsToChildrenToCombineMapping and addUnivVarsToChildrenToCombineMapping.
+     * Function pushVarsWithCombining is then used to create new children and pushing variables.
      */
-    void pushVarsWithCombining(std::unordered_map<Variable, std::list<QuantifierTreeNode*>> &childrenToCombineMapping, bool findNewUnivVars);
-    // adds univ vars which do not depend on any existential variable to the mapping used in pushVarsWithCombining method
-    void addPossibleUnivVarsToMapping(std::unordered_map<Variable, std::list<QuantifierTreeNode*>> &childrenToCombineMapping);
+    std::unordered_map<Variable, std::list<QuantifierTreeNode*>> childrenToCombineMapping;
+    //void initialiseChildrenToCombineMapping(const VariableSet &varsToCombine);
+    /**
+     * Adds each exist var y from eVarsToAdd to childrenToCombineMapping, i.e.
+     * childrenToCombineMapping[y] will contain all children which contain y. Later,
+     * this will be used to create a new child with these children to which y will be pushed.
+     */
+    void addExistVarsToChildrenToCombineMapping(const VariableSet &eVarsToAdd);
+    /**
+     * Adds each univ var x from uVarsToAdd to childrenToCombineMapping, i.e.
+     * childrenToCombineMapping[x] will contain all children which either contain x
+     * or some exist var y which depends on x.
+     */
+    void addUnivVarsToChildrenToCombineMapping(const VariableSet &uVarsToAdd);
+    /**
+     * Iteratively creates for each var v a new child combining children from 
+     * childrenToCombineMapping[v] to which v is pushed starting from the 
+     * var v which has the smallest children containing it.
+     * It assumes that it starts with only exist vars that we want to push, univ
+     * vars that can be pushed are also added and pushed in this function.
+     * For conjunction, it will push every pushable univ var (pushable = it does
+     * not depend on any exist vars in this node of quantifier tree) to each child,
+     * for disjunction it will combine children containing them.
+     */
+    void pushVarsWithCombining();
+    /**
+     * @brief For each exist checks if it is pushable according to conditions for disjunction and pushes those that are
+     * 
+     * It is assumed that childrenToCombineMapping were initialised with addExistVarsToChildrenToCombineMapping(getExistVars())
+     * and that it is used only for disjunction.
+     */
+    void pushExistVarsSeparately(const VariableSet &uVarsOutsideThisSubtree);
 
-    // the variants of localisation
-    void localiseOR();
-    void localiseAND();
+    /* Keeps for each (original) child the universal variables that are outside the subtree rooted in the child 
+     * (but only those that occur in the subtree). Used for checking conditions of pushing existential
+     * variables separately for disjunction and also to call localise for a child. For disjunction, this
+     * is computed during localisation for each original child and then it can be reused during the calls 
+     * to localisation. For conjunction, we compute this only when we want to localise. Therefore, to
+     * access uVarsOutsideChildSubtree[child] use the function getUVarsOutsideChildSubtree(child, ...).
+     */
+    std::unordered_map<QuantifierTreeNode*, VariableSet> uVarsOutsideChildSubtree;
+    // to save on time, only access uVarsOutsideChildSubtree[child] trough this function, it will compute it only once
+    VariableSet &getUVarsOutsideChildSubtree(QuantifierTreeNode* child, std::list<QuantifierTreeNode*> originalChildren, const VariableSet &uVarsOutsideThisSubtree);
+
 
     std::ostream& print(std::ostream& out) const override;
 
@@ -142,7 +190,7 @@ public:
 
     ~QuantifierTree();
 
-    void localise() override;
+    void localise(const VariableSet &uVarsOutsideThisSubtree) override;
 
     /**
      * @brief Changes this instance of QuantifierTree to the instance of Formula,
@@ -155,7 +203,7 @@ public:
     QuantifierTreeFormula* changeToFormula(Cudd &mgr) override;
     void negate() override;
 
-    void addToUVarsOutsideThisSubtree(const VariableSet &varsToAdd) override;
+    //void addToUVarsOutsideThisSubtree(const VariableSet &varsToAdd) override;
 };
 
 

@@ -26,6 +26,7 @@ bool VariableSet::contains(Variable const &var) const {
 
 VariableSet VariableSet::intersect(const VariableSet &vs) const {
     VariableSet intersection = { };
+    // TODO iterate over smaller set
     for (auto iter = this->begin(); iter != this->end(); ++iter) {
         if (vs.contains(*iter)) {
             intersection.insert(*iter);
