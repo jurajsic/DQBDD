@@ -160,7 +160,9 @@ int main(int argc, char **argv)
             }
             auto qtroot = parser->getQuantifierTree();
             if (!preprocessorSolved) {
-                std::cout << "Quantifier tree created" << std::endl
+                std::cout << "Quantifier tree created with " 
+                          << qtroot->getUnivVars().size() << " universal and "
+                          << qtroot->getExistVars().size() << " existential variables quantified in it." << std::endl
                           //<< *qtroot << std::endl
                           << "Pushing quantifiers inside" << std::endl;
                 //std::cout << qtroot->getUnivVars() << std::endl
