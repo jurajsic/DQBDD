@@ -64,9 +64,6 @@ public:
     virtual void negate() = 0;
 
     virtual VariableSet const &getUVarsSupportSet();
-    //VariableSet const &getUVarsOutsideThisSubtree() const;
-    //void addToUVarsOutsideThisSubtree(const Variable &varToAdd);
-    //void virtual addToUVarsOutsideThisSubtree(const VariableSet &varsToAdd) = 0;
 };
 
 /**
@@ -202,8 +199,6 @@ public:
      */
     QuantifierTreeFormula* changeToFormula(Cudd &mgr) override;
     void negate() override;
-
-    //void addToUVarsOutsideThisSubtree(const VariableSet &varsToAdd) override;
 };
 
 
