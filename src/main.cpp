@@ -161,13 +161,13 @@ int main(int argc, char **argv)
             auto qtroot = parser->getQuantifierTree();
             if (!preprocessorSolved) {
                 std::cout << "Quantifier tree created" << std::endl
-                          << *qtroot << std::endl
+                          //<< *qtroot << std::endl
                           << "Pushing quantifiers inside" << std::endl;
                 //std::cout << qtroot->getUnivVars() << std::endl
                 //          << qtroot->getExistVars() << std::endl;
                 qtroot->localise( VariableSet{ } );
                 std::cout << "Quantifiers pushed inside" << std::endl
-                          << *qtroot << std::endl
+                          //<< *qtroot << std::endl
                           << "Creating BDD formula" << std::endl;
             }
             f = qtroot->changeToFormula(mgr);
