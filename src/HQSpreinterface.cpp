@@ -181,7 +181,7 @@ HQSPreInterface::HQSPreInterface(Cudd &mgr, QuantifiedVariablesManager &qvmgr) :
 
 HQSPreInterface::~HQSPreInterface() = default;
 
-// code based on hqsfork
+// code based on HQS 
 bool HQSPreInterface::parse(std::string fileName) {
     formulaPtr.reset(new HQSPreFormulaWrapper());
 
@@ -216,13 +216,20 @@ bool HQSPreInterface::parse(std::string fileName) {
         if (formulaPtr->formula.getGates().size() > 5) {
             // First do full preprocessing on a copy of the formula
             hqspre::Formula formula2(formulaPtr->formula);
-            //formula2.settings().bla              = false;
-            //formula2.settings().ble              = false;
-            //formula2.settings().pure_sat_timeout = 1000;
+            // TODO decide what settings to use (same as in HQS?)
+            // bla and ble are only useful for QBF (I think)
+            // formula2.settings().bla              = false;
+            // formula2.settings().ble              = false;
+            // formula2.settings().pure_sat_timeout = 1000;
+            // formula2.settings().impl_chains      = 3;
+            // formula2.settings().max_substitution_cost = 250;
+            // formula2.settings().max_resolution_cost = 100;
+            // formula2.settings().vivify_fp        = true;
             formula2.preprocess();
 
             // Then do preprocessing, preserving gates
             formulaPtr->formula.settings().univ_expand      = 0; // maybe 2 is better???
+            // bla and ble are only useful for QBF (I think)
             formulaPtr->formula.settings().bla              = false;
             formulaPtr->formula.settings().ble              = false;
             formulaPtr->formula.settings().preserve_gates   = true;
@@ -230,6 +237,8 @@ bool HQSPreInterface::parse(std::string fileName) {
             formulaPtr->formula.settings().rewrite          = false;
             formulaPtr->formula.settings().resolution       = false;
             formulaPtr->formula.settings().max_loops        = 20;
+            formulaPtr->formula.settings().enableFork       = false;
+            // TODO timeout??
             //formulaPtr->formula.settings().pure_sat_timeout = 1000;
         }
         formulaPtr->formula.preprocess();
@@ -245,7 +254,6 @@ bool HQSPreInterface::parse(std::string fileName) {
     // do gate extraction
     formulaPtr->formula.determineGates(true, true, true, false);
     formulaPtr->formula.enforceDQBF(true);
-    formulaPtr->formula.unitPropagation();
 
     const auto gates = formulaPtr->formula.getGates();
 
@@ -254,21 +262,26 @@ bool HQSPreInterface::parse(std::string fileName) {
 
     // Create the proper problem variables (without Tseitin variables)
     for (hqspre::Variable var = formulaPtr->formula.minVarIndex(); var <= formulaPtr->formula.maxVarIndex(); ++var) {
-        if (formulaPtr->formula.isUniversal(var)) {
-            Variable uVar = Variable(var, mgr);
-            DQBFPrefix.addUnivVar(uVar);
-            formulaPtr->gate_table[var] = uVar;
-        } else if (formulaPtr->formula.isExistential(var) && !formulaPtr->formula.isGateOutput(var)) {
-            Variable eVar = Variable(var, mgr);
-            DQBFPrefix.addExistVar(eVar);
-            for (auto dep : formulaPtr->formula.getDependencies(var)) {
-                DQBFPrefix.addDependency(eVar, Variable(dep, mgr));
+        if (!formulaPtr->formula.varDeleted(var) && !formulaPtr->formula.isGateOutput(var)) {
+            Variable dqbddVar = Variable(var, mgr);
+            formulaPtr->gate_table[var] = dqbddVar;
+            if (formulaPtr->formula.isUniversal(var)) {
+                DQBFPrefix.addUnivVar(dqbddVar);
+            } else if (formulaPtr->formula.isExistential(var)) {
+                DQBFPrefix.addExistVar(dqbddVar);
+                for (auto dep : formulaPtr->formula.getDependencies(var)) {
+                    DQBFPrefix.addDependency(dqbddVar, Variable(dep, mgr));
+                    if (!formulaPtr->formula.isUniversal(dep)) {
+                        throw DQBDDexception("Existential variable is depending on non universal one in hqspre, this should not happen");
+                    }
+                }
+            } else {
+                throw DQBDDexception("Unexpected type of variable in hqspre, this should not happen");
             }
-            formulaPtr->gate_table[var] = eVar;
-        } 
+        }
     }
 
-    for (auto &gate : formulaPtr->formula.getGates()) {
+    for (auto &gate : gates) {
         formulaPtr->outputvarToGate[hqspre::lit2var(gate._output_literal)] = &gate;
     }
 
