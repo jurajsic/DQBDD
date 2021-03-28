@@ -92,8 +92,14 @@ private:
     // the children of root
     std::list<QuantifierTreeNode*> children;
 
-    // if isConj=true, the root has assigned conjuction, otherwise disjunction
+    // if isConj==true, the root has assigned conjuction, otherwise disjunction
     bool isConj;
+
+    /* if needsToLocalise==true, then in localise(), we need to check and push quantifiers
+     * further down, otherwise it is assumed that nothing can be pushed (newly created
+     * combined children during localisation have this attribute)
+     */
+    bool needsToLocalise = true;
 
     /**
      * @brief Adds another child to the list of children (assuming *this is a root)
@@ -157,15 +163,16 @@ private:
     void pushExistVarsSeparately(const VariableSet &uVarsOutsideThisSubtree);
 
     /* Keeps for each (original) child the universal variables that are outside the subtree rooted in the child 
-     * (but only those that occur in the subtree). Used for checking conditions of pushing existential
-     * variables separately for disjunction and also to call localise for a child. For disjunction, this
-     * is computed during localisation for each original child and then it can be reused during the calls 
-     * to localisation. For conjunction, we compute this only when we want to localise. Therefore, to
+     * (but only those that occur in the subtree). Used for checking conditions of pushing existential variables 
+     * separately for disjunction and also to call localise for a child. For disjunction, this is computed during 
+     * localisation for each original child and then it can be reused during the calls to localisation. For 
+     * conjunction, we compute this only when we want to localise and for newly created children, which allows 
+     * to remove non-renamed copies of univ vars which should not be passed during localisation. Therefore, to 
      * access uVarsOutsideChildSubtree[child] use the function getUVarsOutsideChildSubtree(child, ...).
      */
     std::unordered_map<QuantifierTreeNode*, VariableSet> uVarsOutsideChildSubtree;
     // to save on time, only access uVarsOutsideChildSubtree[child] trough this function, it will compute it only once
-    VariableSet &getUVarsOutsideChildSubtree(QuantifierTreeNode* child, std::list<QuantifierTreeNode*> originalChildren, const VariableSet &uVarsOutsideThisSubtree);
+    VariableSet &getUVarsOutsideChildSubtree(QuantifierTreeNode* child, std::list<QuantifierTreeNode*> childAndSiblings, const VariableSet &uVarsOutsideThisSubtree);
 
 
     std::ostream& print(std::ostream& out) const override;

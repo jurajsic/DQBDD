@@ -173,7 +173,6 @@ void QuantifierTree::pushVarsWithCombining() {
 
     // a heplful function which will either push or prepare to push univ vars based on whether we have conjunction or disjunction
     auto pushOrPrepareToPushUnivVars = [this, &pushableUnivVars] {
-        std::cout << this << " during " << pushableUnivVars << std::endl;
         if (this->isConj) {
             // for conjunction, we can just push all pushable univ vars to each child
             for (const Variable &univVarToPush : pushableUnivVars) {
@@ -274,6 +273,8 @@ void QuantifierTree::pushVarsWithCombining() {
         removeFromOrderedListOtherOrderedListUsingChildrenOrder(children, childrenToCombine);
         //std::cout << "The size of children to combine right before creating new child: " << childrenToCombine.size() << std::endl;
         QuantifierTree *newChild = new QuantifierTree(isConj, childrenToCombine, *qvMgr, false);
+        // as nothing is possible to be pushed further in the new child, we can set this to false
+        newChild->needsToLocalise = false;
         if (isVarExist(varToPush)) {
             newChild->pushExistVar(varToPush);
             removeExistVar(varToPush);
@@ -302,7 +303,7 @@ void QuantifierTree::pushVarsWithCombining() {
     }
 }
 
-VariableSet &QuantifierTree::getUVarsOutsideChildSubtree(QuantifierTreeNode* child, std::list<QuantifierTreeNode*> originalChildren, const VariableSet &uVarsOutsideThisSubtree) {
+VariableSet &QuantifierTree::getUVarsOutsideChildSubtree(QuantifierTreeNode* child, std::list<QuantifierTreeNode*> childAndSiblings, const VariableSet &uVarsOutsideThisSubtree) {
     if (uVarsOutsideChildSubtree.find(child) == uVarsOutsideChildSubtree.end()) { // if uVars outside child was not computed yet
         
         // the uVars outside child should be those that are already outside this subtree (reduced only to uVars actually occuring in the child)
@@ -310,9 +311,9 @@ VariableSet &QuantifierTree::getUVarsOutsideChildSubtree(QuantifierTreeNode* chi
         uVarsOutsideChildSubtree[child] = uVarsOutsideThisSubtree.intersect(uVarsInChildSupportSet);
         
         // and furthermore, it should be also those, that are in (original) siblings of child (again reduced to uVars actually occuring in the child)
-        for (auto originalChild : originalChildren) {
-            if (originalChild != child) {
-                VariableSet uVarsToAdd = originalChild->getUVarsSupportSet().intersect(uVarsInChildSupportSet);
+        for (auto childOrSibling : childAndSiblings) {
+            if (childOrSibling != child) {
+                VariableSet uVarsToAdd = childOrSibling->getUVarsSupportSet().intersect(uVarsInChildSupportSet);
                 uVarsOutsideChildSubtree[child].insert(uVarsToAdd.begin(), uVarsToAdd.end());
             }
         }
@@ -396,8 +397,8 @@ void QuantifierTree::pushExistVarsSeparately(const VariableSet &uVarsOutsideThis
 void QuantifierTree::localise(const VariableSet &uVarsOutsideThisSubtree) {
     /**
      * Localisation for conjunction and disjunction works similarly:
-     *  1) disjunction starts with attempting to push existential quantifiers into children separately
-     *  2) both use childrenToCombineMapping and the related functions to push quantifiers into new
+     *  1) Disjunction starts with attempting to push existential quantifiers into children separately
+     *  2) Both use childrenToCombineMapping and the related functions to push quantifiers into new
      *     children created by combining only those children that contain the variable that is being
      *     pushed where:
      *        - conjunction pushes this way only existential variables, universal variables are pushed
@@ -407,10 +408,14 @@ void QuantifierTree::localise(const VariableSet &uVarsOutsideThisSubtree) {
      *        - disjunction pushes this way the leftover existential variables which were not pushed
      *          separately in the first step, and all the possible universal variables (again as 
      *          deep as possible as explained in the previous remark)
-     *  3) calling localisation on the original children (i.e. not those created by previous step)
+     *  3) Localising only on the original children (i.e. not those created by previous step)
      *     because the previous step should assure that everything that is possible to be pushed
      *     was pushed as deep as it could (deep means between this node through the new children
-     *     to the original children)
+     *     to the original children). However localise() function is called for conjunction on
+     *     the new children, but for these, localisation is turned off, we only use that function
+     *     to pass on uVarsOutsideSubtree in such a way, that copies of universal variables (because
+     *     we do not rename variables, some copies can have same name) occuring outside each subtree 
+     *     are not passed along.
      * 
      * Example:
      * If the children are ch_1, ch_2, ch_3, ch_4 then:
@@ -418,15 +423,18 @@ void QuantifierTree::localise(const VariableSet &uVarsOutsideThisSubtree) {
      *     it can be pushed separately and push them separately into ch_1, ch_2, ch_3, and ch_4.
      *   - We call pushVarsWithCombining() which will do the second step, where for example if
      *     y was not pushed in previous step and appears only in ch_2 and ch_3, then we end up with
-     *     new child ch_y which will have as children ch_2 and ch_3, and this node will then have
+     *     new child ch_y which will have as children ch_2 and ch_3, and the current node will then have
      *     children ch_1, ch_4, and ch_y. This happens iteratively, so we can get another new child
      *     ch_x, created for variable x which appears in ch_1 and ch_y and then ch_x will have children
-     *     ch_1 and ch_y, and this node will updates its children as ch_4 and ch_x. During this,
-     *     all variables are pushed as deep as possible till the original children, so all pushed variables
-     *     appear somewhere between this node and the original children ch_1, ch_2... (or also in the 
-     *     original children).
-     *   - Localisation is then called for the original children ch_1, ch_2, ch_3, and ch_4 where we need
-     *     to update uVarsOutsideThisSubtree for each child.
+     *     ch_1 and ch_y, and this node will update its children to ch_4 and ch_x. During this,
+     *     all variables are pushed as deep as possible between this node and the original children (included), 
+     *     so all pushed variables appear somewhere between this node and the original children ch_1, ch_2, 
+     *     ch_3, ch_4 (or also in the original children).
+     *   - Localisation is then called for the original children ch_1, ch_2, ch_3, and ch_4 for disjunction
+     *     and for ch_4 and ch_x (i.e. the new children) for conjunction. However, as quantifiers are pushed
+     *     as deeply as possible, proper localisation will occur also only for ch_1, ch_2, ch_3, and ch_4, 
+     *     localise() for ch_x and ch_y will only be used, to compute uVarsOutsideThisSubtree in such a way
+     *     that that copies of universal variables occuring outside each subtree are not passed along.
      */
 
     removeUnusedVars();
@@ -434,36 +442,57 @@ void QuantifierTree::localise(const VariableSet &uVarsOutsideThisSubtree) {
     if (getUnivVars().empty() && getExistVars().empty()) {
         return;
     }
+        //std::cout << "Localising at tree: " << *this << " with: " << std::endl
+        //          << "   support set:   " << getSupportSet() << std::endl
+        //          << "   u support set: " << getUVarsSupportSet() << std::endl
+        //          << "   u outside:     " << uVarsOutsideThisSubtree << std::endl;
 
-    //std::cout << "Localising at tree: " << *this << " with: " << std::endl
-    //          << "   support set:   " << getSupportSet() << std::endl
-    //          << "   u support set: " << getUVarsSupportSet() << std::endl
-    //          << "   u outside:     " << uVarsOutsideThisSubtree << std::endl;
+    if (needsToLocalise) {
+        // for each exist var y compute the children that contain y
+        // and save them in childrenToCombineMapping[y]
+        addExistVarsToChildrenToCombineMapping(getExistVars());
 
-    // for each exist var y compute the children that contain y
-    // and save them in childrenToCombineMapping[y]
-    addExistVarsToChildrenToCombineMapping(getExistVars());
-
-    // do the 1) step
-    if (!isConj) {
-        pushExistVarsSeparately(uVarsOutsideThisSubtree);
+        // do the 1) step
+        if (!isConj) {
+            pushExistVarsSeparately(uVarsOutsideThisSubtree);
+        }
     }
 
-    // make a copy of original children to call localisation only for them at the end
-    std::list<QuantifierTreeNode*> originalChildren = children;
+    // for disjunction, localisation will be called only on original children (and we need a copy here, before pushVarsWithCombining() changes children)
+    std::list<QuantifierTreeNode*> childrenToCallLocaliseOn;
+    if (!isConj) {
+        childrenToCallLocaliseOn = children;
+    }
 
-    // do the 2) step 
-    pushVarsWithCombining();
+    if (needsToLocalise) {
+        // do the 2) step 
+        pushVarsWithCombining();
+    }
+
+    // for conjunction, we want to call localisation on the newly created children, on which localisation 
+    // will not occur (as quantifiers should be already maximally pushed for them), however, it will
+    // compute uVarsOutside them in such a way, to exclude univ vars which are just non-renamed 'copies'
+    if (isConj) {
+        childrenToCallLocaliseOn = children;
+    }
 
     // recursively call localise for each (original) child - step 3)
-    for (QuantifierTreeNode *child : originalChildren) {
-        // TODO check if the subtree contains any quantifiers, if not we can skip and not compute getUVarsOutsideChildSubtree for the child (important for conjunction, for disjunction it is computed)
+    for (QuantifierTreeNode *child : childrenToCallLocaliseOn) {
+        // if child does not have any quantifier to push, we can skip localisation, possibly saving on computing uVarsOutsideChildSubtree (for conjunction)
+        if (child->getUnivVars().empty() && child->getExistVars().empty()) {
+            // to save on memory, we can delete uVarsOutsideChildSubtree[child] because we do not use it further (here only important for disjunction)
+            uVarsOutsideChildSubtree.erase(child);
+            continue;
+        }
 
-        VariableSet &uVarsOutsideThisChildSubtree = getUVarsOutsideChildSubtree(child, originalChildren, uVarsOutsideThisSubtree);
+        VariableSet &uVarsOutsideThisChildSubtree = getUVarsOutsideChildSubtree(child, childrenToCallLocaliseOn, uVarsOutsideThisSubtree);
         
-        /* TODO we need to check all copies of univ vars outside childSubtree, whether they are really outside or they are copies. 
-         * This next is just dirty not complete fix (the fix just removes universal variables quantified in the child, because 
-         * obviously the occurences of these variables outside subtree will be just copies which we did not rename).
+        /* This part is important probably only for conjunction: 
+         * To not pass along non-renamed copies of univ vars, we remove those universal quantifiers, which are quantified 
+         * in the child. This removes all possible copies from siblings and because we assume, that localise() for this node
+         * was called without copies, this should accomplish it. Also, for conjunction, we are doing this also for newly created
+         * children, so it should really do it (for disjunction it is not important, no univ vars copies can be created, that is
+         * why we can just skip to original children).
          */
         child->localise(uVarsOutsideThisChildSubtree.minus(child->getUnivVars()));
         

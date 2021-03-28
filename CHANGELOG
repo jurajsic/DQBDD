@@ -4,12 +4,13 @@
 ### Fixes
 - added checks in DQDIMACS parser for errors and fixed parsing of free variables
 - some solved instances by HQSpre during parsing were not caught, leading to a thrown exception
-- changed the algorithm of localisation to save on memory/time
+- the copies of universal variables (which DQBDD does not rename) will now not be taken into account for computing the conditions of pushing existential variables for disjunction
 
 ### New
 - added parser for QBFs in prenex cleansed (D)QCIR format (prenex DQCIR is like prenex QCIR, where we can add quantifier henkin(v, v1, ..., vn) which represents existential variable v with dependency set {v1, ..., vn})
 - added an option to force file format (otherwise it is selected automatically by file type)
 - DQBDD now works also on Mac
+- changed how localisation is computed to save on memory/time
 
 ## [1.1] - 26-04-2020
 ### Fixes
