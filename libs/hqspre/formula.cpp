@@ -40,10 +40,13 @@
 #include "timer.hpp"
 #include "varheap.hpp"
 
+
 /**
  * \file formula.cpp
  * \brief Implementation of basic functions for variable, clause, and dependency
- * management \author Ralf Wimmer \date 12/2015-03/2016
+ * management
+ * \author Ralf Wimmer
+ * \date 12/2015-01/2021
  */
 
 namespace hqspre {
@@ -58,26 +61,49 @@ Formula::preprocess()
 
     val_assert(checkConsistency());
 
-    if (_interrupt) return;
+    if (_interrupt) {
+        return;
+    }
 
     _blocked_candidates.resize(_clauses.size());
 
     // Do initial unit and pure propagation
     fastPreprocess();
 
+
+    // try to perform forkSplitting
+    if (!isQBF() && _settings.enableFork) {
+        VLOG(2) << "Entering forkext\n";
+        if (forkExtension()) {
+            VLOG(2) << "Formula is disjunct.\n";
+            _settings.findHidden = resolveAfterForkSplit();
+        }
+    }
+
+    if (_settings.findHidden) {
+        findHiddenEquivalences();
+        solveSAT();
+    }
+
     val_assert(checkConsistency());
 
-    if (_interrupt) return;
+    if (_interrupt) {
+        return;
+    }
 
     determineGates(true, true, true, _settings.semantic_gates);
     gateDependencies(DependencyOperation::ADD);
 
     val_assert(checkConsistency());
 
-    if (_interrupt) return;
+    if (_interrupt) {
+        return;
+    }
 
     if (_settings.equiv_gates) {
-        if (findEquivalentGates()) fastPreprocess();
+        if (findEquivalentGates()) {
+            fastPreprocess();
+        }
     }
 
     val_assert(checkConsistency());
@@ -86,7 +112,9 @@ Formula::preprocess()
     auto temp_hidden = _settings.hidden;
 
     while (again && stat(Statistics::PREPRO_LOOPS) < _settings.max_loops) {
-        if (_interrupt) return;
+        if (_interrupt) {
+            return;
+        }
         ++stat(Statistics::PREPRO_LOOPS);
 
         VLOG(1) << "Preprocessing loop #" << stat(Statistics::PREPRO_LOOPS) << " started.";
@@ -100,18 +128,33 @@ Formula::preprocess()
             again = true;
             fastPreprocess();
             val_assert(checkConsistency());
-        }
 
-        // Subsumption checks
-        if (_settings.subsumption && removeSubsumedClauses()) {
-            again = true;
-            fastPreprocess();
-            val_assert(checkConsistency());
-            if (_interrupt) return;
+            // Subsumption checks
+            if (_settings.subsumption && removeSubsumedClauses()) {
+                again = true;
+                fastPreprocess();
+                val_assert(checkConsistency());
+                if (_interrupt) {
+                    return;
+                }
+            }
         }
 
         // Always skip hidden literals in first run
-        if (stat(Statistics::PREPRO_LOOPS) == 1) _settings.hidden = 0u;
+        if (stat(Statistics::PREPRO_LOOPS) == 1) {
+            _settings.hidden = 0u;
+        }
+
+        if (_settings.hec && findHiddenEquivAndContraDefinitions()) {
+            again = true;
+            fastPreprocess();
+            val_assert(checkConsistency());
+            if (_interrupt) {
+                return;
+            }
+        } else {
+            _settings.hec = false;
+        }
 
         // Blocked clause and friends (tautology/subsumption) elimination
         val_assert(checkConsistency());
@@ -119,24 +162,22 @@ Formula::preprocess()
             val_assert(checkConsistency());
             again = true;
             fastPreprocess();
-            if (_interrupt) return;
+            if (_interrupt) {
+                return;
+            }
         }
-        if (stat(Statistics::PREPRO_LOOPS) == 1) _settings.hidden = temp_hidden;
-
-        if (_settings.hec && findHiddenEquivAndContraDefinitions()) {
-            again = true;
-            fastPreprocess();
-            val_assert(checkConsistency());
-            if (_interrupt) return;
-        } else
-            _settings.hec = false;
+        if (stat(Statistics::PREPRO_LOOPS) == 1) {
+            _settings.hidden = temp_hidden;
+        }
 
         // Self-subsuming resolution
         if (_settings.self_subsumption && selfSubsumingResolution()) {
             again = true;
             fastPreprocess();
             val_assert(checkConsistency());
-            if (_interrupt) return;
+            if (_interrupt) {
+                return;
+            }
         }
 
         // Use vivification (Piette et al.) to shorten clauses
@@ -145,7 +186,9 @@ Formula::preprocess()
                 again = true;
                 fastPreprocess();
                 val_assert(checkConsistency());
-                if (_interrupt) return;
+                if (_interrupt) {
+                    return;
+                }
             }
         }
 
@@ -155,7 +198,9 @@ Formula::preprocess()
                 _settings.upla = false;
             }
             val_assert(checkConsistency());
-            if (_interrupt) return;
+            if (_interrupt) {
+                return;
+            }
         }
 
         // Elimination of implication chains
@@ -163,7 +208,9 @@ Formula::preprocess()
             again = true;
             fastPreprocess();
             val_assert(checkConsistency());
-            if (_interrupt) return;
+            if (_interrupt) {
+                return;
+            }
         }
 
         // Variable elimination by resolution
@@ -171,7 +218,9 @@ Formula::preprocess()
             again = true;
             fastPreprocess();
             val_assert(checkConsistency());
-            if (_interrupt) return;
+            if (_interrupt) {
+                return;
+            }
         }
 
         // Subsumption checks
@@ -179,7 +228,9 @@ Formula::preprocess()
             again = true;
             fastPreprocess();
             val_assert(checkConsistency());
-            if (_interrupt) return;
+            if (_interrupt) {
+                return;
+            }
         }
 
         // Detecting contradictions
@@ -187,7 +238,9 @@ Formula::preprocess()
             again = true;
             fastPreprocess();
             val_assert(checkConsistency());
-            if (_interrupt) return;
+            if (_interrupt) {
+                return;
+            }
         }
 
         // Finding constant variables (a.k.a. backbones) by SAT calls
@@ -196,13 +249,17 @@ Formula::preprocess()
                 again = true;
                 fastPreprocess();
                 val_assert(checkConsistency());
-                if (_interrupt) return;
+                if (_interrupt) {
+                    return;
+                }
             }
             if (_settings.bia && addBlockedImplications()) {
                 again = true;
                 fastPreprocess();
                 val_assert(checkConsistency());
-                if (_interrupt) return;
+                if (_interrupt) {
+                    return;
+                }
             }
 
             // Finding implications (= implied binary clauses) by SAT calls
@@ -210,12 +267,16 @@ Formula::preprocess()
                 again = true;
                 fastPreprocess();
                 val_assert(checkConsistency());
-                if (_interrupt) return;
+                if (_interrupt) {
+                    return;
+                }
             }
 
             determineGates(true, true, true, false);
             removeOptionalClauses();
-            if (_interrupt) return;
+            if (_interrupt) {
+                return;
+            }
         } else if (static_cast<unsigned int>(stat(Statistics::PREPRO_LOOPS)) <= _settings.max_substitution_loops) {
             determineGates(true, true, true, false);
             removeOptionalClauses();
@@ -228,24 +289,21 @@ Formula::preprocess()
         }
 
         // Apply universal expansion
-        if (_settings.univ_expand == 1 && _qbf_prefix && applyUniversalExpansion()) {
+        if (_settings.univ_expand == 1 && _qbf_prefix != nullptr && applyUniversalExpansion()) {
             again = true;
-            val_assert(checkConsistency());
-            if (_interrupt) return;
-        } else if (_settings.univ_expand == 2 && _qbf_prefix && applyUniversalExpansion2()) {
+        } else if (_settings.univ_expand == 2 && _qbf_prefix != nullptr && applyUniversalExpansion2()) {
             again = true;
-            val_assert(checkConsistency());
-            if (_interrupt) return;
-        } else if (_settings.univ_expand > 0) {
-            if (_dqbf_prefix != nullptr && applyUniversalExpansionDQBF()) {
-                again = true;
-                val_assert(checkConsistency());
-                if (_interrupt) return;
-            }
+        } else if (_settings.univ_expand > 0 && _dqbf_prefix != nullptr && applyUniversalExpansionDQBF()) {
+            again = true;
+        }
+        val_assert(checkConsistency());
+        if (_interrupt) {
+            return;
         }
 
-        if (numUVars() == 0 && _settings.sat_decide) {
-            checkSAT();
+        if (numUVars() == 0) {
+            if (_settings.sat_decide) checkSAT();
+            return;
         }
 
         // Subsumption checks
@@ -253,20 +311,29 @@ Formula::preprocess()
             again = true;
             fastPreprocess();
             val_assert(checkConsistency());
-            if (_interrupt) return;
+            if (_interrupt) {
+                return;
+            }
         }
 
         // Incomplete SAT/UNSAT checks
         if (stat(Statistics::PREPRO_LOOPS) == 1 && _settings.sat_incomplete) {
             checkSAT();
-            if (_interrupt) return;
+            if (_interrupt) {
+                return;
+            }
             checkUNSAT(_settings.num_random_patterns);
-            if (_interrupt) return;
+            if (_interrupt) {
+                return;
+            }
         }
 
         updateVars();
-        if (_interrupt) return;
+        if (_interrupt) {
+            return;
+        }
         VLOG(1) << "Preprocessing loop #" << stat(Statistics::PREPRO_LOOPS) << " finished.";
+        
 
     }  // end main prepro loop
 
@@ -275,10 +342,13 @@ Formula::preprocess()
     // preprocessing phase.
     if (numUVars() == 0 && _settings.sat_decide) {
         checkSAT();
-        if (_interrupt) return;
+        if (_interrupt) {
+            return;
+        }
     }
 
     val_assert(checkConsistency());
+
 }
 
 /**
@@ -316,9 +386,15 @@ Formula::fastPreprocess(const bool until_fixedpoint)
     do {
         changes = false;
         ++iter;
-        if (unitPropagation()) changes = true;
-        if (findEquivalences()) changes = true;
-        if (findPure()) changes = true;
+        if (unitPropagation()) {
+            changes = true;
+        }
+        if (findEquivalences()) {
+            changes = true;
+        }
+        if (findPure()) {
+            changes = true;
+        }
     } while (changes && until_fixedpoint && iter < _settings.max_fast_loops);
 
     VLOG_IF(stat(Statistics::UNIT) > old_stat_unit || stat(Statistics::PURE) > old_stat_pure
@@ -394,7 +470,9 @@ Formula::addImplications(const Literal lit1, const Literal lit2, const ClauseID 
     const int id = hasImplication(negate(lit1), lit2);
     if (id >= 0) {
         // found implication has same id -> nothing to do
-        if (id == static_cast<int>(c_nr)) return;
+        if (id == static_cast<int>(c_nr)) {
+            return;
+        }
 
         // the binary already exists -> remove new one completely
         // due to current datastructure also the original binary clause will be
@@ -410,6 +488,7 @@ Formula::addImplications(const Literal lit1, const Literal lit2, const ClauseID 
     }
     _implications_added = true;
 }
+
 
 /**
  * \brief Inserts a clause into the occurrence lists and implication lists.
@@ -446,7 +525,9 @@ Formula::addClauseToLists(const ClauseID c_nr, const bool check_subsumption)
     }
 
     // Perform universal reduction
-    if (_settings.univ_reduction) universalReduction(clause);
+    if (_settings.univ_reduction) {
+        universalReduction(clause);
+    }
 
     _clause_sizes[c_nr] = clause.size();
 
@@ -474,6 +555,7 @@ Formula::addClauseToLists(const ClauseID c_nr, const bool check_subsumption)
             _clauses[c_nr].setStatus(ClauseStatus::MANDATORY);
             VLOG(2) << __FUNCTION__ << "(" << _clauses[c_nr] << ") removed " << num_subsumed << " subsumed clauses.";
         }
+
     }
 
     // For binary clauses, add implications.
@@ -511,7 +593,9 @@ Formula::addClause(const Clause& clause)
         throw UNSATException("Trying to add an empty clause");
     }
 
-    if (clause.isTautology()) return -2;
+    if (clause.isTautology()) {
+        return -2;
+    }
 
     if (clause.size() == 1) {
         pushUnit(clause[0], PureStatus::UNIT);
@@ -554,7 +638,9 @@ Formula::addClause(Clause&& clause)
         throw UNSATException("Trying to add an empty clause");
     }
 
-    if (clause.isTautology()) return -2;
+    if (clause.isTautology()) {
+        return -2;
+    }
 
     if (clause.size() == 1) {
         pushUnit(clause[0], PureStatus::UNIT);
@@ -702,10 +788,11 @@ Formula::removeLiteral(const ClauseID c_nr, const Literal lit)
     // If the clause is currently binary, it becomes unit.
     if (clause.size() == 2) {
         val_assert(clause[0] == lit || clause[1] == lit);
-        if (clause[0] == lit)
+        if (clause[0] == lit) {
             pushUnit(clause[1], PureStatus::UNIT);
-        else
+        } else {
             pushUnit(clause[0], PureStatus::UNIT);
+        }
         removeClause(c_nr);
         return true;
     }
@@ -718,7 +805,9 @@ Formula::removeLiteral(const ClauseID c_nr, const Literal lit)
     clause.computeSignature();
 
     // Perform universal reduction
-    if (_settings.univ_reduction) result = universalReduction(clause, static_cast<int>(c_nr));
+    if (_settings.univ_reduction) {
+        result = universalReduction(clause, static_cast<int>(c_nr));
+    }
 
     // If the clause is now binary, add the implications.
     if (clause.size() == 2) {
@@ -783,7 +872,9 @@ Formula::replaceLiteralMono(const Literal lit, const Literal replacement)
         if (lit < replacement) {
             unsigned int l_pos = 0;
             // find the position of 'lit'
-            while (clause[l_pos] != lit) ++l_pos;
+            while (clause[l_pos] != lit) {
+                ++l_pos;
+            }
             // copy all literals between lit and replacement one position to the left
             while (l_pos + 1 < clause.size() && clause[l_pos + 1] <= replacement) {
                 clause[l_pos] = clause[l_pos + 1];
@@ -815,10 +906,11 @@ Formula::replaceLiteralMono(const Literal lit, const Literal replacement)
                 clause[l_pos] = replacement;
 
                 // check for tautology
-                if (l_pos > 0 && clause[l_pos - 1] == neg_replacement)
+                if (l_pos > 0 && clause[l_pos - 1] == neg_replacement) {
                     skip = true;
-                else if (l_pos < clause.size() - 1 && clause[l_pos + 1] == neg_replacement)
+                } else if (l_pos < clause.size() - 1 && clause[l_pos + 1] == neg_replacement) {
                     skip = true;
+                }
 
                 if (!skip) {
                     _occ_list[replacement].push_back(c_nr);
@@ -829,8 +921,10 @@ Formula::replaceLiteralMono(const Literal lit, const Literal replacement)
             }
         } else {
             // lit > replacement
-            int l_pos = static_cast<int>(clause.size() - 1);
-            while (clause[l_pos] > lit) --l_pos;
+            auto l_pos = static_cast<int>(clause.size() - 1);
+            while (clause[l_pos] > lit) {
+                --l_pos;
+            }
             while (l_pos > 0 && clause[l_pos - 1] >= replacement) {
                 clause[l_pos] = clause[l_pos - 1];
                 --l_pos;
@@ -838,7 +932,7 @@ Formula::replaceLiteralMono(const Literal lit, const Literal replacement)
 
             if (clause[l_pos] == replacement) {
                 // The clause already contained the replacement -> shorten it
-                while (l_pos < (int)clause.size() - 1) {
+                while (l_pos < static_cast<int>(clause.size()) - 1) {
                     clause[l_pos] = clause[l_pos + 1];
                     ++l_pos;
                 }
@@ -860,10 +954,11 @@ Formula::replaceLiteralMono(const Literal lit, const Literal replacement)
                 clause[l_pos] = replacement;
 
                 // check for tautology
-                if (l_pos > 0 && clause[l_pos - 1] == neg_replacement)
+                if (l_pos > 0 && clause[l_pos - 1] == neg_replacement) {
                     skip = true;
-                else if (l_pos < (int)clause.size() - 1 && clause[l_pos + 1] == neg_replacement)
+                } else if (l_pos < static_cast<int>(clause.size()) - 1 && clause[l_pos + 1] == neg_replacement) {
                     skip = true;
+                }
 
                 if (!skip) {
                     _occ_list[replacement].push_back(c_nr);
@@ -878,7 +973,9 @@ Formula::replaceLiteralMono(const Literal lit, const Literal replacement)
             removeClause(c_nr);
             _clause_sizes[c_nr] = 0;
         } else {
-            if (_settings.univ_reduction) universalReduction(clause, static_cast<int>(c_nr));
+            if (_settings.univ_reduction) {
+                universalReduction(clause, static_cast<int>(c_nr));
+            }
             clause.computeSignature();
             _clause_sizes[c_nr] = clause.size();
             // clause can be removed/identified as unit in universalReduction()
@@ -927,9 +1024,7 @@ Formula::reset()
     for (auto& timer : _timers) {
         timer.reset();
     }
-    for (auto& val : _statistics) {
-        val = 0;
-    }
+    std::fill(_statistics.begin(), _statistics.end(), 0);
 }
 
 /**
@@ -1015,7 +1110,10 @@ Formula::isQBF() const noexcept
     val_assert(_prefix);
     val_assert(_prefix->type() == PrefixType::QBF || _dqbf_prefix);
 
-    if (_prefix->type() == PrefixType::QBF && _qbf_prefix && !_dqbf_prefix) return true;
+    if (_prefix->type() == PrefixType::QBF && _qbf_prefix != nullptr && _dqbf_prefix == nullptr) {
+        return true;
+    }
+
     return _dqbf_prefix->isQBF();
 }
 
@@ -1030,7 +1128,9 @@ Formula::convertToQBF()
     val_assert(_prefix);
     val_assert(isQBF());
 
-    if (_prefix->type() == PrefixType::QBF && _qbf_prefix) return;
+    if (_prefix->type() == PrefixType::QBF && _qbf_prefix != nullptr) {
+        return;
+    }
 
     QBFPrefix* new_prefix = _dqbf_prefix->convertToQBF();
     delete _prefix;
@@ -1045,7 +1145,9 @@ Formula::initCandidateLists()
     _blocked_candidates.clear();
     _blocked_candidates.resize(_clauses.size());
     for (unsigned c_nr = 0; c_nr != _clauses.size(); ++c_nr) {
-        if (clauseDeleted(c_nr)) continue;
+        if (clauseDeleted(c_nr)) {
+            continue;
+        }
         if (!_blocked_candidates.inHeap(c_nr)) {
             _blocked_candidates.insert(c_nr);
         }
@@ -1184,5 +1286,53 @@ Formula::printStatistics() const
               << "c time_preprocessing............= " << getTime(WhichTimer::TOTAL_TIME) << "s\n"
               << std::flush;
 }
+
+
+
+Formula& Formula::operator=(Formula& other)
+{
+    _clauses = other._clauses;
+    _gates = other._gates;
+    _occ_list = other._occ_list;
+    _implications = other._implications;
+    _implications_added = other._implications_added;
+    _deleted_clause_numbers = other._deleted_clause_numbers;
+    _deleted_var_numbers = other._deleted_var_numbers;
+    _unit_stack = other._unit_stack;
+    _assignment = other._assignment;
+    _dont_touch = other._dont_touch;
+    _variable_score = other._variable_score;
+    _clause_sizes = other._clause_sizes;
+    _candidates = other._candidates;
+    _blocked_candidates = other._blocked_candidates;
+    _removed_lits = other._removed_lits;
+    _seen = other._seen;
+    _seen2 = other._seen2;
+#ifdef SKOLEM
+    _skolem_data = other._skolem_data;
+#endif
+    _settings = other._settings;
+    _process_limit = other._process_limit;
+    _interrupt = other._interrupt;
+    _statistics = other._statistics;
+    _timers = other._timers;
+
+    if (other._dqbf_prefix) {
+        _dqbf_prefix = other._dqbf_prefix;
+        _prefix = _dqbf_prefix;
+    } else if (other._qbf_prefix) {
+        _qbf_prefix = other._qbf_prefix;
+        _prefix = _qbf_prefix;
+    }
+	
+	other._prefix = nullptr;
+    other._dqbf_prefix = nullptr;
+    other._qbf_prefix = nullptr;
+	
+	return *this;
+
+}
+
+
 
 }  // end namespace hqspre

@@ -1,4 +1,4 @@
-// $Id: milp_solver.cpp 2352 2019-01-27 19:34:01Z wimmer $
+// $Id: milp_solver.cpp 2644 2019-09-07 20:46:54Z wimmer $
 
 /*
  * This file is part of HQSpre.
@@ -20,25 +20,20 @@
  * along with HQSpre. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <glpk.h>
 #include <cmath>
 #include <cstdlib>
 #include <vector>
-
-#if defined(HAVE_GLPK)
-#    include <glpk.h>
-#endif
 
 #include <easylogging++.hpp>
 #include "milp_solver.hpp"
 
 namespace hqspre {
 
-#if defined(HAVE_GLPK)
-
 GlpkSolver::GlpkSolver() : _solver(nullptr), _max_constraint(1), _curr_constraint(1)
 {
     _solver = glp_create_prob();
-    setObjectiveDirection(ObjectiveType::MINIMIZE);
+    glp_set_obj_dir(_solver, GLP_MIN);
 }
 
 GlpkSolver::~GlpkSolver()
@@ -159,12 +154,13 @@ GlpkSolver::solve()
 
     const int status = glp_mip_status(_solver);
 
-    if (status == GLP_FEAS || status == GLP_OPT)
+    if (status == GLP_FEAS || status == GLP_OPT) {
         return TruthValue::TRUE;
-    else if (status == GLP_NOFEAS)
+    } else if (status == GLP_NOFEAS) {
         return TruthValue::FALSE;
-    else
+    } else {
         return TruthValue::UNKNOWN;
+    }
 }
 
 TruthValue
@@ -182,18 +178,21 @@ GlpkSolver::solve(void (*callback)(glp_tree*, void*), void* info)
     opt.fp_heur  = GLP_ON;
     opt.cb_func  = callback;
     opt.cb_info  = info;
-    if (!_verbose) opt.msg_lev = GLP_MSG_OFF;
+    if (!_verbose) {
+        opt.msg_lev = GLP_MSG_OFF;
+    }
 
     glp_intopt(_solver, &opt);
 
     const int status = glp_mip_status(_solver);
 
-    if (status == GLP_FEAS || status == GLP_OPT)
+    if (status == GLP_FEAS || status == GLP_OPT) {
         return TruthValue::TRUE;
-    else if (status == GLP_NOFEAS)
+    } else if (status == GLP_NOFEAS) {
         return TruthValue::FALSE;
-    else
+    } else {
         return TruthValue::UNKNOWN;
+    }
 }
 
 int
@@ -207,7 +206,5 @@ GlpkSolver::getDoubleValue(MilpSolver::VarType var)
 {
     return glp_mip_col_val(_solver, var);
 }
-
-#endif
 
 }  // end namespace hqspre

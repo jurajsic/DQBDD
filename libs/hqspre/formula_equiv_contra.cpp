@@ -58,7 +58,9 @@ static void
 visitSCC(const std::vector<Formula::ImplicationSet>& implications, const Literal n, int& calls, std::vector<int>& scc,
          std::vector<int>& root, int& nextscc, std::stack<Literal>& stk)
 {
-    if (root[n] != -1) return;
+    if (root[n] != -1) {
+        return;
+    }
 
     root[n] = calls;
     scc[n]  = -1;
@@ -104,7 +106,9 @@ visitSCC(const std::vector<Formula::ImplicationSet>& implications, const Literal
 bool
 Formula::findEquivalences()
 {
-    if (!_implications_added) return false;
+    if (!_implications_added) {
+        return false;
+    }
     _implications_added = false;
 
     ScopeTimer  equiv(getTimer(WhichTimer::EQUIV_LITS));
@@ -147,14 +151,22 @@ Formula::findEquivalences()
             // var and ~var in the same SCC -> UNSAT
             throw UNSATException("A literal and its negation in one SCC");
         }
-        if (scc[pos] != -1) sccs[scc[pos]].push_back(pos);
-        if (scc[neg] != -1) sccs[scc[neg]].push_back(neg);
+        if (scc[pos] != -1) {
+            sccs[scc[pos]].push_back(pos);
+        }
+        if (scc[neg] != -1) {
+            sccs[scc[neg]].push_back(neg);
+        }
     }
 
     // Now 'sccs' is a vector of the all SCCs.
     for (const auto& p : sccs) {
-        if (_interrupt) break;
-        if (p.size() >= 2) count += replaceSCC(p);
+        if (_interrupt) {
+            break;
+        }
+        if (p.size() >= 2) {
+            count += replaceSCC(p);
+        }
     }
 
     stat(Statistics::EQUIV_LITS) += count;
@@ -177,7 +189,9 @@ Formula::replaceSCC(const std::vector<Literal>& scc)
 {
     val_assert(_prefix);
 
-    if (scc.size() <= 1) return 0;
+    if (scc.size() <= 1) {
+        return 0;
+    }
 
     // count universals on scc
     unsigned int countUniversal    = 0;
@@ -204,8 +218,12 @@ Formula::replaceSCC(const std::vector<Literal>& scc)
         val_assert(isUniversal(univ_var));
 
         for (const Literal q : scc) {
-            if (q == universal_literal) continue;
-            if (varDeleted(lit2var(q))) continue;
+            if (q == universal_literal) {
+                continue;
+            }
+            if (varDeleted(lit2var(q))) {
+                continue;
+            }
 
             const Variable current_var = lit2var(q);
             val_assert(isExistential(current_var));
@@ -247,14 +265,20 @@ Formula::replaceSCC(const std::vector<Literal>& scc)
 
         const Literal  replacement     = scc.front();
         const Variable replacement_var = lit2var(replacement);
-        if (varDeleted(replacement_var)) return count;
+        if (varDeleted(replacement_var)) {
+            return count;
+        }
         // new dependencies for the equivalent variables. At the end it should
         // contain the intersection of the dependency sets of all equivalent
         // variables.
 
         for (const Literal q : scc) {
-            if (q == replacement) continue;
-            if (varDeleted(lit2var(q))) continue;
+            if (q == replacement) {
+                continue;
+            }
+            if (varDeleted(lit2var(q))) {
+                continue;
+            }
 
             VLOG(3) << __FUNCTION__ << "(): replacing " << lit2dimacs(q) << " by exist. literal "
                     << lit2dimacs(replacement);
@@ -294,11 +318,12 @@ Formula::findHiddenEquivAndContraDefinitions()
 
     Clause::ClauseData   binary_clause(2, 0);
     std::vector<Literal> scc;
-    std::uint64_t        sign  = 0ul;
-    bool                 found = false;
+    std::uint64_t        sign = 0ul;
 
     for (Literal lit = minLitIndex(); lit <= maxLitIndex(); ++lit) {
-        if (_interrupt) break;
+        if (_interrupt) {
+            break;
+        }
         binary_clause[0] = lit;
         // reset equivalence container
         scc.clear();
@@ -316,14 +341,14 @@ Formula::findHiddenEquivAndContraDefinitions()
             binary_clause[1] = negate(bin.getLiteral());
             val_assert(!_seen[binary_clause[0]]);
             val_assert(!_seen[binary_clause[1]]);
-            _seen[binary_clause[0]] = true;
-            _seen[binary_clause[1]] = true;
+            _seen[binary_clause[0]] = 1u;
+            _seen[binary_clause[1]] = 1u;
             // Add hidden literals and check for tautology
-            found = addHiddenLiterals(-1, binary_clause, sign);
+            bool found = addHiddenLiterals(-1, binary_clause, sign);
 
             if (!found) {
                 // Clause is no hidden tautology => check for hidden blocked clause
-                found = clauseBlocked(binary_clause);
+                found = (clauseBlocked(binary_clause) != 0u);
             }
             clearSeen(binary_clause);
 
@@ -345,14 +370,14 @@ Formula::findHiddenEquivAndContraDefinitions()
             binary_clause[1] = bin.getLiteral();
             val_assert(!_seen[binary_clause[0]]);
             val_assert(!_seen[binary_clause[1]]);
-            _seen[binary_clause[0]] = true;
-            _seen[binary_clause[1]] = true;
+            _seen[binary_clause[0]] = 1u;
+            _seen[binary_clause[1]] = 1u;
             // Add hidden literals and check for tautology
             found = addHiddenLiteralsBinary(-1, binary_clause, sign);
 
             if (!found) {
                 // Clause is no hidden tautology => check for hidden blocked clause
-                found = clauseBlocked(binary_clause);
+                found = (clauseBlocked(binary_clause) != 0u);
             }
             clearSeen(binary_clause);
 
@@ -418,7 +443,9 @@ Formula::findContradictions()
     std::vector<int> usedTargetMap(litcount, -1);
 
     for (Literal lit = minLitIndex(); lit <= maxLitIndex(); ++lit) {
-        if (_interrupt) return false;
+        if (_interrupt) {
+            return false;
+        }
 
         if (!_implications[lit].empty()) {
             usedSourceMap[lit] = static_cast<int>(usedSource.size());
@@ -433,8 +460,12 @@ Formula::findContradictions()
     ReachMatrix reach(usedSource.size());
 
     for (Literal lit = minLitIndex(); lit <= maxLitIndex(); ++lit) {
-        if (_interrupt) return false;
-        if (usedSourceMap[lit] == -1) continue;
+        if (_interrupt) {
+            return false;
+        }
+        if (usedSourceMap[lit] == -1) {
+            continue;
+        }
 
         BoolVector& reach_n = reach[usedSourceMap[lit]];
         val_assert(reach_n.uninitialized());
@@ -448,12 +479,14 @@ Formula::findContradictions()
     }
 
     for (unsigned int via = 0; via != usedSource.size(); ++via) {
-        if (_interrupt) return false;
+        if (_interrupt) {
+            return false;
+        }
 
         const int viaTarget = usedTargetMap[usedSource[via]];
-        if (viaTarget == -1) continue;
-
-        const auto& reach_via = reach[via];
+        if (viaTarget == -1) {
+            continue;
+        }
 
         if (_process_limit.reachedLimit()) {
             VLOG(2) << __FUNCTION__ << " Building data structure terminated due to process limit.";
@@ -466,10 +499,13 @@ Formula::findContradictions()
 
         _process_limit.decreaseLimitBy(2, usedSource.size());
 
+        const auto& reach_via = reach[via];
         for (std::size_t from = 0; from != usedSource.size(); ++from) {
             BoolVector& reach_from = reach[from];
 
-            if (!reach_from.get(viaTarget)) continue;
+            if (!reach_from.get(viaTarget)) {
+                continue;
+            }
 
             reach_from |= reach_via;
         }

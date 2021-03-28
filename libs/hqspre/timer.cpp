@@ -34,6 +34,20 @@ namespace hqspre {
  */
 
 /**
+   \brief Returns the time used by the current process.
+   \note If _user_plus_system_time is set to true, the sum of
+     user and system time are returned, otherwise only the user time.
+   \return The time used by the current process, measure in CLOCKS_PER_SEC.
+*/
+static double
+gettime() noexcept
+{
+    timeval start{};
+    gettimeofday(&start, nullptr);
+    return static_cast<double>(start.tv_sec) + static_cast<double>(start.tv_usec) / 1000000.0;
+}
+
+/**
    \brief Starts or continues time measurement.
 */
 void
@@ -83,20 +97,6 @@ Timer::read() const noexcept
 }
 
 /**
-   \brief Returns the time used by the current process.
-   \note If _user_plus_system_time is set to true, the sum of
-     user and system time are returned, otherwise only the user time.
-   \return The time used by the current process, measure in CLOCKS_PER_SEC.
-*/
-double
-Timer::gettime() const noexcept
-{
-    static timeval start;
-    gettimeofday(&start, nullptr);
-    return static_cast<double>(start.tv_sec) + static_cast<double>(start.tv_usec) / 1000000.0;
-}
-
-/**
    \brief Prints the measured time to the given output stream.
    \param stream the stream the measured time is to be printed to
    \param timer the time measurement object whose values is to be printed.
@@ -123,9 +123,11 @@ operator<<(std::ostream& stream, const Timer& timer)
 bool
 createTimeout(double timeout, void (*timeoutHandler)(int))
 {
-    struct sigaction sigact;
-    struct sigevent  sigev;
-    timer_t          timerid;
+    struct sigaction sigact
+    {};
+    struct sigevent sigev
+    {};
+    timer_t timerid;
 
     sigact.sa_handler = timeoutHandler;
     sigemptyset(&sigact.sa_mask);
@@ -142,19 +144,17 @@ createTimeout(double timeout, void (*timeoutHandler)(int))
         return false;
     }
 
-    struct itimerspec interval;
-    interval.it_value.tv_sec = (int)timeout;
+    struct itimerspec interval
+    {};
+    interval.it_value.tv_sec = static_cast<int>(timeout);
     interval.it_value.tv_nsec
         = static_cast<long int>((timeout - static_cast<double>(interval.it_value.tv_sec)) * 1000000000.0);
     interval.it_interval.tv_sec  = 0;
     interval.it_interval.tv_nsec = 0;
-    if (timer_settime(timerid, 0, &interval, nullptr) != 0) {
-        // 'timer_settime' failed
-        return false;
-    }
 
-    // everything seems successful
-    return true;
+    return (timer_settime(timerid, 0, &interval, nullptr) == 0);
+    // return value == 0 -> everything seems ok,
+    //              != 0 -> 'timer_settime' failed
 }
 
 #endif

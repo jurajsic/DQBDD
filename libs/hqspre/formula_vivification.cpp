@@ -49,7 +49,9 @@ namespace hqspre {
 bool
 Formula::applyVivification()
 {
-    if (!_unit_stack.empty()) unitPropagation();
+    if (!_unit_stack.empty()) {
+        unitPropagation();
+    }
 
     ScopeTimer v_timer(getTimer(WhichTimer::VIVIFICATION));
 
@@ -68,9 +70,15 @@ Formula::applyVivification()
             break;
         }
         prop.clear();
-        if (_interrupt) break;
-        if (clauseDeleted(c_nr)) continue;
-        if (_clauses[c_nr].size() < _settings.vivify_min_size) continue;
+        if (_interrupt) {
+            break;
+        }
+        if (clauseDeleted(c_nr)) {
+            continue;
+        }
+        if (_clauses[c_nr].size() < _settings.vivify_min_size) {
+            continue;
+        }
         if (vivifyClause(c_nr, prop)) {
             result = true;
         }
@@ -98,7 +106,9 @@ Formula::vivifyClause(const ClauseID c_nr, SatPropagator& prop)
 {
     val_assert(c_nr < _clauses.size());
 
-    if (clauseDeleted(c_nr)) return false;
+    if (clauseDeleted(c_nr)) {
+        return false;
+    }
     if (!_unit_stack.empty()) {
         unitPropagation();
         prop.reset();
@@ -118,8 +128,10 @@ Formula::vivifyClause(const ClauseID c_nr, SatPropagator& prop)
     std::vector<Literal> lits;
     lits.reserve(clause.size());
 
-    for (long pos = 0; pos < static_cast<long>(clause_size) - 1; ++pos) {
-        if (_interrupt) return false;
+    for (int pos = 0; pos < static_cast<int>(clause_size) - 1; ++pos) {
+        if (_interrupt) {
+            return false;
+        }
 
         const Literal current_lit = buffer[pos];
         lits.push_back(negate(current_lit));
@@ -128,9 +140,8 @@ Formula::vivifyClause(const ClauseID c_nr, SatPropagator& prop)
         try {
             prop.bcp(negate(current_lit), static_cast<int>(c_nr));
         } catch (const ConflictException&) {
-            for (auto& l : lits) {
-                l = negate(l);
-            }
+            std::transform(lits.cbegin(), lits.cend(), lits.begin(), negate);
+
             if (!_settings.vivify_delete) {
                 VLOG(3) << "Vivifying #" << c_nr << " led to a conflict. Removing " << (clause.size() - lits.size())
                         << " literals.";
@@ -140,9 +151,9 @@ Formula::vivifyClause(const ClauseID c_nr, SatPropagator& prop)
                 removeClause(c_nr);
 
                 const auto nr = addClause(std::move(lits), true, false);
-                if (nr >= 0)
+                if (nr >= 0) {
                     prop.addClause(nr);
-                else {
+                } else {
                     unitPropagation();
                     prop.reset();
                 }
@@ -157,8 +168,10 @@ Formula::vivifyClause(const ClauseID c_nr, SatPropagator& prop)
         }
 
         // Check if another literal of the clause (or its negation) is implied
-        for (long other_pos = pos + 1; other_pos < static_cast<long>(clause_size); ++other_pos) {
-            if (pos == static_cast<long>(clause.size()) - 2 && other_pos == pos + 1) break;
+        for (int other_pos = pos + 1; other_pos < static_cast<int>(clause_size); ++other_pos) {
+            if (pos == static_cast<int>(clause.size()) - 2 && other_pos == pos + 1) {
+                break;
+            }
 
             const Literal  other_lit = buffer[other_pos];
             const Variable other_var = lit2var(other_lit);
@@ -171,9 +184,7 @@ Formula::vivifyClause(const ClauseID c_nr, SatPropagator& prop)
                     prop.removeClause(c_nr);
                     removeClause(c_nr);
                 } else {
-                    for (auto& l : lits) {
-                        l = negate(l);
-                    }
+                    std::transform(lits.cbegin(), lits.cend(), lits.begin(), negate);
                     lits.push_back(other_lit);
 
                     stat(Statistics::VIVIFIED_LITERALS) += (clause_size - lits.size());
@@ -183,9 +194,9 @@ Formula::vivifyClause(const ClauseID c_nr, SatPropagator& prop)
                     prop.removeClause(c_nr);
                     removeClause(c_nr);
                     const auto nr = addClause(std::move(lits), true, false);
-                    if (nr >= 0)
+                    if (nr >= 0) {
                         prop.addClause(nr);
-                    else {
+                    } else {
                         unitPropagation();
                         prop.reset();
                     }
@@ -208,7 +219,9 @@ Formula::vivifyClause(const ClauseID c_nr, SatPropagator& prop)
                 VLOG(3) << "Vivifying #" << c_nr << " led to implied unsatisfied literals. Removing " << lits.size()
                         << " literals.";
                 prop.removeClause(c_nr);
-                for (const auto l : lits) removeLiteral(c_nr, l);
+                for (const auto l : lits) {
+                    removeLiteral(c_nr, l);
+                }
                 prop.addClause(c_nr);
 
                 stat(Statistics::VIVIFIED_LITERALS) += lits.size();

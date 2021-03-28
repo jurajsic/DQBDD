@@ -87,7 +87,7 @@ public:
         return (hqspre::isNegative(g._output_literal) ? !result : result);
     }
 
-    // stuff for transforming to 
+    // stuff for transforming to quantifier tree
 
     std::vector<const hqspre::Gate*> outputvarToGate;
 
@@ -181,7 +181,7 @@ HQSPreInterface::HQSPreInterface(Cudd &mgr, QuantifiedVariablesManager &qvmgr) :
 
 HQSPreInterface::~HQSPreInterface() = default;
 
-// code based on hqsfork
+// code based on HQS 
 bool HQSPreInterface::parse(std::string fileName) {
     formulaPtr.reset(new HQSPreFormulaWrapper());
 
@@ -198,31 +198,38 @@ bool HQSPreInterface::parse(std::string fileName) {
 
     formulaPtr->formula.settings().consistency_check = false;
 
-    // Parse the file
-    std::string in_name(fileName);
-    if (in_name == "") {
-        throw DQBDDexception("No input file given.");
-    }
-    std::ifstream in(in_name);
-    if (!in) {
-        throw DQBDDexception("Could not open input file '");
-    }
-    in >> formulaPtr->formula;
-    in.close();
-
-    // do the preprocessing magic
     try {
+        // Parse the file
+        std::string in_name(fileName);
+        if (in_name == "") {
+            throw DQBDDexception("No input file given.");
+        }
+        std::ifstream in(in_name);
+        if (!in) {
+            throw DQBDDexception("Could not open input file '");
+        }
+        in >> formulaPtr->formula;
+        in.close();
+
+        // do the preprocessing magic
         formulaPtr->formula.determineGates(true, true, true, false);
         if (formulaPtr->formula.getGates().size() > 5) {
             // First do full preprocessing on a copy of the formula
             hqspre::Formula formula2(formulaPtr->formula);
-            //formula2.settings().bla              = false;
-            //formula2.settings().ble              = false;
-            //formula2.settings().pure_sat_timeout = 1000;
+            // TODO decide what settings to use (same as in HQS?)
+            // bla and ble are only useful for QBF (I think)
+            // formula2.settings().bla              = false;
+            // formula2.settings().ble              = false;
+            // formula2.settings().pure_sat_timeout = 1000;
+            // formula2.settings().impl_chains      = 3;
+            // formula2.settings().max_substitution_cost = 250;
+            // formula2.settings().max_resolution_cost = 100;
+            // formula2.settings().vivify_fp        = true;
             formula2.preprocess();
 
             // Then do preprocessing, preserving gates
             formulaPtr->formula.settings().univ_expand      = 0; // maybe 2 is better???
+            // bla and ble are only useful for QBF (I think)
             formulaPtr->formula.settings().bla              = false;
             formulaPtr->formula.settings().ble              = false;
             formulaPtr->formula.settings().preserve_gates   = true;
@@ -230,6 +237,8 @@ bool HQSPreInterface::parse(std::string fileName) {
             formulaPtr->formula.settings().rewrite          = false;
             formulaPtr->formula.settings().resolution       = false;
             formulaPtr->formula.settings().max_loops        = 20;
+            formulaPtr->formula.settings().enableFork       = false;
+            // TODO timeout??
             //formulaPtr->formula.settings().pure_sat_timeout = 1000;
         }
         formulaPtr->formula.preprocess();
@@ -245,31 +254,26 @@ bool HQSPreInterface::parse(std::string fileName) {
     // do gate extraction
     formulaPtr->formula.determineGates(true, true, true, false);
     formulaPtr->formula.enforceDQBF(true);
-    formulaPtr->formula.unitPropagation();
-
-    const auto gates = formulaPtr->formula.getGates();
-
-    formulaPtr->gate_table = std::vector<BDD>(formulaPtr->formula.maxVarIndex() + 1);
-    formulaPtr->outputvarToGate = std::vector<const hqspre::Gate*>(formulaPtr->formula.maxVarIndex() + 1);
 
     // Create the proper problem variables (without Tseitin variables)
+    // first universal...
     for (hqspre::Variable var = formulaPtr->formula.minVarIndex(); var <= formulaPtr->formula.maxVarIndex(); ++var) {
-        if (formulaPtr->formula.isUniversal(var)) {
-            Variable uVar = Variable(var, mgr);
-            DQBFPrefix.addUnivVar(uVar);
-            formulaPtr->gate_table[var] = uVar;
-        } else if (formulaPtr->formula.isExistential(var) && !formulaPtr->formula.isGateOutput(var)) {
+        if (!formulaPtr->formula.varDeleted(var) && !formulaPtr->formula.isGateOutput(var) && formulaPtr->formula.isUniversal(var)) {
+            DQBFPrefix.addUnivVar(Variable(var, mgr));
+        }
+    }
+    // ...and then existential (so we can add dependencies without worrying whether univ var to be added to dependency was created or not)
+    for (hqspre::Variable var = formulaPtr->formula.minVarIndex(); var <= formulaPtr->formula.maxVarIndex(); ++var) {
+        if (!formulaPtr->formula.varDeleted(var) && !formulaPtr->formula.isGateOutput(var) && formulaPtr->formula.isExistential(var)) {
             Variable eVar = Variable(var, mgr);
             DQBFPrefix.addExistVar(eVar);
             for (auto dep : formulaPtr->formula.getDependencies(var)) {
                 DQBFPrefix.addDependency(eVar, Variable(dep, mgr));
+                if (!formulaPtr->formula.isUniversal(dep)) {
+                    throw DQBDDexception("Existential variable is depending on non universal one in hqspre, this should not happen");
+                }
             }
-            formulaPtr->gate_table[var] = eVar;
-        } 
-    }
-
-    for (auto &gate : formulaPtr->formula.getGates()) {
-        formulaPtr->outputvarToGate[hqspre::lit2var(gate._output_literal)] = &gate;
+        }
     }
 
     return false;
@@ -292,11 +296,26 @@ Formula* HQSPreInterface::getFormula() {
         return DQBFformula;
     }
 
+    // gates need to be copied, otherwise it can get a bit funky for some reason
+    const auto gates = formulaPtr->formula.getGates();
+
+    formulaPtr->gate_table = std::vector<BDD>(formulaPtr->formula.maxVarIndex() + 1);
+
+    // Load the gate_table with the primary inputs
+    for (auto var = formulaPtr->formula.minVarIndex(); var <= formulaPtr->formula.maxVarIndex(); ++var) {
+        if (!formulaPtr->formula.varDeleted(var) && !formulaPtr->formula.isGateOutput(var)) {
+            Variable dqbddVar = Variable(var, mgr);
+            formulaPtr->gate_table[var] = dqbddVar;
+        }
+    }
+
     // Create the gates
-    for (const hqspre::Gate& g: formulaPtr->formula.getGates()) {
+    for (const hqspre::Gate& g: gates) {
         const hqspre::Variable out_var = hqspre::lit2var(g._output_literal);
         formulaPtr->gate_table[out_var] = formulaPtr->gateToBDD(mgr, g);
-        for (const auto c_nr: g._encoding_clauses) formulaPtr->formula.removeClause(c_nr);
+        for (const auto c_nr: g._encoding_clauses) {
+            formulaPtr->formula.removeClause(c_nr);
+        }
     }
 
     // Convert the clauses
@@ -334,9 +353,17 @@ QuantifierTreeNode* HQSPreInterface::getQuantifierTree() {
         }
     }
 
-    // delete clauses from which gates were generated
-    for (const hqspre::Gate& g: formulaPtr->formula.getGates()) {
-        for (const auto c_nr: g._encoding_clauses) formulaPtr->formula.removeClause(c_nr);
+    // gates need to be copied, otherwise it can get a bit funky for some reason
+    const auto gates = formulaPtr->formula.getGates();
+
+    formulaPtr->outputvarToGate = std::vector<const hqspre::Gate*>(formulaPtr->formula.maxVarIndex() + 1);
+
+    for (auto &gate : gates) {
+        formulaPtr->outputvarToGate[hqspre::lit2var(gate._output_literal)] = &gate;
+        // delete clauses from which gates were generated
+        for (const auto c_nr: gate._encoding_clauses) {
+            formulaPtr->formula.removeClause(c_nr);
+        }
     }
 
     // find only clauses which were not deleted during preprocessing

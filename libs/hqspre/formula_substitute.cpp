@@ -56,7 +56,7 @@ namespace hqspre {
  * \param g the gate defining the substituted variable
  */
 bool
-Formula::substituteGate(Gate& g)
+Formula::substituteGate(const Gate& g)
 {
     val_assert(_unit_stack.empty());
     val_assert(_gates.gateValid(g));
@@ -125,7 +125,9 @@ Formula::substituteGate(Gate& g)
             LOG(ERROR) << "  The clause is: " << clause << ", the substituted variable: " << lit2var(o_lit);
             LOG(ERROR) << "  The gate is: " << g;
             LOG(ERROR) << "  Its encoding clauses are:";
-            for (const auto c_nr : g._encoding_clauses) LOG(ERROR) << "   " << clause[c_nr];
+            for (const auto other_c_nr : g._encoding_clauses) {
+                LOG(ERROR) << "   " << clause[other_c_nr];
+            }
             val_assert(false);
         }
     }
@@ -145,7 +147,7 @@ Formula::substituteGate(Gate& g)
             addClause(std::move(c));
         } else {
             clearSeen(c);
-            actual_costs -= static_cast<int>(c.size());
+            //            actual_costs -= static_cast<int>(c.size());
         }
     }
 
@@ -176,13 +178,19 @@ Formula::rewriteGate(Gate& g)
 {
     val_assert(_gates.gateValid(g));
 
-    if (g._type != GateType::AND_GATE && g._type != GateType::XOR_GATE && g._type != GateType::MUX_GATE) return;
-    if (varDeleted(lit2var(g._output_literal))) return;
+    if (g._type != GateType::AND_GATE && g._type != GateType::XOR_GATE && g._type != GateType::MUX_GATE) {
+        return;
+    }
+    if (varDeleted(lit2var(g._output_literal))) {
+        return;
+    }
 
     ScopeTimer rew(getTimer(WhichTimer::REWRITING));
     VLOG(3) << __FUNCTION__ << " Rewriting gate " << g << '.';
 
-    if (!_unit_stack.empty()) unitPropagation();
+    if (!_unit_stack.empty()) {
+        unitPropagation();
+    }
 
     Clause::ClauseData              new_clause;
     std::vector<Clause::ClauseData> to_add;
@@ -206,10 +214,14 @@ Formula::rewriteGate(Gate& g)
 
     // Delete all optional clauses involving y or neg_y
     for (const ClauseID c_nr : _occ_list[y]) {
-        if (clauseOptional(c_nr)) removeClause(c_nr);
+        if (clauseOptional(c_nr)) {
+            removeClause(c_nr);
+        }
     }
     for (const ClauseID c_nr : _occ_list[y_neg]) {
-        if (clauseOptional(c_nr)) removeClause(c_nr);
+        if (clauseOptional(c_nr)) {
+            removeClause(c_nr);
+        }
     }
 
     // add efficiency clause
@@ -309,8 +321,8 @@ Formula::rewriteGate(Gate& g)
         return;
     }
 
-    for (std::size_t i = 0; i < to_add.size(); ++i) {
-        addClause(std::move(to_add[i]));
+    for (auto& clause : to_add) {
+        addClause(std::move(clause));
     }
 
     ++stat(Statistics::REWRITING);
@@ -337,18 +349,23 @@ Formula::computeSubstitutionCosts(const Gate& g) const
     int neg_cost = 0;
 
     for (const ClauseID c_nr : _occ_list[g._output_literal]) {
-        if (!clauseOptional(c_nr)) pos_cost += static_cast<int>(_clauses[c_nr].size() - 1);
+        if (!clauseOptional(c_nr)) {
+            pos_cost += static_cast<int>(_clauses[c_nr].size() - 1);
+        }
     }
 
     for (const ClauseID c_nr : _occ_list[negate(g._output_literal)]) {
-        if (!clauseOptional(c_nr)) neg_cost += static_cast<int>(_clauses[c_nr].size() - 1);
+        if (!clauseOptional(c_nr)) {
+            neg_cost += static_cast<int>(_clauses[c_nr].size() - 1);
+        }
     }
 
     for (const ClauseID c_nr : g._encoding_clauses) {
-        if (_clauses[c_nr].containsLiteral(g._output_literal))
+        if (_clauses[c_nr].containsLiteral(g._output_literal)) {
             result += static_cast<int>(_clauses[c_nr].size() - 1) * neg_cost;
-        else
+        } else {
             result += static_cast<int>(_clauses[c_nr].size() - 1) * pos_cost;
+        }
     }
     result -= (pos_cost + neg_cost + static_cast<int>(_occ_list[g._output_literal].size())
                + static_cast<int>(_occ_list[negate(g._output_literal)].size()));
@@ -383,18 +400,24 @@ Formula::applySubstitution()
     val_assert(checkConsistency());
 
     for (auto it = _gates.rbegin(); it != _gates.rend(); ++it) {
-        if (_interrupt) break;
-        if (!_unit_stack.empty()) fastPreprocess();
+        if (_interrupt) {
+            break;
+        }
+        if (!_unit_stack.empty()) {
+            fastPreprocess();
+        }
 
         val_assert(_gates.checkConsistency());
 
         // Check if any of the gate's clauses has been
         // deleted (by subsumption checks during substitution
         // of other clauses)
-        if (!_gates.gateValid(*it)) continue;
+        if (!_gates.gateValid(*it)) {
+            continue;
+        }
 
         if (_settings.preserve_gates) {
-            if (!_gates.isGateInput(lit2var(it->_output_literal)) && substituteGate(*it)) {
+            if (_gates.isGateInput(lit2var(it->_output_literal)) == 0 && substituteGate(*it)) {
                 _gates.invalidateGate(*it);
             }
         } else {

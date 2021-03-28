@@ -1,4 +1,4 @@
-// $Id: milp_solver.hpp 2352 2019-01-27 19:34:01Z wimmer $
+// $Id: milp_solver.hpp 2644 2019-09-07 20:46:54Z wimmer $
 
 /*
  * This file is part of HQSpre.
@@ -27,11 +27,8 @@
 
 #include "auxil.hpp"
 
-#if defined(HAVE_GLPK)
-// forward declarations
 struct glp_tree;
 struct glp_prob;
-#endif
 
 namespace hqspre {
 
@@ -75,8 +72,6 @@ class MilpSolver
     bool _verbose = true;
 };
 
-#if defined(HAVE_GLPK)
-
 class GlpkSolver : public MilpSolver
 {
    public:
@@ -107,8 +102,6 @@ class GlpkSolver : public MilpSolver
     unsigned int _max_constraint;
     unsigned int _curr_constraint;
 };
-
-#endif
 
 }  // end namespace hqspre
 

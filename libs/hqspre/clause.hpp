@@ -77,7 +77,7 @@ enum class ClauseStatus : short
 /**
  * \brief Add the signature bit of a single literal to signature
  */
-template<typename T>
+template <typename T>
 inline void
 addSignatureLit(T& signature, const Literal literal) noexcept
 {
@@ -123,7 +123,7 @@ class Clause
      */
     Clause(Clause&&) noexcept = default;
 
-    template<typename Allocator>
+    template <typename Allocator>
     explicit Clause(const std::vector<Literal, Allocator>& literals, bool needs_check = true,
                     ClauseStatus status = ClauseStatus::MANDATORY);
     explicit Clause(ClauseData&& literals, bool needs_check = true,
@@ -143,7 +143,7 @@ class Clause
     bool        isTautology() const noexcept;
     bool        containsLiteral(Literal lit) const;
 
-    template<typename Container>
+    template <typename Container>
     bool subsetOf(const Container& other, std::uint64_t other_signature) const;
 
     //@{
@@ -276,7 +276,7 @@ namespace std {
 /**
  * \brief Hash functor for binary clauses
  */
-template<>
+template <>
 struct hash<hqspre::BinaryClause>
 {
     std::size_t operator()(const hqspre::BinaryClause& c) const { return std::hash<hqspre::Literal>()(c.getLiteral()); }

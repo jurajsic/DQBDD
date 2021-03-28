@@ -43,7 +43,7 @@ operator<<(std::ostream& stream, const Settings& s)
            << "[CONFIG] Maximimal hidden/covered clause size: " << s.max_clause_size << '\n'
            << "[CONFIG] Apply hidden subsumption elimination: " << format(s.hse) << '\n'
            << "[CONFIG] Detect hidden equivalences and constants: " << s.hec << '\n'
-           << "[CONFIG] Detect implication chains: " << format(s.impl_chains) << '\n'
+           << "[CONFIG] Detect implication chains: " << s.impl_chains << '\n'
            << "[CONFIG] Detect contradictions: " << format(s.contradictions) << '\n'
            << "[CONFIG] Use SAT-based semantic gate detection: " << format(s.semantic_gates) << '\n'
            << "[CONFIG] Apply gate substitutions: " << format(s.substitution) << " with maximal costs "
