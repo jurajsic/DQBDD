@@ -9,6 +9,7 @@
 ### New
 - added parser for QBFs in prenex cleansed (D)QCIR format (prenex DQCIR is like prenex QCIR, where we can add quantifier henkin(v, v1, ..., vn) which represents existential variable v with dependency set {v1, ..., vn})
 - added an option to force file format (otherwise it is selected automatically by file type)
+- DQBDD now works also on Mac
 
 ## [1.1] - 26-04-2020
 ### Fixes
