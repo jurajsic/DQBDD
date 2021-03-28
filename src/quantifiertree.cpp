@@ -164,28 +164,31 @@ void QuantifierTree::pushVarsWithCombining() {
     VariableSet pushableUnivVars = getUnivVars();
     for (const Variable &existVar : getExistVars()) {
         for (const Variable &dependentUnivVar : getExistVarDependencies(existVar)) {
-            ++numOfDependenciesForUnivVars[dependentUnivVar];
-            pushableUnivVars.erase(dependentUnivVar);
+            if (getUnivVars().contains(dependentUnivVar)) {
+                ++numOfDependenciesForUnivVars[dependentUnivVar];
+                pushableUnivVars.erase(dependentUnivVar);
+            }
         }
     }
 
     // a heplful function which will either push or prepare to push univ vars based on whether we have conjunction or disjunction
-    auto pushOrPrepareToPushUnivVars = [&] {
-        if (isConj) {
+    auto pushOrPrepareToPushUnivVars = [this, &pushableUnivVars] {
+        std::cout << this << " during " << pushableUnivVars << std::endl;
+        if (this->isConj) {
             // for conjunction, we can just push all pushable univ vars to each child
             for (const Variable &univVarToPush : pushableUnivVars) {
                 // push it into every child, pushUnivVar() will take care of deciding whether to keep it there or not
-                for (QuantifierTreeNode *child : children) {
+                for (QuantifierTreeNode *child : this->children) {
                     //std::cout << "Pushing " << univVarToPush << " to child " << *child << std::endl;
                     //std::cout << child->getSupportSet() << std::endl;
                     child->pushUnivVar(univVarToPush);
                 }
-                removeUnivVar(univVarToPush);
+                this->removeUnivVar(univVarToPush);
             }
         } else {
             // for disjunction, we can only push univ vars to combined child, 
             // therefore we add them to the mapping and we will push them later
-            addUnivVarsToChildrenToCombineMapping(pushableUnivVars);
+            this->addUnivVarsToChildrenToCombineMapping(pushableUnivVars);
         }
         // we can clear pushableUnivVars because we processed them
         pushableUnivVars.clear();
@@ -221,11 +224,13 @@ void QuantifierTree::pushVarsWithCombining() {
         // check if there are some new univ vars that can become pushable after we will push varToPush
         if (isVarExist(varToPush)) {
             for (const Variable &dependentUnivVar : getExistVarDependencies(varToPush)) {
-                --numOfDependenciesForUnivVars[dependentUnivVar];
-                if (numOfDependenciesForUnivVars[dependentUnivVar] == 0) {
-                    // after pushing varToPush, no exist var will be dependent on 
-                    // dependentUnivVar in this node of the quantifier tree
-                    pushableUnivVars.insert(dependentUnivVar);
+                if (getUnivVars().contains(dependentUnivVar)) {
+                    --numOfDependenciesForUnivVars[dependentUnivVar];
+                    if (numOfDependenciesForUnivVars[dependentUnivVar] == 0) {
+                        // after pushing varToPush, no exist var will be dependent on 
+                        // dependentUnivVar in this node of the quantifier tree
+                        pushableUnivVars.insert(dependentUnivVar);
+                    }
                 }
             }
         }
