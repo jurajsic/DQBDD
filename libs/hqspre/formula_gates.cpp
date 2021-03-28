@@ -42,7 +42,6 @@ extern "C" {
 #include "formula.hpp"
 #include "sat_solver.hpp"
 
-
 /**
  * \file formula_gates.cpp
  * \brief Implementation of gate detection and structural hashing
@@ -66,22 +65,16 @@ namespace hqspre {
 bool
 Formula::checkGatePrecondition(const Variable output_var, const Clause& clause) const
 {
-    if (isUniversal(output_var)) {
-        return false;
-    }
+    if (isUniversal(output_var)) return false;
     for (const auto lit : clause) {
         const auto current_var = lit2var(lit);
-        if (current_var == output_var) {
-            continue;
-        }
-        if (!dependenciesSubset(current_var, output_var)) {
-            return false;
-        }
+        if (current_var == output_var) continue;
+        if (!dependenciesSubset(current_var, output_var)) return false;
     }
     return true;
 }
 
-namespace {
+namespace internal {
 
 /**
  * \brief Adds the dependencies of a single gate to gateDep
@@ -91,7 +84,7 @@ namespace {
  * \sa cyclicDep
  * \sa Formula::determineGates()
  */
-template <typename Allocator>
+template<typename Allocator>
 void
 addDep(std::vector<std::vector<Variable>>& gateDep, const Variable base_var,
        const std::vector<Variable, Allocator>& parents)
@@ -115,7 +108,7 @@ addDep(std::vector<std::vector<Variable>>& gateDep, const Variable base_var,
  * \sa addDep
  * \sa Formula::determineGates
  */
-template <typename Allocator>
+template<typename Allocator>
 bool
 cyclicDep(const std::vector<std::vector<Variable>>& gateDep, const Variable base_var,
           const std::vector<Variable, Allocator>& parents)
@@ -144,11 +137,10 @@ cyclicDep(const std::vector<std::vector<Variable>>& gateDep, const Variable base
             processed[pt]   = true;
 
             for (const Variable p : dep) {
-                if (p == base_var) {
+                if (p == base_var)
                     return true;
-                } else if (!processed[p]) {
+                else if (!processed[p])
                     pending.push(p);
-                }
             }
         }
     }
@@ -163,9 +155,7 @@ cyclicDep(const std::vector<std::vector<Variable>>& gateDep, const Variable base
 bool
 sameVars(const Clause& c1, const Clause& c2)
 {
-    if (c1.size() != c2.size()) {
-        return false;
-    }
+    if (c1.size() != c2.size()) return false;
 
     return std::equal(c1.cbegin(), c1.cend(), c2.cbegin(),
                       [](const Literal a, const Literal b) -> bool { return lit2var(a) == lit2var(b); });
@@ -174,13 +164,13 @@ sameVars(const Clause& c1, const Clause& c2)
 /**
  * \brief Counts the number of positive literals in a clause.
  */
-std::size_t
+long int
 posCount(const Clause& clause)
 {
     return std::count_if(clause.cbegin(), clause.cend(), isPositive);
 }
 
-}  // end anonymous namespace
+}  // end namespace internal
 
 /**
  * \brief Performs gate detection on a quantified formula in CNF.
@@ -194,9 +184,9 @@ posCount(const Clause& clause)
 bool
 Formula::determineGates(const bool and_gates, const bool xor_gates, const bool mux_gates, const bool semantic_gates)
 {
-    if (!_unit_stack.empty()) {
-        unitPropagation();
-    }
+    using namespace internal;
+
+    if (!_unit_stack.empty()) unitPropagation();
 
     ScopeTimer gate_detection(getTimer(WhichTimer::GATE_DETECTION));
 
@@ -252,9 +242,7 @@ Formula::findEquivalentGates()
     _gates.sort();
 
     const auto& my_gates = _gates.getGates();
-    if (my_gates.empty()) {
-        return false;
-    }
+    if (my_gates.empty()) return false;
 
     VLOG(1) << __FUNCTION__ << " called with " << my_gates.size() << " gates.";
 
@@ -279,9 +267,7 @@ Formula::findEquivalentGates()
     std::vector<Literal> mapped_inputs;
 
     for (const auto& gate : my_gates) {
-        if (!_gates.gateValid(gate)) {
-            continue;
-        }
+        if (!_gates.gateValid(gate)) continue;
 
         mapped_inputs.clear();
 
@@ -304,8 +290,9 @@ Formula::findEquivalentGates()
 
             val_assert(current_map);
 
-            std::transform(gate._input_literals.cbegin(), gate._input_literals.cend(),
-                           std::back_inserter(mapped_inputs), mapLiteral);
+            for (const Literal lit : gate._input_literals) {
+                mapped_inputs.push_back(mapLiteral(lit));
+            }
 
             // Sort the inputs if the gate has only symmetric inputs.
             // This is the case for AND and XOR, but not for MUX.
@@ -352,9 +339,9 @@ find_c1(const Clause& c, const Literal out, Literal& sel, Literal& in1)
     sel = 0;
     in1 = 0;
     for (std::size_t i = 0; i < 3; ++i) {
-        if (c[i] == negate(out)) {
+        if (c[i] == negate(out))
             continue;
-        } else {
+        else {
             in1 = sel;
             sel = c[i];
         }
@@ -409,12 +396,8 @@ Formula::findMUXGates(std::vector<std::vector<Variable>>& gateDep)
 
     for (Literal output = minLitIndex(); output <= maxLitIndex(); ++output) {
         const Variable output_var = lit2var(output);
-        if (!isExistential(output_var)) {
-            continue;
-        }
-        if (_gates.isGateOutput(output_var)) {
-            continue;
-        }
+        if (!isExistential(output_var)) continue;
+        if (_gates.isGateOutput(output_var)) continue;
 
         bool    gate_found = false;
         Literal sel        = 0;
@@ -425,22 +408,14 @@ Formula::findMUXGates(std::vector<std::vector<Variable>>& gateDep)
         for (const ClauseID c_nr1 : _occ_list[neg_output]) {
             val_assert(!clauseDeleted(c_nr1));
 
-            if (_gates.isGateClause(c_nr1)) {
-                continue;
-            }
+            if (_gates.isGateClause(c_nr1)) continue;
             const Clause& c1 = _clauses[c_nr1];
 
             // now, sel and i1 are candidates for the select signal and the 1-input.
             // If that does not work, we have to swap them and try again.
-            if (c1.size() != 3) {
-                continue;
-            }
-            if (!checkGatePrecondition(lit2var(output), c1)) {
-                continue;
-            }
-            if (!find_c1(c1, output, sel, in1)) {
-                continue;
-            }
+            if (c1.size() != 3) continue;
+            if (!checkGatePrecondition(lit2var(output), c1)) continue;
+            if (!find_c1(c1, output, sel, in1)) continue;
 
             auto rest_check
                 = [this, &gateDep, &tmp_clause, c_nr1](Literal o, Literal select, Literal i1, Literal& i0) -> bool {
@@ -456,21 +431,13 @@ Formula::findMUXGates(std::vector<std::vector<Variable>>& gateDep)
                     for (const ClauseID c_nr3 : _occ_list[select]) {
                         val_assert(!clauseDeleted(c_nr3));
 
-                        if (_gates.isGateClause(c_nr3)) {
-                            continue;
-                        }
+                        if (_gates.isGateClause(c_nr3)) continue;
                         const Clause& c3 = _clauses[c_nr3];
 
                         // Check if c3 is of the form {sel, in0, ~out}
-                        if (c3.size() != 3) {
-                            return false;
-                        }
-                        if (!checkGatePrecondition(lit2var(o), c3)) {
-                            return false;
-                        }
-                        if (!find_c3(c3, select, i1, o, i0)) {
-                            continue;
-                        }
+                        if (c3.size() != 3) return false;
+                        if (!checkGatePrecondition(lit2var(o), c3)) return false;
+                        if (!find_c3(c3, select, i1, o, i0)) continue;
 
                         // check if there is the clause c4 = {sel, ~in0, out}
                         tmp_clause[0] = select;
@@ -486,11 +453,9 @@ Formula::findMUXGates(std::vector<std::vector<Variable>>& gateDep)
                             tmp_clause[0] = lit2var(select);
                             tmp_clause[1] = lit2var(i1);
                             tmp_clause[2] = lit2var(i0);
-                            if (cyclicDep(gateDep, lit2var(o), tmp_clause)) {
-                                continue;
-                            }
+                            if (internal::cyclicDep(gateDep, lit2var(o), tmp_clause)) continue;
 
-                            addDep(gateDep, lit2var(o), tmp_clause);
+                            internal::addDep(gateDep, lit2var(o), tmp_clause);
                             Gate g(
                                 GateType::MUX_GATE,                                                         // Type
                                 o,                                                                          // output
@@ -521,10 +486,10 @@ Formula::findMUXGates(std::vector<std::vector<Variable>>& gateDep)
                                 g._encoding_clauses.push_back(c_nr6);
                             }
 
+                            _gates.addGate(std::move(g));
                             for (auto c_nr : g._encoding_clauses) {
                                 _clauses[c_nr].setStatus(ClauseStatus::MANDATORY);
                             }
-                            _gates.addGate(std::move(g));
 
                             return true;
                         }
@@ -562,6 +527,8 @@ Formula::findMUXGates(std::vector<std::vector<Variable>>& gateDep)
 std::size_t
 Formula::findANDGates(std::vector<std::vector<Variable>>& gateDep, const bool extend)
 {
+    using namespace internal;
+
     ScopeTimer sc(getTimer(WhichTimer::GATE_AND_DETECTION));
 
     val_assert(_unit_stack.empty());
@@ -580,19 +547,13 @@ Formula::findANDGates(std::vector<std::vector<Variable>>& gateDep, const bool ex
     Clause::ClauseData              tmp_bin(2, 0);
 
     for (ClauseID c_nr = 0; c_nr < _clauses.size(); ++c_nr) {
-        if (clauseDeleted(c_nr) || _clauses[c_nr].size() <= 2 || _gates.isGateClause(c_nr)) {
-            continue;
-        }
+        if (clauseDeleted(c_nr) || _clauses[c_nr].size() <= 2 || _gates.isGateClause(c_nr)) continue;
 
         for (std::size_t l_nr = 0; l_nr < _clauses[c_nr].size(); ++l_nr) {
             const Literal  base_lit = _clauses[c_nr][l_nr];
             const Variable base_var = lit2var(base_lit);
-            if (_gates.isGateOutput(base_var)) {
-                continue;
-            }
-            if (!checkGatePrecondition(base_var, _clauses[c_nr])) {
-                continue;
-            }
+            if (_gates.isGateOutput(base_var)) continue;
+            if (!checkGatePrecondition(base_var, _clauses[c_nr])) continue;
 
             parents.clear();
             clause_ids.clear();
@@ -600,9 +561,7 @@ Formula::findANDGates(std::vector<std::vector<Variable>>& gateDep, const bool ex
 
             bool has_imp = true;
             for (const Literal lit : _clauses[c_nr]) {
-                if (lit == base_lit) {
-                    continue;
-                }
+                if (lit == base_lit) continue;
                 const int bin_id = getImplicationClause(base_lit, negate(lit));
 
                 if (bin_id < 0) {
@@ -617,7 +576,7 @@ Formula::findANDGates(std::vector<std::vector<Variable>>& gateDep, const bool ex
                     tmp_bin[0] = negate(base_lit);
                     tmp_bin[1] = lit;
 
-                    if (clauseBlocked(tmp_bin) != 0u) {
+                    if (clauseBlocked(tmp_bin)) {
                         to_add.push_back(tmp_bin);
                         continue;
                     }
@@ -639,25 +598,19 @@ Formula::findANDGates(std::vector<std::vector<Variable>>& gateDep, const bool ex
                 clause_ids.push_back(bin_id);
             }  // end for
 
-            if (!has_imp) {
-                continue;
-            }
+            if (!has_imp) continue;
 
             if (!to_add.empty()) {
                 VLOG(3) << "If we add " << to_add.size() << " clause(s), we get an additional AND gate.";
 
                 for (auto& cl : to_add) {
                     const auto impl_nr = addClause(std::move(cl));
-                    if (impl_nr >= 0) {
-                        clause_ids.push_back(impl_nr);
-                    }
+                    if (impl_nr >= 0) clause_ids.push_back(impl_nr);
                 }
             }
 
             // Check for cyclic dependencies
-            if (cyclicDep(gateDep, base_var, parents)) {
-                continue;
-            }
+            if (cyclicDep(gateDep, base_var, parents)) continue;
 
             addDep(gateDep, base_var, parents);
 
@@ -672,9 +625,7 @@ Formula::findANDGates(std::vector<std::vector<Variable>>& gateDep, const bool ex
                 _clauses[bin_id].setStatus(ClauseStatus::MANDATORY);
             }
             for (const Literal lit : _clauses[c_nr]) {
-                if (lit != base_lit) {
-                    g._input_literals.push_back(negate(lit));
-                }
+                if (lit != base_lit) g._input_literals.push_back(negate(lit));
             }
 
             _gates.addGate(std::move(g));
@@ -696,6 +647,8 @@ Formula::findANDGates(std::vector<std::vector<Variable>>& gateDep, const bool ex
 std::size_t
 Formula::findXORGates(std::vector<std::vector<Variable>>& gateDep)
 {
+    using namespace internal;
+
     ScopeTimer sc(getTimer(WhichTimer::GATE_XOR_DETECTION));
 
     val_assert(_unit_stack.empty());
@@ -707,15 +660,9 @@ Formula::findXORGates(std::vector<std::vector<Variable>>& gateDep)
 
     // Looking for XOR-gates with arbitrarily negated inputs and output
     for (Variable base_var = 1; base_var <= maxVarIndex(); ++base_var) {
-        if (isUniversal(base_var)) {
-            continue;
-        }
-        if (_gates.isGateOutput(base_var)) {
-            continue;
-        }
-        if (_occ_list[var2lit(base_var, false)].size() < 2 || _occ_list[var2lit(base_var, true)].size() < 2) {
-            continue;
-        }
+        if (isUniversal(base_var)) continue;
+        if (_gates.isGateOutput(base_var)) continue;
+        if (_occ_list[var2lit(base_var, false)].size() < 2 || _occ_list[var2lit(base_var, true)].size() < 2) continue;
 
         const Literal base_lit_pos = var2lit(base_var, false);
         const Literal base_lit_neg = var2lit(base_var, true);
@@ -725,80 +672,55 @@ Formula::findXORGates(std::vector<std::vector<Variable>>& gateDep)
             const ClauseID i1 = _occ_list[base_lit_pos][p1];
             val_assert(!clauseDeleted(i1));
             const auto& c1 = _clauses[i1];
-            if (c1.size() != 3) {
-                continue;
-            }
-            if (_gates.isGateClause(i1)) {
-                continue;
-            }
-            if (!checkGatePrecondition(base_var, c1)) {
-                continue;
-            }
+            if (c1.size() != 3) continue;
+            if (_gates.isGateClause(i1)) continue;
+            if (!checkGatePrecondition(base_var, c1)) continue;
 
             // Check for cyclic dependencies.
             parents.clear();
             for (const Literal lit : c1) {
-                if (lit == base_lit_pos) {
-                    continue;
-                }
+                if (lit == base_lit_pos) continue;
                 parents.push_back(lit2var(lit));
             }
-            if (cyclicDep(gateDep, base_var, parents)) {
-                continue;
-            }
+            if (cyclicDep(gateDep, base_var, parents)) continue;
 
             for (std::size_t p2 = p1 + 1; p2 < _occ_list[base_lit_pos].size(); ++p2) {
                 const ClauseID i2 = _occ_list[base_lit_pos][p2];
                 val_assert(!clauseDeleted(i2));
                 const auto& c2 = _clauses[i2];
-                if (_gates.isGateClause(i2)) {
-                    continue;
-                }
-                if (!sameVars(c1, c2)) {
-                    continue;
-                }
+                if (_gates.isGateClause(i2)) continue;
+                if (!sameVars(c1, c2)) continue;
 
                 for (std::size_t p3 = 0; p3 < _occ_list[base_lit_neg].size(); ++p3) {
                     const ClauseID i3 = _occ_list[base_lit_neg][p3];
                     val_assert(!clauseDeleted(i3));
                     const auto& c3 = _clauses[i3];
-                    if (_gates.isGateClause(i3)) {
-                        continue;
-                    }
-                    if (!sameVars(c1, c3)) {
-                        continue;
-                    }
+                    if (_gates.isGateClause(i3)) continue;
+                    if (!sameVars(c1, c3)) continue;
 
                     for (std::size_t p4 = p3 + 1; p4 < _occ_list[base_lit_neg].size(); ++p4) {
                         const ClauseID i4 = _occ_list[base_lit_neg][p4];
                         val_assert(!clauseDeleted(i4));
                         const auto& c4 = _clauses[i4];
-                        if (_gates.isGateClause(i4)) {
-                            continue;
-                        }
-                        if (!sameVars(c1, c4)) {
-                            continue;
-                        }
+                        if (_gates.isGateClause(i4)) continue;
+                        if (!sameVars(c1, c4)) continue;
 
-                        if (c1 == c2 || c1 == c3 || c1 == c4 || c2 == c3 || c2 == c4 || c3 == c4) {
-                            continue;
-                        }
+                        if (c1 == c2 || c1 == c3 || c1 == c4 || c2 == c3 || c2 == c4 || c3 == c4) continue;
 
                         const auto pc1 = posCount(c1);
                         const auto pc2 = posCount(c2);
                         const auto pc3 = posCount(c3);
                         const auto pc4 = posCount(c4);
 
-                        if (!((((pc1 & 1u) != 0u) && ((pc2 & 1u) != 0u) && ((pc3 & 1u) != 0u) && ((pc4 & 1u) != 0u))
-                              || (((pc1 & 1u) == 0u) && ((pc2 & 1u) == 0u) && ((pc3 & 1u) == 0u)
-                                  && ((pc4 & 1u) == 0u)))) {
+                        if (!(((pc1 & 1) && (pc2 & 1) && (pc3 & 1) && (pc4 & 1))
+                              || (!(pc1 & 1) && !(pc2 & 1) && !(pc3 & 1) && !(pc4 & 1)))) {
                             // mixed polarities -> skipping
                             continue;
                         }
 
                         // Now 'base_var' is the output of an XOR gate.
                         addDep(gateDep, base_var, parents);
-                        Gate g(GateType::XOR_GATE, var2lit(base_var, (pc1 & 1u) == 1u),
+                        Gate g(GateType::XOR_GATE, var2lit(base_var, (pc1 & 1) == 1),
                                {var2lit(parents[0]), var2lit(parents[1])}, {i1, i2, i3, i4});
                         _clauses[i1].setStatus(ClauseStatus::MANDATORY);
                         _clauses[i2].setStatus(ClauseStatus::MANDATORY);
@@ -809,17 +731,11 @@ Formula::findXORGates(std::vector<std::vector<Variable>>& gateDep)
                         found_gate = true;
                         break;
                     }  // for c4
-                    if (found_gate) {
-                        break;
-                    }
+                    if (found_gate) break;
                 }  // for c3
-                if (found_gate) {
-                    break;
-                }
+                if (found_gate) break;
             }  // for c2
-            if (found_gate) {
-                break;
-            }
+            if (found_gate) break;
         }  // for c1
     }      // for base_var
     // Detection of XOR gates finished.
@@ -848,6 +764,8 @@ Formula::findXORGates(std::vector<std::vector<Variable>>& gateDep)
 std::size_t
 Formula::findSemanticGates(std::vector<std::vector<Variable>>& gateDep)
 {
+    using namespace internal;
+
     val_assert(_unit_stack.empty());
 
     ScopeTimer sc(getTimer(WhichTimer::GATE_SEMANTIC_DETECTION));
@@ -862,12 +780,8 @@ Formula::findSemanticGates(std::vector<std::vector<Variable>>& gateDep)
     std::vector<ClauseID> used_clauses;
 
     for (Variable var = minVarIndex(); var <= maxVarIndex(); ++var) {
-        if (sem_time.read() > 5.0) {
-            break;
-        }
-        if (!isExistential(var) || _gates.isGateOutput(var)) {
-            continue;
-        }
+        if (sem_time.read() > 5.0) break;
+        if (!isExistential(var) || _gates.isGateOutput(var)) continue;
 
         PicoSAT* sat = picosat_init();
         picosat_enable_trace_generation(sat);
@@ -883,19 +797,17 @@ Formula::findSemanticGates(std::vector<std::vector<Variable>>& gateDep)
         for (const ClauseID c_nr : _occ_list[out_pos]) {
             val_assert(!clauseDeleted(c_nr));
 
-            if (_gates.isGateClause(c_nr)) {
-                continue;
+            if (_gates.isGateClause(c_nr)) continue;
+            bool add = true;
+            for (Literal lit : _clauses[c_nr]) {
+                if (!dependenciesSubset(lit2var(lit), var)) {
+                    add = false;
+                    break;
+                }
             }
-
-            const bool add
-                = std::all_of(_clauses[c_nr].cbegin(), _clauses[c_nr].cend(),
-                              [this, var](const Literal lit) -> bool { return dependenciesSubset(lit2var(lit), var); });
-
             if (add) {
                 for (Literal lit : _clauses[c_nr]) {
-                    if (lit2var(lit) != var) {
-                        picosat_add(sat, lit2dimacs(lit));
-                    }
+                    if (lit2var(lit) != var) picosat_add(sat, lit2dimacs(lit));
                 }
                 picosat_add(sat, 0);
                 used_clauses.push_back(c_nr);
@@ -905,19 +817,17 @@ Formula::findSemanticGates(std::vector<std::vector<Variable>>& gateDep)
         for (const ClauseID c_nr : _occ_list[out_neg]) {
             val_assert(!clauseDeleted(c_nr));
 
-            if (_gates.isGateClause(c_nr)) {
-                continue;
+            if (_gates.isGateClause(c_nr)) continue;
+            bool add = true;
+            for (Literal lit : _clauses[c_nr]) {
+                if (!dependenciesSubset(lit2var(lit), var)) {
+                    add = false;
+                    break;
+                }
             }
-
-            const bool add
-                = std::all_of(_clauses[c_nr].cbegin(), _clauses[c_nr].cend(),
-                              [this, var](const Literal lit) -> bool { return dependenciesSubset(lit2var(lit), var); });
-
             if (add) {
                 for (Literal lit : _clauses[c_nr]) {
-                    if (lit2var(lit) != var) {
-                        picosat_add(sat, lit2dimacs(lit));
-                    }
+                    if (lit2var(lit) != var) picosat_add(sat, lit2dimacs(lit));
                 }
                 picosat_add(sat, 0);
                 used_clauses.push_back(c_nr);
@@ -934,12 +844,8 @@ Formula::findSemanticGates(std::vector<std::vector<Variable>>& gateDep)
 
         parents.clear();
         for (Variable other_var = minVarIndex(); other_var <= maxVarIndex(); ++other_var) {
-            if (varDeleted(other_var)) {
-                continue;
-            }
-            if (other_var != var && (picosat_corelit(sat, other_var) != 0)) {
-                parents.push_back(other_var);
-            }
+            if (varDeleted(other_var)) continue;
+            if (other_var != var && picosat_corelit(sat, other_var)) parents.push_back(other_var);
         }
 
         if (_gates.isGateInput(var) > 0 && cyclicDep(gateDep, var, parents)) {
@@ -953,7 +859,7 @@ Formula::findSemanticGates(std::vector<std::vector<Variable>>& gateDep)
             g._input_literals.push_back(var2lit(in));
         }
         for (std::size_t cl = 0; cl < used_clauses.size(); ++cl) {
-            if (picosat_coreclause(sat, static_cast<int>(cl)) != 0) {
+            if (picosat_coreclause(sat, static_cast<int>(cl))) {
                 g._encoding_clauses.push_back(used_clauses[cl]);
                 _clauses[used_clauses[cl]].setStatus(ClauseStatus::MANDATORY);
             }

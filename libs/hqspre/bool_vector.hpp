@@ -57,7 +57,7 @@ class BoolVector
 
     std::size_t size() const noexcept;
     std::size_t countTrue() const;
-    int         getFirstTrue() const;
+    std::size_t getFirstTrue() const;
 
     bool uninitialized() const noexcept;
     void initialize(std::size_t size, bool initial = true);

@@ -81,12 +81,8 @@ Formula::findConstantsBySAT()
     std::vector<Literal> antom_clause;
 
     for (ClauseID c_nr = 0; c_nr < _clauses.size(); ++c_nr) {
-        if (clauseDeleted(c_nr)) {
-            continue;
-        }
-        if (clauseOptional(c_nr)) {
-            continue;
-        }
+        if (clauseDeleted(c_nr)) continue;
+        if (clauseOptional(c_nr)) continue;
         antom_clause.assign(_clauses[c_nr]._literals.cbegin(), _clauses[c_nr]._literals.cend());
 
         sat_solver.addClause(antom_clause);
@@ -94,25 +90,19 @@ Formula::findConstantsBySAT()
         number_of_clauses++;
     }
 
-    if (number_of_clauses == 0) {
-        return false;
-    }
+    if (number_of_clauses == 0) return false;
     std::size_t limit = number_of_literals * (number_of_literals / number_of_clauses);
 
     std::size_t number_of_candidates = 0;
     for (Variable v = minVarIndex(); v <= maxVarIndex(); ++v) {
-        if (varAssignment(v) != 0 || varDeleted(v)) {
-            continue;
-        }
+        if (varAssignment(v) != 0 || varDeleted(v)) continue;
         candidates[number_of_candidates] = v;
         ++number_of_candidates;
     }
 
     candidates.resize(number_of_candidates);
 
-    if (_interrupt) {
-        return false;
-    }
+    if (_interrupt) return false;
 
     VLOG(3) << __FUNCTION__ << " checking " << number_of_candidates << " candidates.";
 
@@ -121,9 +111,7 @@ Formula::findConstantsBySAT()
     TruthValue sat_result = sat_solver.solve();
     ++num_sat_calls;
 
-    if (_interrupt) {
-        return false;
-    }
+    if (_interrupt) return false;
     _process_limit.decreaseLimitBy(limit);
 
     // run into timeout
@@ -157,12 +145,10 @@ Formula::findConstantsBySAT()
             VLOG(2) << "Terminate " << __FUNCTION__ << " due to process limit.";
             break;
         }
-        if (_interrupt) {
-            break;
-        }
+        if (_interrupt) break;
 
         const Variable nextvar  = candidates[i];
-        const bool     polarity = (_seen[nextvar] != 0);
+        const bool     polarity = _seen[nextvar];
         assumptions[0]          = var2lit(nextvar, polarity);
         sat_result              = sat_solver.solve(assumptions);
         ++num_sat_calls;
@@ -228,7 +214,7 @@ Formula::findImplicationsBySAT()
         = (static_cast<std::uint64_t>(maxLitIndex()) + 2ul) * static_cast<std::uint64_t>(maxLitIndex());
 
     // Exit if cache data structure would be too large
-    if (max_entry > (1ul << 31u)) {
+    if (max_entry > (1ul << 31)) {
         return false;
     }
 
@@ -250,9 +236,7 @@ Formula::findImplicationsBySAT()
     std::vector<Literal> antom_clause;
 
     for (ClauseID c_nr = 0; c_nr < _clauses.size(); ++c_nr) {
-        if (clauseDeleted(c_nr)) {
-            continue;
-        }
+        if (clauseDeleted(c_nr)) continue;
         antom_clause.assign(_clauses[c_nr]._literals.cbegin(), _clauses[c_nr]._literals.cend());
         sat_solver.addClause(antom_clause);
         number_of_literals += _clauses[c_nr].size();
@@ -278,9 +262,7 @@ Formula::findImplicationsBySAT()
     }
 
     for (Variable var1 = minVarIndex(); var1 <= maxVarIndex(); ++var1) {
-        if (varDeleted(var1) || varAssignment(var1) != 0) {
-            continue;
-        }
+        if (varDeleted(var1) || varAssignment(var1) != 0) continue;
         const TruthValue value1 = sat_solver.getValue(var1);
         const Literal    lit1   = var2lit(var1, value1 == TruthValue::FALSE);
         sat_solver.setPolarity(var1, value1 == TruthValue::FALSE);
@@ -288,9 +270,7 @@ Formula::findImplicationsBySAT()
         for (Variable var2 = var1 + 1; var2 <= maxVarIndex(); ++var2) {
             const TruthValue value2 = sat_solver.getValue(var2);
             const Literal    lit2   = var2lit(var2, value2 == TruthValue::FALSE);
-            if (varDeleted(var2) || varAssignment(var1) != 0) {
-                continue;
-            }
+            if (varDeleted(var2) || varAssignment(var1) != 0) continue;
             if (value1 != TruthValue::UNKNOWN && value2 != TruthValue::UNKNOWN) {
                 val_assert(lit2index(lit1, lit2) <= max_entry);
                 cache[lit2index(lit1, lit2)] = true;
@@ -303,9 +283,7 @@ Formula::findImplicationsBySAT()
     std::vector<Literal> assumptions(2, 0);
     for (Literal lit1 = minLitIndex(); lit1 < maxLitIndex(); ++lit1) {
         const Variable var1 = lit2var(lit1);
-        if (varDeleted(var1) || varAssignment(var1) != 0) {
-            continue;
-        }
+        if (varDeleted(var1) || varAssignment(var1) != 0) continue;
 
         for (Literal lit2 = lit1 + 1; lit2 <= maxLitIndex(); ++lit2) {
             if (_process_limit.reachedLimit()) {
@@ -314,15 +292,9 @@ Formula::findImplicationsBySAT()
             }
 
             const Variable var2 = lit2var(lit2);
-            if (varDeleted(var2) || var1 == var2 || varAssignment(var2) != 0) {
-                continue;
-            }
-            if (varAssignment(var1) != 0) {
-                break;
-            }
-            if (cache[lit2index(lit1, lit2)]) {
-                continue;
-            }
+            if (varDeleted(var2) || var1 == var2 || varAssignment(var2) != 0) continue;
+            if (varAssignment(var1) != 0) break;
+            if (cache[lit2index(lit1, lit2)]) continue;
             _process_limit.decrementLimit();
             const auto has_impl = hasImplicationTransitive(lit1, lit2var(lit2));
             // ~lit1 implies lit2 and ~lit2 => lit1 is unit
@@ -337,9 +309,7 @@ Formula::findImplicationsBySAT()
                 continue;
             }
 
-            if ((isNegative(lit2) && has_impl.first) || (isPositive(lit2) && has_impl.second)) {
-                continue;
-            }
+            if ((isNegative(lit2) && has_impl.first) || (isPositive(lit2) && has_impl.second)) continue;
 
             assumptions[0] = lit1;
             assumptions[1] = lit2;
@@ -362,18 +332,14 @@ Formula::findImplicationsBySAT()
             } else if (sat_result == TruthValue::TRUE) {
                 // update the cache
                 for (Variable curr_var1 = var1; curr_var1 <= maxVarIndex(); ++curr_var1) {
-                    if (varDeleted(curr_var1) || varAssignment(curr_var1) != 0) {
-                        continue;
-                    }
+                    if (varDeleted(curr_var1) || varAssignment(curr_var1) != 0) continue;
 
                     const TruthValue curr_value1 = sat_solver.getValue(curr_var1);
                     const Literal    curr_lit1   = var2lit(curr_var1, curr_value1 == TruthValue::FALSE);
                     sat_solver.setPolarity(curr_var1, curr_value1 == TruthValue::FALSE);
 
                     for (Variable curr_var2 = curr_var1 + 1; curr_var2 <= maxVarIndex(); ++curr_var2) {
-                        if (varDeleted(curr_var2) || varAssignment(curr_var1) != 0) {
-                            continue;
-                        }
+                        if (varDeleted(curr_var2) || varAssignment(curr_var1) != 0) continue;
                         const TruthValue curr_value2 = sat_solver.getValue(curr_var2);
                         const Literal    curr_lit2   = var2lit(curr_var2, curr_value2 == TruthValue::FALSE);
                         _process_limit.decrementLimit();
@@ -431,15 +397,11 @@ Formula::checkSAT()
     }
 
     for (ClauseID c_nr = 0; c_nr < _clauses.size(); ++c_nr) {
-        if (clauseDeleted(c_nr)) {
-            continue;
+        if (clauseDeleted(c_nr)) continue;
+        if (clauseOptional(c_nr)) continue;
+        for (Literal lit : _clauses[c_nr]) {
+            if (isExistential(lit2var(lit))) clause.push_back(lit);
         }
-        if (clauseOptional(c_nr)) {
-            continue;
-        }
-
-        std::copy_if(_clauses[c_nr].cbegin(), _clauses[c_nr].cend(), std::back_inserter(clause),
-                     [this](Literal lit) -> bool { return isExistential(lit2var(lit)); });
         sat_solver.addClause(clause);
         clause.clear();
     }
@@ -486,12 +448,8 @@ Formula::checkUNSAT(const std::size_t num_random_patterns)
     std::vector<Literal> antom_clause;
 
     for (ClauseID c_nr = 0; c_nr < _clauses.size(); ++c_nr) {
-        if (clauseDeleted(c_nr)) {
-            continue;
-        }
-        if (clauseOptional(c_nr)) {
-            continue;
-        }
+        if (clauseDeleted(c_nr)) continue;
+        if (clauseOptional(c_nr)) continue;
         antom_clause.assign(_clauses[c_nr]._literals.cbegin(), _clauses[c_nr]._literals.cend());
         sat_solver.addClause(antom_clause);
     }
@@ -500,9 +458,7 @@ Formula::checkUNSAT(const std::size_t num_random_patterns)
     assumptions.reserve(_prefix->numUVars());
 
     for (Variable var = minVarIndex(); var <= maxVarIndex(); ++var) {
-        if (!isUniversal(var)) {
-            continue;
-        }
+        if (!isUniversal(var)) continue;
         const Literal lit = var2lit(var, false);
         assumptions.push_back(_occ_list[lit].size() < _occ_list[negate(lit)].size() ? lit : negate(lit));
     }
@@ -520,7 +476,7 @@ Formula::checkUNSAT(const std::size_t num_random_patterns)
     }
 
     if (result != TruthValue::FALSE) {
-        std::transform(assumptions.cbegin(), assumptions.cend(), assumptions.begin(), negate);
+        for (Literal& lit : assumptions) lit = negate(lit);
         result = sat_solver.solve(assumptions);
         ++stat(Statistics::SAT_CALLS);
     }
@@ -529,9 +485,7 @@ Formula::checkUNSAT(const std::size_t num_random_patterns)
         throw UNSATException("Matrix unsatisfiable for assignment of universals.");
     }
 
-    if (num_random_patterns == 0) {
-        return;
-    }
+    if (num_random_patterns == 0) return;
 
     // Simulate a number of random patterns for the universal variables.
     std::mt19937                gen(394871);  // Take an arbitrary, but fixed seed for reproducability
@@ -541,11 +495,11 @@ Formula::checkUNSAT(const std::size_t num_random_patterns)
 
     for (std::size_t current_random_pattern = 0; current_random_pattern < num_random_patterns;
          ++current_random_pattern) {
-        for (Literal& a : assumptions) {
-            const Variable current_var = lit2var(a);
-            a                          = var2lit(current_var, d(gen));
-        }
+        for (std::size_t pos = 0; pos < assumptions.size(); ++pos) {
+            const Variable current_var = lit2var(assumptions[pos]);
 
+            assumptions[pos] = var2lit(current_var, d(gen));
+        }
         result = sat_solver.solve(assumptions);
         ++stat(Statistics::SAT_CALLS);
         if (result == TruthValue::FALSE) {

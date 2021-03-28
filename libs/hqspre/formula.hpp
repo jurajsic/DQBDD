@@ -198,7 +198,7 @@ class Formula
     /**
      * \brief Assigns a new formula to the current object.
      */
-    Formula& operator=(Formula& other); // = delete;
+    Formula& operator=(const Formula& other) = delete;
 
     /**
      * \brief Assigns a new formula to the current object (rvalue version)
@@ -220,10 +220,9 @@ class Formula
      */
     Variable addUVar();
     Variable addEVar();
-    template <typename Container>
-    Variable addEVar(const Container& deps);
-    Variable addEVar(std::set<Variable>&& deps);
-
+    template<typename Container>
+    Variable                  addEVar(const Container& deps);
+    Variable                  addEVar(std::set<Variable>&& deps);
     std::size_t               numVars() const noexcept;
     std::size_t               numUVars() const noexcept;
     std::size_t               numEVars() const noexcept;
@@ -253,7 +252,7 @@ class Formula
     std::size_t numClauses() const noexcept;
     ClauseID    maxClauseIndex() const noexcept;
 
-    template <typename Container>
+    template<typename Container>
     int addClause(const Container& clause, bool needs_sorting = true, bool check_subsumption = true,
                   ClauseStatus status = ClauseStatus::MANDATORY);
 
@@ -261,7 +260,7 @@ class Formula
                   ClauseStatus status = ClauseStatus::MANDATORY);
     int addClause(const Clause& clause);
     int addClause(Clause&& clause);
-    template <typename Container>
+    template<typename Container>
     int           findClause(const Container& clause);
     const Clause& getClause(ClauseID c_nr) const noexcept;
     void          removeClause(ClauseID c_nr);
@@ -323,6 +322,41 @@ class Formula
     Settings&       settings() noexcept { return _settings; }
     const Settings& settings() const noexcept { return _settings; }
 
+    /*
+        void setUniveralReduction(bool val)      noexcept;
+        void setBlockedClauseElimination(unsigned int val) noexcept;
+        void setHiddenLiterals(unsigned int val) noexcept;
+        void setCoveredLiterals(bool val)        noexcept;
+        void setBlockedLiteralElimination(bool val) noexcept;
+        void setBlockedLiteralAddition(bool val) noexcept;
+        void setBlockedImplicationAddition(bool val) noexcept;
+        void setMaxClauseSize(unsigned int val)  noexcept;
+        void setHiddenSubsumptionElimination(bool val) noexcept;
+        void setImplicationChains(bool val)      noexcept;
+        void setContradictionChecking(bool val)  noexcept;
+        void setHiddenEquivAndContraChecking(bool val) noexcept;
+        void setSubstitutions(bool val)          noexcept;
+        void setMaxSubstitutionCost(int val)     noexcept;
+        void setMaxSubstitutionLoops(unsigned int val) noexcept;
+        void setRewritings(bool val)             noexcept;
+        void setSelfSubsumption(bool val)        noexcept;
+        void setSubsumption(bool val)            noexcept;
+        void setResolution(bool val)             noexcept;
+        void setMaxResolutionCost(int val)       noexcept;
+        void setConstSatCheck(bool val)          noexcept;
+        void setImplSatCheck(bool val)           noexcept;
+        void setVerbosity(unsigned short val)    noexcept;
+        void setMaxLoops(unsigned int val)       noexcept;
+        void setIncompleteChecks(bool val)       noexcept;
+        void setConsistenceCheck(bool val)       noexcept;
+        void setUniversalExpansion(unsigned int val) noexcept;
+        void setEquivalentGates(bool val)        noexcept;
+        void setPreserveGates(bool val)          noexcept;
+        void setSatTimeout(unsigned int val)     noexcept;
+        void setPureSatTimeout(unsigned int val) noexcept;
+        void setVivification(bool val)           noexcept;
+        void useProcessLimits(bool val)          noexcept;
+    */
     void enforceDQBF(bool val) noexcept;
     void setInterrupt(bool val) noexcept;
 
@@ -332,6 +366,8 @@ class Formula
     /**\name Preprocessing techniques
      * \todo bool hyperBinaryResolution()
      * \todo bool removeRedundantClausesBySAT()
+     * \todo bool UPLA()
+     * \todo bool vivification()
      */
 
     void                     preprocess();
@@ -377,10 +413,10 @@ class Formula
     //@{
     /**\name Elimination routines
      */
-    std::vector<std::vector<Variable>> computeDepElimSet(bool unit_costs = false);
+    std::vector<std::vector<Variable>> computeDepElimSet();
     std::vector<Variable>              computeVarElimSet();
     void                               elimEVar(Variable var, std::unordered_set<Variable>* recalc_vars = nullptr);
-    bool elimEVarLimit(Variable var, std::int64_t max_cost, std::unordered_set<Variable>* recalc_vars = nullptr);
+    bool elimEVarLimit(Variable var, long int max_cost, std::unordered_set<Variable>* recalc_vars = nullptr);
     void elimUVar(Literal lit);
     std::pair<Variable, Variable> elimDependency(Variable univ, Variable exist);
     //@}
@@ -422,28 +458,12 @@ class Formula
    private:
     //@{
     /**
-    \name Internal variable handling
-
-    These functions are used internally to create variables with a predefined index.
-    Normally, a newly created variable simply gets an arbitrary index that is not yet
-    in use. After using these function, the list of available variable indicies
-    Formula::_deleted_var_numbers needs to be re-created.
-    */
-    Variable setEVar(Variable index);
-    template <typename Container>
-    Variable setEVar(Variable index, const Container& deps);
-    Variable setEVar(Variable index, std::set<Variable>&& deps);
-    Variable setUVar(Variable index);
-    //@}
-
-    //@{
-    /**
      \name Dependency schemes
     */
-    template <typename Function>
+    template<typename Function>
     void searchPath(const std::vector<Literal>& start_lits, Function forbidden, std::vector<unsigned char>& seen) const;
 
-    template <typename Function>
+    template<typename Function>
     void searchResolutionPath(const std::vector<Literal>& start_lits, Function forbidden,
                               std::vector<unsigned char>& seen) const;
 
@@ -472,15 +492,15 @@ class Formula
 
     //@{
     /// \name Internal functions for blocked clause elimination
-    template <typename Container>
+    template<typename Container>
     Literal clauseBlocked(const Container& current_clause) const;
     bool    clauseBlockedByLit(Literal blocking_lit) const;
-    template <typename Container>
+    template<typename Container>
     bool checkResolventTautology(const Container& clause, Variable pivot_var) const;
     bool addHiddenLiterals(int c_nr, Clause::ClauseData& clause, std::uint64_t& sign) const;
     bool addHiddenLiteralsBinary(int c_nr, Clause::ClauseData& clause, std::uint64_t& sign) const;
     bool addCoveredLiterals(Clause::ClauseData& clause, std::uint64_t& sign) const;
-    template <typename Container>
+    template<typename Container>
     bool addBlockingLiterals(const Container& clause);
     void removeClauseAndUpdateCandidates(ClauseID c_nr);
 
@@ -491,26 +511,26 @@ class Formula
     // Universal expansion
    public:
     std::pair<int, int> computeExpansionCosts(Variable uvar) const;
-    std::int64_t        computeExpansionCosts2(Literal ulit, const std::set<Variable>& pseudo_deps);
+    long int            computeExpansionCosts2(Literal ulit, const std::set<Variable>& pseudo_deps);
 
    private:
     void markTransitiveUnits(std::stack<Literal>& units, std::vector<bool>& marked) const;
 
     // Subsumption checks
-    template <typename Container>
+    template<typename Container>
     std::size_t isBackwardSubsuming(const Container& short_clause, std::uint64_t signature, int c_nr = -1,
                                     bool delete_subsumed = true);
 
     std::size_t isBackwardSubsuming(const Clause& short_clause, int c_nr = -1, bool delete_subsumed = true);
 
-    template <typename Container>
+    template<typename Container>
     bool isForwardSubsumed(const Container& clause, std::uint64_t sign, int except = -1);
 
     bool isForwardSubsumed(const Clause& clause, int except = -1);
 
-    template <typename Container>
+    template<typename Container>
     bool isForwardSubsumedByBinary(const Container& clause, int except = -1);
-    template <typename Container>
+    template<typename Container>
     Literal getMinOccLit(const Container& clause) const;
 
     // Universal reduction
@@ -522,7 +542,7 @@ class Formula
     bool                  isResolvable(Variable var) const;
 
     // Gate substitution
-    bool substituteGate(const Gate& g);
+    bool substituteGate(Gate& g);
     int  computeSubstitutionCosts(const Gate& g) const;
 
     // Gate rewriting, done (according to sQueezeBF's way) when substitution would
@@ -777,13 +797,13 @@ class Formula
     mutable std::vector<unsigned char> _seen2;
 
     void clearSeen() const;
-    template <typename Container>
+    template<typename Container>
     void clearSeen(const Container& container) const;
-    template <typename Container>
+    template<typename Container>
     void setSeen(const Container& container) const;
-    template <typename Container>
+    template<typename Container>
     void clearSeen2(const Container& container) const;
-    template <typename Container>
+    template<typename Container>
     void setSeen2(const Container& container) const;
 
 #ifdef SKOLEM
@@ -817,44 +837,6 @@ class Formula
         _statistics;  ///< Statistics for the different operations
     mutable std::array<Timer, static_cast<unsigned int>(WhichTimer::_last_)>
         _timers;  ///< Timers for the different operations
-
-    // fork splitting
-    bool forkExtension();
-    bool inDEPlus();
-    bool inOneClause(Variable var1, Variable var2);
-
- 	std::vector<std::vector<bool>> belongIntoOneClause;
-
-	bool resolveAfterForkSplit();
-	bool resolveRmb();
-
-	long max_resolveRmb_cost = 0; // cost used while performing resolveRmb 
-	
-	void findHiddenEquivalences();
-
-	
-	class Node
-	{
-	public:
-
-		enum Side {unknown, left, right};
-
-		Literal lit = 0;
-		Side side = unknown;
-		std::vector<Node*> adjacents;
-		bool seen = false;
-	};
-
-	std::vector<Node*> nodes;
-	//std::vector<Node*> equivNodesLeft;
-	//std::vector<Node*> equivNodesRight;
-
-	// TODO: find test cases for case that var occur on one side but in different polarities
-	bool checkForEquivalence(Node* node, std::vector<Node*>& equivNodesLeft, std::vector<Node*>& equivNodesRight);
-
-	void replaceEquivalentLiterals(const std::vector<Node*>& equivNodesLeft, const std::vector<Node*>& equivNodesRight);
-
-	void solveSAT();
 };
 
 /**

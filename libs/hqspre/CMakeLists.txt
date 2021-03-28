@@ -17,11 +17,9 @@ add_library(hqspre STATIC
               formula_debug.cpp
               formula_dep_elim.cpp
               formula_dep_schemes.cpp
-              #formula_elim_set.cpp
+              formula_elim_set.cpp
               formula_equiv_contra.cpp
               formula_experimental.cpp
-              formula_findHidden.cpp
-              formula_forkExt.cpp
               formula_gate_interface.cpp
               formula_gates.cpp
               formula_inout.cpp

@@ -39,7 +39,10 @@
 
 INITIALIZE_EASYLOGGINGPP
 
-static hqspre::Formula formula;
+hqspre::Formula formula;
+
+const static std::string sat   = "p cnf 0 0\n";
+const static std::string unsat = "p cnf 0 1\n0\n";
 
 void
 signalHandler(int /* signum*/)
@@ -57,9 +60,6 @@ main(int argc, char** argv)
     hqspre::Timer timer;
     timer.start();
 
-    const std::string sat   = "p cnf 0 0\n";
-    const std::string unsat = "p cnf 0 1\n0\n";
-
     // Configure logging
     el::Configurations defaultConf;
     defaultConf.setToDefault();
@@ -73,9 +73,9 @@ main(int argc, char** argv)
 #endif
 
     hqspre::Settings&            settings = formula.settings();
-    std::string                  in_name;
-    std::string                  log_name;
-    std::string                  out_name;
+    std::string                  in_name("");
+    std::string                  log_name("");
+    std::string                  out_name("");
     std::string                  elim_method("no");
     bool                         enforce_dqbf = false;
     el::base::type::VerboseLevel verbosity    = 1;
@@ -134,8 +134,8 @@ main(int argc, char** argv)
         "Use hidden subsumption elimination")(
         "hec", boost::program_options::value<bool>(&settings.hec)->default_value(settings.hec),
         "Find hidden equivalences and contradictions")(
-        "ic", boost::program_options::value<std::uint32_t>(&settings.impl_chains)->default_value(settings.impl_chains),
-        "Eliminate implication chains (0=no, 1=strong, 2=weak")(
+        "ic", boost::program_options::value<bool>(&settings.impl_chains)->default_value(settings.impl_chains),
+        "Eliminate implication chains")(
         "contra", boost::program_options::value<bool>(&settings.contradictions)->default_value(settings.contradictions),
         "Find contradictions")(
         "substitute", boost::program_options::value<bool>(&settings.substitution)->default_value(settings.substitution),
@@ -217,7 +217,7 @@ main(int argc, char** argv)
         boost::program_options::command_line_parser(argc, argv).options(all_options).positional(p).run(), vm);
     boost::program_options::notify(vm);
 
-    if (vm.count("pipe") > 0) {
+    if (vm.count("pipe")) {
         verbosity = 0;
     }
 
@@ -229,26 +229,26 @@ main(int argc, char** argv)
     }
 
     // Evaluation of parameters
-    if (vm.count("help") > 0) {
+    if (vm.count("help")) {
         std::cout << "Call with\n  " << argv[0] << "<options> <input file>\n\n"
                   << public_options << "\n"
                   << pre_options << "\n";
         std::exit(0);
     }
 
-    if (vm.count("logfile") > 0) {
+    if (vm.count("logfile")) {
         defaultConf.setGlobally(el::ConfigurationType::ToFile, "true");
         defaultConf.setGlobally(el::ConfigurationType::Filename, log_name);
     }
 
-    if (vm.count("pipe") > 0) {
+    if (vm.count("pipe")) {
         defaultConf.setGlobally(el::ConfigurationType::ToStandardOutput, "false");
     }
 
     el::Loggers::reconfigureAllLoggers(defaultConf);
     el::Loggers::setVerboseLevel(verbosity);
 
-    if (in_name.empty()) {
+    if (in_name == "") {
         LOG(ERROR) << "No input file given.";
         std::exit(-1);
     }
@@ -258,13 +258,12 @@ main(int argc, char** argv)
         std::exit(-1);
     }
 
-    if (elim_method == "var") {
+    if (elim_method == "var")
         settings.convert_to_qbf = hqspre::DQBFtoQBFmethod::VAR_ELIM;
-    } else if (elim_method == "dep") {
+    else if (elim_method == "dep")
         settings.convert_to_qbf = hqspre::DQBFtoQBFmethod::DEP_ELIM;
-    } else {
+    else
         settings.convert_to_qbf = hqspre::DQBFtoQBFmethod::NONE;
-    }
 
     formula.enforceDQBF(enforce_dqbf);
 
@@ -316,43 +315,29 @@ main(int argc, char** argv)
 
         formula.preprocess();
 #ifdef linux
-        if (timeout > 0) {
-            hqspre::createTimeout(timeout, signalHandler);
-        }
+        if (timeout > 0) hqspre::createTimeout(timeout, signalHandler);
 #endif
 
         if (!formula.isQBF() && settings.convert_to_qbf == hqspre::DQBFtoQBFmethod::DEP_ELIM) {
             const auto elim_set = formula.computeDepElimSet();
             VLOG(2) << "We need to eliminate the following dependencies to obtain a QBF:";
             for (auto y = formula.minVarIndex(); y <= formula.maxVarIndex(); ++y) {
-                if (!formula.isExistential(y)) {
-                    continue;
-                }
-                if (y >= elim_set.size()) {
-                    break;
-                }
-                if (elim_set[y].empty()) {
-                    continue;
-                }
+                if (!formula.isExistential(y)) continue;
+                if (y >= elim_set.size()) break;
+                if (elim_set[y].empty()) continue;
                 VLOG(2) << " * " << y << " <-- " << elim_set[y];
 
                 std::vector<hqspre::Variable> current_vars(1, y);
                 std::vector<hqspre::Variable> next_vars;
 
                 for (auto x : elim_set[y]) {
-                    if (formula.varDeleted(x)) {
-                        continue;
-                    }
+                    if (formula.varDeleted(x)) continue;
                     while (!current_vars.empty()) {
                         const hqspre::Variable var = current_vars.back();
                         current_vars.pop_back();
                         const auto result = formula.elimDependency(x, var);
-                        if (result.first > 0) {
-                            next_vars.push_back(result.first);
-                        }
-                        if (result.second > 0) {
-                            next_vars.push_back(result.second);
-                        }
+                        if (result.first > 0) next_vars.push_back(result.first);
+                        if (result.second > 0) next_vars.push_back(result.second);
                     }
                     std::swap(current_vars, next_vars);
                     formula.applySubstitution();
@@ -386,17 +371,15 @@ main(int argc, char** argv)
             LOG(INFO) << "Preprocessor determined satisfiability.";
             VLOG(1) << e.what();
         }
-        if (verbosity == 0 && vm.count("pipe") == 0) {
-            std::cout << "SAT\n";
-        }
+        if (verbosity == 0 && !vm.count("pipe")) std::cout << "SAT\n";
 
-        if (vm.count("pipe") > 0) {
+        if (vm.count("pipe")) {
             std::cout << sat;
             return 0;
         }
 
         std::ofstream out;
-        if (!out_name.empty()) {
+        if (out_name != "") {
             const std::string                   ext = out_name.substr(out_name.length() - 3, 3);
             boost::iostreams::filtering_ostream out_filter;
             if (ext == ".gz" || ext == ".GZ") {
@@ -422,17 +405,15 @@ main(int argc, char** argv)
         formula.printStatistics();
         LOG(INFO) << "Preprocessor determined unsatisfiability.";
         VLOG(1) << e.what();
-        if (verbosity > 0 && vm.count("pipe") == 0) {
-            std::cout << "UNSAT\n";
-        }
+        if (verbosity > 0 && !vm.count("pipe")) std::cout << "UNSAT\n";
 
-        if (vm.count("pipe") > 0) {
+        if (vm.count("pipe")) {
             std::cout << unsat;
             return 0;
         }
 
         std::ofstream out;
-        if (!out_name.empty()) {
+        if (out_name != "") {
             const std::string                   out_ext = out_name.substr(out_name.length() - 3, 3);
             boost::iostreams::filtering_ostream out_filter;
             if (out_ext == ".gz" || out_ext == ".GZ") {
@@ -458,16 +439,14 @@ main(int argc, char** argv)
     if (verbosity > 0) {
         LOG(INFO) << "Preprocessor could not solve the formula.";
     }
-    if (verbosity == 0 && vm.count("pipe") == 0) {
-        std::cout << "UNKNOWN\n";
-    }
+    if (verbosity == 0 && !vm.count("pipe")) std::cout << "UNKNOWN\n";
 
-    if (vm.count("pipe") > 0) {
+    if (vm.count("pipe")) {
         formula.write(std::cout, compress_output);
         return 0;
     }
 
-    if (!out_name.empty()) {
+    if (out_name != "") {
         const std::string ext = out_name.substr(out_name.length() - 3, 3);
         if (ext == ".gz" || ext == ".GZ") {
             std::ofstream out(out_name, std::ios_base::out | std::ios_base::binary);

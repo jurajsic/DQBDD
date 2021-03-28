@@ -69,11 +69,10 @@ Formula::pushUnit(const Literal lit, const PureStatus status)
     _unit_stack.push_back(lit);
     _assignment[var] = makeSatisfied(lit);
 
-    if (status == PureStatus::PURE) {
+    if (status == PureStatus::PURE)
         ++stat(Statistics::PURE);
-    } else {
+    else
         ++stat(Statistics::UNIT);
-    }
 }
 
 /**
@@ -89,9 +88,7 @@ Formula::pushUnit(const Literal lit, const PureStatus status)
 bool
 Formula::unitPropagation()
 {
-    if (_unit_stack.empty()) {
-        return false;
-    }
+    if (_unit_stack.empty()) return false;
 
     std::size_t count{0};
 
@@ -100,9 +97,7 @@ Formula::unitPropagation()
         const Literal top_lit = _unit_stack.back();
         _unit_stack.pop_back();
         const Variable top_var = lit2var(top_lit);
-        if (varDeleted(top_var)) {
-            continue;
-        }
+        if (varDeleted(top_var)) continue;
         const Literal neg_top_lit = negate(top_lit);
 
 #ifdef SKOLEM
@@ -135,11 +130,10 @@ Formula::unitPropagation()
             auto& c = _clauses[c_nr];
             // binary clauses become unit
             if (c.size() == 2) {
-                if (c[0] == neg_top_lit) {
+                if (c[0] == neg_top_lit)
                     pushUnit(c[1], PureStatus::UNIT);
-                } else {
+                else
                     pushUnit(c[0], PureStatus::UNIT);
-                }
 
                 to_be_removed.push_back(c_nr);
             } else {
@@ -186,9 +180,7 @@ Formula::findPure()
         again = false;
 
         for (Literal lit = minLitIndex(); lit <= maxLitIndex(); ++lit) {
-            if (varDeleted(lit2var(lit))) {
-                continue;
-            }
+            if (varDeleted(lit2var(lit))) continue;
 
             if (_occ_list[lit].empty()) {
                 // 'lit' does not occur, so '~lit' is pure

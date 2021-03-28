@@ -21,10 +21,7 @@
 #ifndef HQSPRE_SETTINGS_HPP_
 #define HQSPRE_SETTINGS_HPP_
 
-#include <cstdint>
 #include <iosfwd>
-#include <string>
-
 #include <cstddef>
 
 /**
@@ -87,44 +84,43 @@ struct Settings
     /**
      * \name Variables for storing the current preprocessor configuration
      */
-    std::int32_t max_num_vars    = 10000000;      ///< Maximal number of variables in the input file
-    std::int32_t max_num_clauses = 10000000;      ///< Maximal number of clauses in the input file
-    std::size_t  max_loops       = 20;            ///< Maximal number of preprocessing iterations
-    std::size_t  max_fast_loops  = 10;            ///< Maximal number of iterations in fastPreprocess
-    bool         univ_reduction  = true;          ///< Use universal reduction
-    unsigned int bce             = 2;             ///< Use blocked clause elimination (BCE)
-    std::size_t  min_bce_size    = 3;             ///< Minimum size of a clause for which BCE is performed
-    unsigned int hidden          = 1;             ///< Improve BCE by hidden literal addition (HLA)
-    bool         covered         = true;          ///< Improve BCE by covered literal addition (CLA)
-    bool         ble             = true;          ///< Use blocked literal elimination (BLE) for universal literals
-    bool         bla             = true;          ///< Use blocked literal addition (BLA) for universal literals
-    bool         bia             = false;         ///< Add blocked implications
-    std::size_t  max_clause_size = 256;           ///< Maximal size for an extended clause by
-                                                  ///< hidden or covered extension
-    bool          hse                   = true;   ///< Use hidden subsumption elimination (HSE)
-    bool          hec                   = false;  ///< Find hidden equivalences and contradiction
-    std::uint32_t impl_chains           = 1;      ///< Eliminate implication chains (0 = no, 1 = strong, 2 = semi, 3 = weak)
-    bool          contradictions        = true;   ///< Detect contradicting implication chains
-    bool          substitution          = true;   ///< Eliminate Tseitin variables by substitution
-    int           max_substitution_cost = 100;    ///< Maximal increase of the number of literals in the formula by
-                                                  ///< substitution of gates
-    std::size_t max_substitution_loops = 2;       ///< Maximal number of substitution iterations
-    bool        rewrite                = true;    ///< Replace Tseitin variables by double Plaisted encoding
-    bool        self_subsumption       = true;    ///< Use self-subsuming resolution
-    bool        subsumption            = true;    ///< Use subsumption checks
-    bool        resolution             = true;    ///< Eliminate variables using resolution
-    int         max_resolution_cost    = 1;       ///< Maximal increase of the number of literals
-                                                  ///< in the formula by resolution
-    bool sat_const      = true;                   ///< Use constant detection with SAT
-    bool sat_impl       = false;                  ///< Find implications using SAT
-    bool sat_incomplete = true;                   ///< Use incomplete SAT-based checks to determine
-                                                  ///< (un)satisfiability of the (D)QBF
-    bool            sat_decide          = true;   ///< If the formula is a SAT problem, call a SAT solver to decide it
-    std::size_t     num_random_patterns = 100;    ///< Number of random patters for incomplete UNSAT checks
-    unsigned int    sat_timeout         = 3;      ///< Timeout for SAT checks if the formula is not a pure SAT problem
-    unsigned int    pure_sat_timeout    = 200;    ///< Timeout for SAT check if the formula is a pure SAT problem
-    unsigned int    univ_expand         = 2;      ///< Apply universal expansion if reasonable
-    bool            univ_expand_dep     = false;  ///< Apply dependency schemes during universal expansion
+    int          max_num_vars    = 1000000;      ///< Maximal number of variables in the input file
+    int          max_num_clauses = 10000000;     ///< Maximal number of clauses in the input file
+    std::size_t  max_loops       = 20;           ///< Maximal number of preprocessing iterations
+    std::size_t  max_fast_loops  = 10;           ///< Maximal number of iterations in fastPreprocess
+    bool         univ_reduction  = true;         ///< Use universal reduction
+    unsigned int bce             = 2;            ///< Use blocked clause elimination (BCE)
+    std::size_t  min_bce_size    = 3;            ///< Minimum size of a clause for which BCE is performed
+    unsigned int hidden          = 1;            ///< Improve BCE by hidden literal addition (HLA)
+    bool         covered         = true;         ///< Improve BCE by covered literal addition (CLA)
+    bool         ble             = true;         ///< Use blocked literal elimination (BLE) for universal literals
+    bool         bla             = true;         ///< Use blocked literal addition (BLA) for universal literals
+    bool         bia             = false;        ///< Add blocked implications
+    std::size_t  max_clause_size = 256;          ///< Maximal size for an extended clause by
+                                                 ///< hidden or covered extension
+    bool hse                   = true;           ///< Use hidden subsumption elimination (HSE)
+    bool hec                   = false;          ///< Find hidden equivalences and contradiction
+    bool impl_chains           = true;           ///< Eliminate implication chains
+    bool contradictions        = true;           ///< Detect contradicting implication chains
+    bool substitution          = true;           ///< Eliminate Tseitin variables by substitution
+    int  max_substitution_cost = 100;            ///< Maximal increase of the number of literals in the formula by
+                                                 ///< substitution of gates
+    std::size_t max_substitution_loops = 2;      ///< Maximal number of substitution iterations
+    bool        rewrite                = true;   ///< Replace Tseitin variables by double Plaisted encoding
+    bool        self_subsumption       = true;   ///< Use self-subsuming resolution
+    bool        subsumption            = true;   ///< Use subsumption checks
+    bool        resolution             = true;   ///< Eliminate variables using resolution
+    int         max_resolution_cost    = 1;      ///< Maximal increase of the number of literals
+                                                 ///< in the formula by resolution
+    bool sat_const      = true;                  ///< Use constant detection with SAT
+    bool sat_impl       = false;                 ///< Find implications using SAT
+    bool sat_incomplete = true;                  ///< Use incomplete SAT-based checks to determine
+                                                 ///< (un)satisfiability of the (D)QBF
+    bool            sat_decide          = true;  ///< If the formula is a SAT problem, call a SAT solver to decide it
+    std::size_t     num_random_patterns = 100;   ///< Number of random patters for incomplete UNSAT checks
+    unsigned int    sat_timeout         = 3;     ///< Timeout for SAT checks if the formula is not a pure SAT problem
+    unsigned int    pure_sat_timeout    = 20;    ///< Timeout for SAT check if the formula is a pure SAT problem
+    unsigned int    univ_expand         = 2;     ///< Apply universal expansion if reasonable
     DQBFtoQBFmethod convert_to_qbf      = DQBFtoQBFmethod::NONE;  ///< Which method to use to turn a DQBF into an
                                                                   ///< equisatisfiable QBF
     std::size_t max_expansion_size = 0;   ///< Maximal expansion size. This value is set and used during
@@ -148,11 +144,6 @@ struct Settings
     bool skolem = false;  ///< Enable the computation of Skolem functions
 #endif
     //@}
-
-    // forkextension
-    bool enableFork = true;
-    bool forkExt = false;
-    bool findHidden = false;
 };
 
 std::ostream& operator<<(std::ostream& stream, const Settings& s);

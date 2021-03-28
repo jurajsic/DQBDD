@@ -20,7 +20,6 @@
 
 #include <cstdint>
 #include <limits>
-#include <numeric>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -86,9 +85,7 @@ Formula::getResolvableVariables() const
     result.reserve(maxVarIndex() + 1 - numUVars());
 
     for (Variable var = minVarIndex(); var <= maxVarIndex(); ++var) {
-        if (isResolvable(var)) {
-            result.push_back(var);
-        }
+        if (isResolvable(var)) result.push_back(var);
     }
 
     return result;
@@ -105,25 +102,19 @@ Formula::computeResolutionCosts(const Variable var) const
     const Literal lit_pos = var2lit(var, false);
     const Literal lit_neg = var2lit(var, true);
 
-    const auto opv = static_cast<int>(_occ_list[lit_pos].size());
-    const auto onv = static_cast<int>(_occ_list[lit_neg].size());
+    const int opv = static_cast<int>(_occ_list[lit_pos].size());
+    const int onv = static_cast<int>(_occ_list[lit_neg].size());
 
-    if (opv == 0 && onv == 0) {
-        return std::numeric_limits<int>::max();
-    }
+    if (opv == 0 && onv == 0) return std::numeric_limits<int>::max();
 
     _process_limit.decreaseLimitBy(_occ_list[lit_pos].size());
     _process_limit.decreaseLimitBy(_occ_list[lit_neg].size());
 
     int spv = 0;
-    for (const ClauseID c_nr : _occ_list[lit_pos]) {
-        spv += static_cast<int>(_clauses[c_nr].size());
-    }
+    for (const ClauseID c_nr : _occ_list[lit_pos]) spv += static_cast<int>(_clauses[c_nr].size());
 
     int snv = 0;
-    for (const ClauseID c_nr : _occ_list[lit_neg]) {
-        snv += static_cast<int>(_clauses[c_nr].size());
-    }
+    for (const ClauseID c_nr : _occ_list[lit_neg]) snv += static_cast<int>(_clauses[c_nr].size());
 
     val_assert(opv + onv > 0);
     val_assert(spv >= 2 * opv);
@@ -153,52 +144,39 @@ Formula::elimEVar(Variable var, std::unordered_set<Variable>* recalc_vars)
 {
     val_assert(minVarIndex() <= var && var <= maxVarIndex());
     val_assert(isExistential(var));
+    val_assert(isResolvable(var));
     val_assert(!recalc_vars || recalc_vars->empty());
 
-    if (!_unit_stack.empty()) {
-        unitPropagation();
-    }
+    if (!_unit_stack.empty()) unitPropagation();
 
     const Literal lit_pos = var2lit(var, false);
     const Literal lit_neg = var2lit(var, true);
 
     for (const ClauseID clause_pos : _occ_list[lit_pos]) {
         // Ignore the optional clauses
-        if (clauseDeleted(clause_pos)) {
-            continue;
-        }
-        if (clauseOptional(clause_pos)) {
-            continue;
-        }
+        if (clauseDeleted(clause_pos)) continue;
+        if (clauseOptional(clause_pos)) continue;
 
         _process_limit.decreaseLimitBy(3, _occ_list[lit_neg].size());
 
         for (const ClauseID clause_neg : _occ_list[lit_neg]) {
             // Ignore the optional clauses
-            if (clauseDeleted(clause_pos)) {
-                break;
-            }
-            if (clauseDeleted(clause_neg)) {
-                continue;
-            }
-            if (clauseOptional(clause_neg)) {
-                continue;
-            }
+            if (clauseDeleted(clause_pos)) break;
+            if (clauseDeleted(clause_neg)) continue;
+            if (clauseOptional(clause_neg)) continue;
 
             _process_limit.decreaseLimitBy(3, _clauses[clause_pos].size() + _clauses[clause_neg].size());
             auto resolvent = resolve(_clauses[clause_pos], _clauses[clause_neg], var);
 
             if (!resolvent.isTautology()) {
                 // update costs for all literals in newly introduced clauses
-                if (recalc_vars != nullptr) {
+                if (recalc_vars) {
                     auto pos = recalc_vars->begin();
                     for (Literal lit : resolvent) {
                         // We only need to recompute the costs of variables that are
                         // resolvable. However, this restriction only pays off when the
                         // check for resolvability is cheap.
-                        if (isResolvable(lit2var(lit))) {
-                            pos = recalc_vars->insert(pos, lit2var(lit));
-                        }
+                        if (isResolvable(lit2var(lit))) pos = recalc_vars->insert(pos, lit2var(lit));
                     }
                 }
                 addClause(std::move(resolvent));
@@ -214,7 +192,7 @@ Formula::elimEVar(Variable var, std::unordered_set<Variable>* recalc_vars)
         // update costs for all literals in removed clauses
         const Clause& clause = _clauses[_occ_list[lit_pos].front()];
 
-        if (recalc_vars != nullptr) {
+        if (recalc_vars) {
             auto pos = recalc_vars->begin();
             for (Literal lit : clause) {
                 pos = recalc_vars->insert(pos, lit2var(lit));
@@ -235,6 +213,7 @@ Formula::elimEVar(Variable var, std::unordered_set<Variable>* recalc_vars)
         removeClause(_occ_list[lit_neg].front());
     }
     removeVar(var);
+    ++stat(Statistics::RESOLUTION);
 
     // Propagate possible new units
     unitPropagation();
@@ -261,60 +240,44 @@ Formula::elimEVar(Variable var, std::unordered_set<Variable>* recalc_vars)
  * be updated \return true if the variable has been resolved on, false otherwise
  */
 bool
-Formula::elimEVarLimit(const Variable var, const std::int64_t max_cost, std::unordered_set<Variable>* recalc_vars)
+Formula::elimEVarLimit(const Variable var, const long int max_cost, std::unordered_set<Variable>* recalc_vars)
 {
     val_assert(minVarIndex() <= var && var <= maxVarIndex());
     val_assert(isExistential(var));
-    val_assert(recalc_vars == nullptr || recalc_vars->empty());
+    val_assert(isResolvable(var));
+    val_assert(!recalc_vars || recalc_vars->empty());
 
-    if (!_unit_stack.empty()) {
-        unitPropagation();
-    }
+    if (!_unit_stack.empty()) unitPropagation();
 
     const Literal lit_pos = var2lit(var, false);
     const Literal lit_neg = var2lit(var, true);
 
+    long actual_cost = 0;
+
     // Subtract the cost of those clauses that will be deleted
-    std::int64_t actual_cost = 0l;
-    for (const ClauseID c_nr : _occ_list[lit_pos]) {
-        actual_cost -= _clauses[c_nr].size();
-    }
-    for (const ClauseID c_nr : _occ_list[lit_neg]) {
-        actual_cost -= _clauses[c_nr].size();
-    }
+    for (const ClauseID c_nr : _occ_list[lit_pos]) actual_cost -= _clauses[c_nr].size();
+    for (const ClauseID c_nr : _occ_list[lit_neg]) actual_cost -= _clauses[c_nr].size();
 
     std::vector<Clause> to_add;
     to_add.reserve(_occ_list[lit_pos].size() * _occ_list[lit_neg].size());
 
     for (const ClauseID clause_pos : _occ_list[lit_pos]) {
         // Ignore the optional clauses
-        if (clauseDeleted(clause_pos)) {
-            continue;
-        }
-        if (clauseOptional(clause_pos)) {
-            continue;
-        }
+        if (clauseDeleted(clause_pos)) continue;
+        if (clauseOptional(clause_pos)) continue;
 
         for (const ClauseID clause_neg : _occ_list[lit_neg]) {
             // Ignore the optional clauses
-            if (clauseDeleted(clause_pos)) {
-                break;
-            }
-            if (clauseDeleted(clause_neg)) {
-                continue;
-            }
-            if (clauseOptional(clause_neg)) {
-                continue;
-            }
+            if (clauseDeleted(clause_pos)) break;
+            if (clauseDeleted(clause_neg)) continue;
+            if (clauseOptional(clause_neg)) continue;
 
             auto resolvent = resolve(_clauses[clause_pos], _clauses[clause_neg], var);
 
             if (!resolvent.isTautology()) {
                 universalReduction(resolvent, -1);
                 actual_cost += resolvent.size();
-                if (actual_cost > max_cost) {
-                    return false;
-                }
+                if (actual_cost > max_cost) return false;
                 to_add.push_back(std::move(resolvent));
             }
         }
@@ -326,7 +289,7 @@ Formula::elimEVarLimit(const Variable var, const std::int64_t max_cost, std::uno
         // update costs for all literals in removed clauses
         const Clause& clause = _clauses[_occ_list[lit_pos].front()];
 
-        if (recalc_vars != nullptr) {
+        if (recalc_vars) {
             auto pos = recalc_vars->begin();
             for (const Literal lit : clause) {
                 pos = recalc_vars->insert(pos, lit2var(lit));
@@ -338,7 +301,7 @@ Formula::elimEVarLimit(const Variable var, const std::int64_t max_cost, std::uno
     while (!_occ_list[lit_neg].empty()) {
         // update costs for all literals in removed clauses
         const Clause& clause = _clauses[_occ_list[lit_neg].front()];
-        if (recalc_vars != nullptr) {
+        if (recalc_vars) {
             auto pos = recalc_vars->begin();
             for (const Literal lit : clause) {
                 pos = recalc_vars->insert(pos, lit2var(lit));
@@ -351,7 +314,7 @@ Formula::elimEVarLimit(const Variable var, const std::int64_t max_cost, std::uno
 
     // add the new clauses
     for (Clause& resolvent : to_add) {
-        if (recalc_vars != nullptr) {
+        if (recalc_vars) {
             auto pos = recalc_vars->begin();
             for (Literal lit : resolvent) {
                 pos = recalc_vars->insert(pos, lit2var(lit));
@@ -361,9 +324,9 @@ Formula::elimEVarLimit(const Variable var, const std::int64_t max_cost, std::uno
     }
 
     // Propagate possible new units
-    if (!_unit_stack.empty()) {
-        unitPropagation();
-    }
+    if (!_unit_stack.empty()) unitPropagation();
+
+    ++stat(Statistics::RESOLUTION);
 
     return true;
 }
@@ -384,8 +347,6 @@ Formula::elimEVarLimit(const Variable var, const std::int64_t max_cost, std::uno
 bool
 Formula::applyResolution()
 {
-    if (!_settings.resolution) return false;
-
     VLOG(1) << __FUNCTION__;
 
     ScopeTimer resolution(getTimer(WhichTimer::RESOLUTION));
@@ -409,9 +370,7 @@ Formula::applyResolution()
     }
 
     while (!_candidates.empty()) {
-        if (_interrupt) {
-            break;
-        }
+        if (_interrupt) break;
 
         //        if (_process_limit.reachedLimit()) {
         //            VLOG(2) << "Terminate " << __FUNCTION__ << " due to process
@@ -431,18 +390,14 @@ Formula::applyResolution()
             continue;
         }
 
+        //        elimEVar(next_var, &recalc_vars); ++count;
         if (elimEVarLimit(next_var, _settings.max_resolution_cost, &recalc_vars)) {
-            ++stat(Statistics::RESOLUTION);
             ++count;
         }
 
-        if (stat(Statistics::RESOLUTION) % 10 == 0) {
-            fastPreprocess(false);
-        }
+        if (stat(Statistics::RESOLUTION) % 10 == 0) fastPreprocess(false);
 
-        if (_interrupt) {
-            break;
-        }
+        if (_interrupt) break;
 
         // now update costs
         for (Variable var : recalc_vars) {
@@ -488,62 +443,29 @@ Literal
 Formula::checkImplicationChain(const Literal lit)
 {
     val_assert(minLitIndex() <= lit && lit <= maxLitIndex());
+
     const Variable var = lit2var(lit);
 
-    if (!isExistential(var)) {
-        return 0;
-    }
-    if (_settings.preserve_gates && _gates.isGateOutput(var)) {
-        return 0;
-    }
-    if (_occ_list[lit].size() != 1) {
-        return 0;
-    }
-
+    if (!isExistential(var)) return 0;
+    if (_settings.preserve_gates && _gates.isGateOutput(var)) return 0;
+    if (_occ_list[lit].size() != 1) return 0;
     const Literal neg_lit = negate(lit);
-    Literal       result  = 0;
+    if (_implications[neg_lit].size() != 1) return 0;
 
-    if (_implications[neg_lit].size() == 1) {
-        const Literal other_lit = (_implications[neg_lit].begin())->getLiteral();
-        if (!dependenciesSubset(lit2var(other_lit), var)) {
-            return 0;
-        }
+    const Literal other_lit = (_implications[neg_lit].begin())->getLiteral();
+    if (!dependenciesSubset(lit2var(other_lit), var)) return 0;
 
-        removeClause(_occ_list[lit].front());
-        replaceLiteral(neg_lit, other_lit);
-        VLOG(3) << __FUNCTION__ << "() replaced literal " << lit2dimacs(neg_lit) << " by literal "
-                << lit2dimacs(other_lit);
-        result = other_lit;
-
-    } else if (_settings.impl_chains > 1) {  // also semi and weak impl. chains
-        const Clause& clause = _clauses[_occ_list[lit][0]];
-
-        if (_settings.impl_chains == 2
-            && (clause.size() > 4 || _prefix->inRMB(var))) return 0;  // clause too long for semi
-
-        if (_settings.impl_chains == 3 && clause.size() > 3) return 0; // clause too long for weak
-
-        for (const Literal other_lit : clause) {
-            if (other_lit == lit) continue;
-            if (!dependenciesSubset(lit2var(other_lit), var)) {
-                return 0;
-            }
-        }
-        elimEVar(var, NULL);
-
-        VLOG(2) << __FUNCTION__ << "() eliminated weak implication chain of literal " << lit2dimacs(lit);
-        result = 1;
-
-    } else {
-        return 0;
-    }
+    removeClause(_occ_list[lit].front());
+    replaceLiteral(neg_lit, other_lit);
 
     val_assert(_occ_list[lit].empty());
     val_assert(_occ_list[neg_lit].empty());
+
     ++stat(Statistics::IMPLICATION_CHAINS);
+    VLOG(3) << __FUNCTION__ << "() replaced literal " << lit2dimacs(neg_lit) << " by literal " << lit2dimacs(other_lit);
 
     unitPropagation();
-    return result;
+    return other_lit;
 }
 
 /**
@@ -557,17 +479,14 @@ Formula::checkImplicationChain(const Literal lit)
 bool
 Formula::findImplicationChains()
 {
-    if (_settings.impl_chains == 0) return false;
-
     VLOG(1) << __FUNCTION__;
 
     ScopeTimer impl_chain(getTimer(WhichTimer::IMPLICATION_CHAINS));
+
     const std::size_t old_stat_impl_chains = stat(Statistics::IMPLICATION_CHAINS);
 
     for (Literal lit = minLitIndex(); lit <= maxLitIndex(); ++lit) {
-        if (_interrupt) {
-            break;
-        }
+        if (_interrupt) break;
         checkImplicationChain(lit);
     }
 

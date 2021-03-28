@@ -33,7 +33,7 @@ namespace hqspre {
 /**
  * \brief Checks if the given sorted range contains a duplicate element
  */
-template <typename Iterator>
+template<typename Iterator>
 inline bool
 is_unique(Iterator first, Iterator last)
 {
@@ -49,7 +49,7 @@ is_unique(Iterator first, Iterator last)
  * \pre If needs_check is false, the user has to guarantee that the clause is
  *      sorted and does not contain duplicate literals.
  */
-template <typename Allocator>
+template<typename Allocator>
 inline Clause::Clause(const std::vector<Literal, Allocator>& literals, const bool needs_check,
                       const ClauseStatus status) :
     _literals(literals.cbegin(), literals.cend()),
@@ -76,7 +76,7 @@ inline Clause::Clause(const std::vector<Literal, Allocator>& literals, const boo
  * \pre If needs_check is false, the user has to guarantee that the clause is
  *      sorted and does not contain duplicate literals.
  */
-template <>
+template<>
 inline Clause::Clause(const Clause::ClauseData& literals, const bool needs_check, const ClauseStatus status) :
     _literals(literals),
     _status(status)

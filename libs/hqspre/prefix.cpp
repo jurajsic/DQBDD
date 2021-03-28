@@ -47,9 +47,7 @@ Prefix::getExistVars() const noexcept
     std::vector<Variable> result;
     result.reserve(numEVars());
     for (Variable var = minVarIndex(); var <= maxVarIndex(); ++var) {
-        if (isExistential(var)) {
-            result.push_back(var);
-        }
+        if (isExistential(var)) result.push_back(var);
     }
 
     return result;
@@ -64,9 +62,7 @@ Prefix::getUnivVars() const noexcept
     std::vector<Variable> result;
     result.reserve(numUVars());
     for (Variable var = minVarIndex(); var <= maxVarIndex(); ++var) {
-        if (isUniversal(var)) {
-            result.push_back(var);
-        }
+        if (isUniversal(var)) result.push_back(var);
     }
 
     return result;
@@ -83,9 +79,7 @@ DQBFPrefix::intersectDependencies(const Variable var1, const Variable var2)
     val_assert(minVarIndex() <= var2 && var2 <= maxVarIndex());
     val_assert(isExistential(var1) && isExistential(var2));
 
-    if (var1 == var2 || _in_rmb[var2]) {
-        return;
-    }
+    if (var1 == var2 || _in_rmb[var2]) return;
 
     std::set<Variable> new_deps;
     std::set_intersection(_dependencies[var1].cbegin(), _dependencies[var1].cend(), _dependencies[var2].cbegin(),
@@ -104,9 +98,7 @@ QBFPrefix::intersectDependencies(const Variable var1, const Variable var2)
     val_assert(minVarIndex() <= var2 && var2 <= maxVarIndex());
     val_assert(isExistential(var1) && isExistential(var2));
 
-    if (_depth[var2] < _depth[var1]) {
-        setLevel(var1, _depth[var2]);
-    }
+    if (_depth[var2] < _depth[var1]) setLevel(var1, _depth[var2]);
 }
 
 /*
@@ -114,7 +106,9 @@ QBFPrefix::intersectDependencies(const Variable var1, const Variable var2)
  */
 void
 SATPrefix::intersectDependencies(const Variable, const Variable)
-{}
+{
+    return;
+}
 
 //--------------------------------------------------------
 
@@ -129,9 +123,7 @@ DQBFPrefix::uniteDependencies(const Variable var1, const Variable var2)
     val_assert(minVarIndex() <= var2 && var2 <= maxVarIndex());
     val_assert(isExistential(var1) && isExistential(var2));
 
-    if (var1 == var2 || _in_rmb[var1]) {
-        return;
-    }
+    if (var1 == var2 || _in_rmb[var1]) return;
 
     std::set<Variable> new_deps;
     std::set_union(_dependencies[var1].cbegin(), _dependencies[var1].cend(), _dependencies[var2].cbegin(),
@@ -158,8 +150,9 @@ QBFPrefix::uniteDependencies(const Variable var1, const Variable var2)
  */
 void
 SATPrefix::uniteDependencies(const Variable, const Variable)
-{}
-
+{
+    return;
+}
 //--------------------------------------------------------
 
 /**
@@ -179,21 +172,11 @@ DQBFPrefix::dependenciesSubset(const Variable var1, const Variable var2) const
     val_assert(!varDeleted(var1) && !varDeleted(var2));
     val_assert(isExistential(var2));
 
-    if (var1 == var2) {
-        return true;
-    }
-    if (_in_rmb[var2]) {
-        return true;
-    }
-    if (_in_rmb[var1] && !_in_rmb[var2]) {
-        return false;
-    }
-    if (isUniversal(var1)) {
-        return depends(var2, var1);
-    }
-    if (_dependencies[var1].size() > _dependencies[var2].size()) {
-        return false;
-    }
+    if (var1 == var2) return true;
+    if (_in_rmb[var2]) return true;
+    if (_in_rmb[var1] && !_in_rmb[var2]) return false;
+    if (isUniversal(var1)) return depends(var2, var1);
+    if (_dependencies[var1].size() > _dependencies[var2].size()) return false;
 
     return std::includes(_dependencies[var2].cbegin(), _dependencies[var2].cend(), _dependencies[var1].cbegin(),
                          _dependencies[var1].cend());
@@ -233,12 +216,8 @@ Prefix::checkConsistency() const
     std::size_t e_vars = 0;
     std::size_t u_vars = 0;
     for (Variable var = minVarIndex(); var <= maxVarIndex(); ++var) {
-        if (isUniversal(var)) {
-            ++u_vars;
-        }
-        if (isExistential(var)) {
-            ++e_vars;
-        }
+        if (isUniversal(var)) ++u_vars;
+        if (isExistential(var)) ++e_vars;
     }
 
     if (numEVars() != e_vars) {
@@ -256,9 +235,7 @@ Prefix::checkConsistency() const
 bool
 DQBFPrefix::checkConsistency() const
 {
-    if (!Prefix::checkConsistency()) {
-        return false;
-    }
+    if (!Prefix::checkConsistency()) return false;
 
     if (_dependencies.size() != maxVarIndex() + 1 || _in_rmb.size() != maxVarIndex() + 1) {
         LOG(ERROR) << "Data structures have wrong size.";
@@ -269,13 +246,11 @@ DQBFPrefix::checkConsistency() const
         LOG(ERROR) << "numUVars() = " << numUVars() << " != univ_vars.size() = " << _univ_vars.size();
         return false;
     }
-
-    const auto not_univ = std::find_if(_univ_vars.cbegin(), _univ_vars.cend(),
-                                       [this](const Variable uvar) { return !isUniversal(uvar); });
-
-    if (not_univ != _univ_vars.cend()) {
-        LOG(ERROR) << "Variable " << *not_univ << " is not universal, but in univ_vars.";
-        return false;
+    for (Variable uvar : _univ_vars) {
+        if (!isUniversal(uvar)) {
+            LOG(ERROR) << "Variable " << uvar << " is not universal, but in univ_vars.";
+            return false;
+        }
     }
 
     for (Variable var = 1; var <= maxVarIndex(); ++var) {
@@ -290,9 +265,7 @@ DQBFPrefix::checkConsistency() const
 
     // Consistency of dependency lists
     for (Variable var = minVarIndex(); var <= maxVarIndex(); ++var) {
-        if (varDeleted(var)) {
-            continue;
-        }
+        if (varDeleted(var)) continue;
         if (_in_rmb[var]) {
             if (!isExistential(var)) {
                 LOG(ERROR) << "Universal variable " << var << " in DQBF-rmb.";
@@ -331,14 +304,10 @@ DQBFPrefix::checkConsistency() const
 bool
 QBFPrefix::checkConsistency() const
 {
-    if (!Prefix::checkConsistency()) {
-        return false;
-    }
+    if (!Prefix::checkConsistency()) return false;
 
     for (Variable var = minVarIndex(); var <= maxVarIndex(); ++var) {
-        if (varDeleted(var)) {
-            continue;
-        }
+        if (varDeleted(var)) continue;
         if (_depth[var] >= _blocks.size()) {
             LOG(ERROR) << "Variable " << var << " in a block (" << _depth[var] << ") which does not exist.";
             return false;
@@ -351,9 +320,7 @@ QBFPrefix::checkConsistency() const
     }
 
     for (const auto& block : _blocks) {
-        if (block.empty()) {
-            continue;
-        }
+        if (block.empty()) continue;
         const bool block_exist = isExistential(*(block.cbegin()));
         for (Variable var : block) {
             if (varDeleted(var)) {
@@ -374,16 +341,10 @@ QBFPrefix::checkConsistency() const
 bool
 SATPrefix::checkConsistency() const
 {
-    if (!Prefix::checkConsistency()) {
-        return false;
-    }
+    if (!Prefix::checkConsistency()) return false;
     for (Variable var : _vars) {
-        if (varDeleted(var)) {
-            return false;
-        }
-        if (!isExistential(var)) {
-            return false;
-        }
+        if (varDeleted(var)) return false;
+        if (!isExistential(var)) return false;
     }
     return true;
 }
@@ -400,24 +361,24 @@ void
 DQBFPrefix::write(std::ostream& stream, std::vector<Variable>* translation_table) const
 {
     auto trans = [translation_table](Variable var) -> Variable {
-        return (translation_table != nullptr ? (*translation_table)[var] : var);
+        return (translation_table ? (*translation_table)[var] : var);
     };
 
     // print universal variables
-	stream << "a ";
-	for (Variable var = minVarIndex(); var <= maxVarIndex(); ++var) {
-		if (isUniversal(var)) {
-			stream << trans(var) << ' ';
-		}
-	}
-	stream << "0\n";
+    stream << "a ";
+    for (Variable var = minVarIndex(); var <= maxVarIndex(); ++var) {
+        if (isUniversal(var)) {
+            stream << trans(var) << ' ';
+        }
+    }
+    stream << "0\n";
 
     // print existential variables which do not depend on all universals
     for (Variable var = 1; var <= maxVarIndex(); ++var) {
         if (!isExistential(var)) continue;
         if (_in_rmb[var]) continue;
 
-	    stream << "d " << trans(var) << ' ';
+        stream << "d " << trans(var) << ' ';
         for (const Variable dep : _dependencies[var]) {
             stream << trans(dep) << ' ';
         }
@@ -444,28 +405,25 @@ void
 QBFPrefix::write(std::ostream& stream, std::vector<Variable>* translation_table) const
 {
     auto trans = [translation_table](Variable var) -> Variable {
-        return (translation_table != nullptr ? (*translation_table)[var] : var);
+        return (translation_table ? (*translation_table)[var] : var);
     };
 
     for (const auto& block : _blocks) {
-        if (block.empty()) {
-            continue;
-        }
-        if (isExistential(*(block.begin()))) {
+        if (block.empty()) continue;
+        if (isExistential(*(block.begin())))
             stream << "e ";
-        } else {
+        else
             stream << "a ";
-        }
-        for (Variable var : block) {
-            stream << trans(var) << ' ';
-        }
+        for (Variable var : block) stream << trans(var) << ' ';
         stream << "0\n";
     }
 }
 
 void
 SATPrefix::write(std::ostream&, std::vector<Variable>*) const
-{}
+{
+    return;
+}
 
 //---------------------------------------------------------
 
@@ -475,7 +433,9 @@ Prefix::updateVars()
 
 void
 SATPrefix::updateVars()
-{}
+{
+    return;
+}
 
 /**
  * \brief Update the variable data structures.
@@ -534,9 +494,7 @@ DQBFPrefix::numDependencies() const noexcept
 {
     std::size_t num = _rmb.size() * numUVars();
     for (Variable var = minVarIndex(); var <= maxVarIndex(); ++var) {
-        if (isExistential(var)) {
-            num += numDependencies(var);
-        }
+        if (isExistential(var)) num += numDependencies(var);
     }
 
     return num;
@@ -552,14 +510,11 @@ QBFPrefix::numDependencies() const noexcept
     std::size_t result = 0;
     std::size_t univs  = 0;
     for (const auto& block : _blocks) {
-        if (block.empty()) {
-            continue;
-        }
-        if (isExistential(*(block.begin()))) {
+        if (block.empty()) continue;
+        if (isExistential(*(block.begin())))
             result += univs * block.size();
-        } else {
+        else
             univs += block.size();
-        }
     }
 
     return result;
@@ -582,11 +537,10 @@ DQBFPrefix::numDependencies(const Variable var) const noexcept
     val_assert(minVarIndex() <= var && var <= maxVarIndex());
     val_assert(isExistential(var));
 
-    if (_in_rmb[var]) {
+    if (_in_rmb[var])
         return _univ_vars.size();
-    } else {
+    else
         return _dependencies[var].size();
-    }
 }
 
 /**
@@ -596,17 +550,13 @@ std::size_t
 QBFPrefix::numDependencies(const Variable var) const noexcept
 {
     val_assert(minVarIndex() <= var && var <= maxVarIndex());
-    if (varDeleted(var)) {
-        return 0;
-    }
+    if (varDeleted(var)) return 0;
 
     const std::size_t block_nr = getLevel(var);
     std::size_t       result   = 0;
 
     for (std::size_t b = 0; b < block_nr; ++b) {
-        if (_blocks[b].empty()) {
-            continue;
-        }
+        if (_blocks[b].empty()) continue;
         if (isUniversal(*(_blocks[b].begin()))) {
             result += _blocks[b].size();
         }
@@ -652,20 +602,12 @@ bool
 DQBFPrefix::isQBF() const
 {
     for (Variable var = minVarIndex(); var <= maxVarIndex(); ++var) {
-        if (!isExistential(var)) {
-            continue;
-        }
-        if (_in_rmb[var]) {
-            continue;  // variable depends on all universals
-        }
+        if (!isExistential(var)) continue;
+        if (_in_rmb[var]) continue;  // variable depends on all universals
 
         for (Variable other_var = var + 1; other_var <= maxVarIndex(); ++other_var) {
-            if (!isExistential(other_var)) {
-                continue;
-            }
-            if (_in_rmb[other_var]) {
-                continue;  // variable depends on all universals
-            }
+            if (!isExistential(other_var)) continue;
+            if (_in_rmb[other_var]) continue;  // variable depends on all universals
 
             // remove from the first dep-set each element from the second dep-set
             // remove from the second dep-set each element from the first dep-set
@@ -673,9 +615,7 @@ DQBFPrefix::isQBF() const
                 = two_sided_difference_empty(_dependencies[var].cbegin(), _dependencies[var].cend(),
                                              _dependencies[other_var].cbegin(), _dependencies[other_var].cend());
             // if both differences are non-empty, we have a proper DQBF
-            if (!result.first && !result.second) {
-                return false;
-            }
+            if (!result.first && !result.second) return false;
         }
     }
     return true;
@@ -693,9 +633,7 @@ DQBFPrefix::isQBF() const
 QBFPrefix*
 DQBFPrefix::convertToQBF() const
 {
-    if (!isQBF()) {
-        return nullptr;
-    }
+    if (!isQBF()) return nullptr;
 
     auto result = new QBFPrefix();
     result->setMaxVarIndex(maxVarIndex());
@@ -704,9 +642,7 @@ DQBFPrefix::convertToQBF() const
     std::vector<Variable> exist_vars;
     exist_vars.reserve(numEVars());
     for (Variable var = minVarIndex(); var <= maxVarIndex(); ++var) {
-        if (isExistential(var) && !_in_rmb[var]) {
-            exist_vars.push_back(var);
-        }
+        if (isExistential(var) && !_in_rmb[var]) exist_vars.push_back(var);
     }
 
     // Sort existential variables according to their number of dependencies.
@@ -736,9 +672,7 @@ DQBFPrefix::convertToQBF() const
     }
 
     // Append the rmb-variables
-    for (Variable var : _rmb) {
-        result->addEVar(var);
-    }
+    for (Variable var : _rmb) result->addEVar(var);
 
     return result;
 }
@@ -750,9 +684,7 @@ QBFPrefix::setLevel(const Variable var, const std::size_t level)
     val_assert(level <= _blocks.size());
     val_assert(!varDeleted(var));
 
-    if (level == _depth[var]) {
-        return;
-    }
+    if (level == _depth[var]) return;
 
     val_assert(level == _blocks.size() || _blocks[level].empty()
                || isExistential(var) == isExistential(*(_blocks[level].begin())));
@@ -761,9 +693,7 @@ QBFPrefix::setLevel(const Variable var, const std::size_t level)
 
     _blocks[_depth[var]].erase(var);
     _depth[var] = level;
-    if (level >= _blocks.size()) {
-        _blocks.resize(level + 1);
-    }
+    if (level >= _blocks.size()) _blocks.resize(level + 1);
     _blocks[level].insert(var);
 }
 
@@ -783,9 +713,7 @@ QBFPrefix::convertToDQBF() const
     std::set<Variable> deps;
     for (const auto& block : _blocks) {
         for (Variable var : block) {
-            if (varDeleted(var)) {
-                continue;
-            }
+            if (varDeleted(var)) continue;
             if (isUniversal(var)) {
                 result->addUVar(var);
                 deps.insert(var);
@@ -798,7 +726,7 @@ QBFPrefix::convertToDQBF() const
     return result;
 }
 
-template <typename Container>
+template<typename Container>
 void
 DQBFPrefix::setDependencies(Variable var, const Container& deps)
 {
@@ -817,17 +745,13 @@ DQBFPrefix::setDependencies(Variable var, const Container& deps)
     }
 
     if (_in_rmb[var]) {
-        for (Variable dep : _univ_vars) {
-            _dependencies[dep].erase(var);
-        }
+        for (Variable dep : _univ_vars) _dependencies[dep].erase(var);
         _dependencies[var].clear();
         _in_rmb[var] = false;
         _rmb.erase(var);
     } else {
         // remove old dependencies
-        for (Variable dep : _dependencies[var]) {
-            _dependencies[dep].erase(var);
-        }
+        for (Variable dep : _dependencies[var]) _dependencies[dep].erase(var);
         _dependencies[var].clear();
     }
 
@@ -856,17 +780,13 @@ DQBFPrefix::setDependencies(const Variable var, std::set<Variable>&& deps)
     }
 
     if (_in_rmb[var]) {
-        for (Variable dep : _univ_vars) {
-            _dependencies[dep].erase(var);
-        }
+        for (Variable dep : _univ_vars) _dependencies[dep].erase(var);
         _dependencies[var].clear();
         _in_rmb[var] = false;
         _rmb.erase(var);
     } else {
         // remove old dependencies
-        for (Variable dep : _dependencies[var]) {
-            _dependencies[dep].erase(var);
-        }
+        for (Variable dep : _dependencies[var]) _dependencies[dep].erase(var);
         _dependencies[var].clear();
     }
     val_assert(checkConsistency());
@@ -885,9 +805,7 @@ const std::set<Variable>&
 QBFPrefix::getRMB() const noexcept
 {
     int max_num = static_cast<int>(_blocks.size()) - 1;
-    while (max_num >= 0 && _blocks[max_num].empty()) {
-        --max_num;
-    }
+    while (max_num >= 0 && _blocks[max_num].empty()) --max_num;
     if (max_num < 0 || getLevelQuantifier(max_num) != VariableStatus::EXISTENTIAL) {
         const_cast<QBFPrefix*>(this)->_blocks.resize(max_num + 2);
     } else {
@@ -932,15 +850,11 @@ QBFPrefix::moveToRMB(const Variable var)
     val_assert(!varDeleted(var));
     val_assert(isExistential(var));
 
-    if (getLevel(var) == _blocks.size() - 1) {
-        return;
-    }
+    if (getLevel(var) == _blocks.size() - 1) return;
     _blocks[_depth[var]].erase(var);
 
     int max_num = static_cast<int>(_blocks.size()) - 1;
-    while (max_num >= 0 && _blocks[max_num].empty()) {
-        --max_num;
-    }
+    while (max_num >= 0 && _blocks[max_num].empty()) --max_num;
     if (max_num < 0 || getLevelQuantifier(max_num) != VariableStatus::EXISTENTIAL) {
         _blocks.resize(max_num + 2);
     } else {
@@ -964,21 +878,19 @@ DQBFPrefix::moveToRMB(const Variable var)
     val_assert(!varDeleted(var));
     val_assert(isExistential(var));
 
-    if (_dependencies[var].size() == numUVars()) {
-        return;
-    }
+    if (_dependencies[var].size() == numUVars()) return;
 
     _in_rmb[var] = true;
     _dependencies[var].clear();
     _rmb.insert(var);
-    for (Variable univ : _univ_vars) {
-        _dependencies[univ].insert(var);
-    }
+    for (Variable univ : _univ_vars) _dependencies[univ].insert(var);
 }
 
 void
 SATPrefix::moveToRMB(const Variable)
-{}
+{
+    return;
+}
 
 //-------------------------------------------------------------------------------
 /**
@@ -989,13 +901,12 @@ SATPrefix::moveToRMB(const Variable)
 VariableStatus
 QBFPrefix::getLevelQuantifier(const std::size_t level) const noexcept
 {
-    if (level >= _blocks.size() || _blocks[level].empty()) {
+    if (level >= _blocks.size() || _blocks[level].empty())
         return VariableStatus::DELETED;
-    } else if (isExistential(*(_blocks[level].begin()))) {
+    else if (isExistential(*(_blocks[level].begin())))
         return VariableStatus::EXISTENTIAL;
-    } else {
+    else
         return VariableStatus::UNIVERSAL;
-    }
 }
 
 SATPrefix*
@@ -1003,13 +914,11 @@ Prefix::convertToSAT() const
 {
     val_assert(this->isSAT());
 
-    auto result = new SATPrefix();
+    SATPrefix* result = new SATPrefix();
     result->setMaxVarIndex(this->maxVarIndex());
 
     for (Variable i = 0; i <= this->maxVarIndex(); ++i) {
-        if (!varDeleted(i)) {
-            result->addEVar(i);
-        }
+        if (!varDeleted(i)) result->addEVar(i);
     }
 
     return result;

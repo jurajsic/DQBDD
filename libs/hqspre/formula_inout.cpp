@@ -1,7 +1,7 @@
 /*
  * This file is part of HQSpre.
  *
- * Copyright 2016-19 Ralf Wimmer, Sven Reimer, Paolo Marin, Bernd Becker
+ * Copyright 2016/17 Ralf Wimmer, Sven Reimer, Paolo Marin, Bernd Becker
  * Albert-Ludwigs-Universitaet Freiburg, Freiburg im Breisgau, Germany
  *
  * HQSpre is free software: you can redistribute it and/or modify
@@ -19,7 +19,6 @@
  */
 
 #include <algorithm>
-#include <cstdint>
 #include <cstdlib>
 #include <iostream>
 #include <set>
@@ -35,60 +34,49 @@
 
 /**
  * \file formula_inout.cpp
- * \brief Implementation of methods and functions for reading and writing formulas.
- * \author Ralf Wimmer \date 01/2016
+ * \brief Implementation of methods and functions for reading and writing
+ * formulas. \author Ralf Wimmer \date 01/2016
  */
 
 namespace hqspre {
 
-static inline std::uint32_t
-str2uint(const std::string& token, std::int32_t min, std::int32_t max)
+static inline int
+str2int(const std::string& token)
 {
-    std::size_t   pos   = 0;
-    unsigned long value = 0ul;
-
-    try {
-        value = std::stoul(token, &pos, 10);
-    } catch (std::invalid_argument& e) {
-        throw FileFormatException("Invalid integer");
-    } catch (std::out_of_range& e) {
-        throw FileFormatException("Integer out of range.");
+    if (token.empty() || token.size() > 11u) {
+        throw FileFormatException("Empty string");
     }
 
-    if (value < static_cast<unsigned long>(min) || value > static_cast<unsigned long>(max)) {
-        throw FileFormatException("Integer out of range.");
+    int         factor = 1;
+    std::size_t start  = 0;
+
+    if (token[0] == '-') {
+        factor = -1;
+        start  = 1;
+    } else if (token[0] == '+') {
+        start = 1;
     }
 
-    if (pos < token.size()) {
-        throw FileFormatException("Invalid integer");
+    int result = 0;
+    for (std::size_t pos = start; pos < token.size(); ++pos) {
+        result *= 10;
+        if (token[pos] < '0' || token[pos] > '9') {
+            throw FileFormatException("Invalid integer");
+        }
+        result += static_cast<int>(token[pos] - '0');
     }
 
-    return static_cast<std::uint32_t>(value);
+    return result * factor;
 }
 
-static inline std::int32_t
-str2int(const std::string& token, const std::int32_t min, const std::int32_t max)
+static inline int
+str2int(const std::string& token, int min, int max)
 {
-    std::size_t pos   = 0;
-    long        value = 0l;
-
-    try {
-        value = std::stol(token, &pos, 10);
-    } catch (std::invalid_argument& e) {
-        throw FileFormatException("Invalid integer");
-    } catch (std::out_of_range& e) {
+    const int result = str2int(token);
+    if (result < min || result > max) {
         throw FileFormatException("Integer out of range.");
     }
-
-    if (value < min || value > max) {
-        throw FileFormatException("Integer out of range.");
-    }
-
-    if (pos < token.size()) {
-        throw FileFormatException("Invalid integer");
-    }
-
-    return static_cast<std::int32_t>(value);
+    return result;
 }
 
 /**
@@ -104,9 +92,11 @@ Formula::read(std::istream& stream)
 
     reset();
 
-    std::string        token;
-    std::uint32_t      num_clauses = 0;
-    std::set<Variable> universal_vars;
+    std::string           token;
+    long int              num_vars    = -1;
+    long int              num_clauses = -1;
+    std::set<Variable>    universal_vars;
+    std::vector<Variable> var_map;
 
     // Read the (DQ)DIMACS file header.
     while (!stream.eof()) {
@@ -122,11 +112,11 @@ Formula::read(std::istream& stream)
             }
 
             stream >> token;
-            const std::uint32_t num_vars = str2uint(token, 0, _settings.max_num_vars);
-
+            num_vars = str2int(token, 0, _settings.max_num_vars);
             stream >> token;
-            num_clauses = str2uint(token, 0, _settings.max_num_clauses);
+            num_clauses = str2int(token, 0, _settings.max_num_clauses);
 
+            var_map.resize(num_vars + 1, 0);
             _clauses.reserve(num_clauses);
             setMaxVarIndex(static_cast<Variable>(num_vars));
             break;
@@ -134,7 +124,6 @@ Formula::read(std::istream& stream)
             throw FileFormatException("File header missing.");
         }
     }
-
     if (stream.eof() && num_clauses != 0) {
         throw FileFormatException("File header missing.");
     }
@@ -147,27 +136,29 @@ Formula::read(std::istream& stream)
             // list of universally quantified variables
             while (stream) {
                 stream >> token;
-                const Variable var = str2uint(token, 0, _settings.max_num_vars);
-                if (var == 0) {
-                    break;
-                }
+                const int var = str2int(token, 0, _settings.max_num_vars);
+                if (var == 0) break;
 
-                setUVar(var);
-                universal_vars.insert(var);
+                if (static_cast<Variable>(var) >= var_map.size()) {
+                    var_map.resize(var + 1);
+                }
+                var_map[var] = addUVar();
+                universal_vars.insert(var_map[var]);
             }
         } else if (token == "e") {
             // existential variable depending on all universal vars
             // declared so far.
             while (stream) {
                 stream >> token;
-                const Variable exist_var = str2uint(token, 0, _settings.max_num_vars);
-                if (exist_var == 0) {
-                    break;
+                const int exist_var = str2int(token, 0, _settings.max_num_vars);
+                if (exist_var == 0) break;
+                if (static_cast<Variable>(exist_var) >= var_map.size()) {
+                    var_map.resize(exist_var + 1);
                 }
                 if (_prefix->type() == PrefixType::DQBF) {
-                    setEVar(exist_var, universal_vars);
+                    var_map[exist_var] = addEVar(universal_vars);
                 } else {
-                    setEVar(exist_var);
+                    var_map[exist_var] = addEVar();
                 }
             }
         } else if (token == "d") {
@@ -183,50 +174,45 @@ Formula::read(std::istream& stream)
             }
             // existential variable with dependencies
             stream >> token;
-            const Variable     exist_var = str2uint(token, 1, _settings.max_num_vars);
-            std::set<Variable> deps;
+            const int exist_var = str2int(token, 1, _settings.max_num_vars);
+            if (static_cast<Variable>(exist_var) >= var_map.size()) {
+                var_map.resize(exist_var + 1);
+            }
 
+            std::set<Variable> deps;
             while (stream) {
                 stream >> token;
-                const Variable all_var = str2uint(token, 0, static_cast<std::int32_t>(maxVarIndex()));
-                if (all_var == 0) {
-                    break;
-                }
-                if (all_var > maxVarIndex()) {
+                const int all_var
+                    = str2int(token, -static_cast<int>(var_map.size()) + 1, static_cast<int>(var_map.size()) - 1);
+                if (all_var == 0) break;
+                if (var_map[all_var] > maxVarIndex()) {
                     throw FileFormatException("[ERROR] Undeclared variable in dependency set");
                 }
-                if (!isUniversal(all_var)) {
+                if (!isUniversal(var_map[all_var])) {
                     throw FileFormatException("[ERROR] Variable in the dependency set that is not universal");
                 }
-                deps.insert(all_var);
+                deps.insert(var_map[all_var]);
             }
-            setEVar(exist_var, std::move(deps));
+            var_map[exist_var] = addEVar(std::move(deps));
         } else if (token == "c") {
             std::getline(stream, token);  // consume the rest of the line
-        } else {
+        } else
             break;
-        }
-    }
-
-    // We have read all variable declearations. Re-generate the list of deleted variables.
-    _deleted_var_numbers.clear();
-    for (Variable var = minVarIndex(); var <= maxVarIndex(); ++var) {
-        if (varDeleted(var)) _deleted_var_numbers.push_back(var);
     }
 
     // Now read clauses
-    std::uint32_t      clauses_read = 0;
+    long int           clauses_read = 0;
     Clause::ClauseData clause;
 
     while (stream.good()) {
+        // clause
         clause.clear();
+        bool eof = false;
 
+        int lit = str2int(token, -static_cast<int>(var_map.size()) + 1, static_cast<int>(var_map.size()) - 1);
         do {
-            const std::int32_t lit = str2int(token, -maxVarIndex(), +maxVarIndex());
-            if (lit == 0) {
-                break;
-            }
-            const Variable var = static_cast<Variable>(abs(lit));
+            if (lit == 0) break;
+            const Variable var = var_map[abs(lit)];
             clause.push_back(var2lit(var, lit < 0));
 
             if (clause.back() < minLitIndex() || clause.back() > maxLitIndex()) {
@@ -236,14 +222,13 @@ Formula::read(std::istream& stream)
                 throw FileFormatException("Unexpected end of file.");
             }
             stream >> token;
+            lit = str2int(token, -static_cast<int>(var_map.size()) + 1, static_cast<int>(var_map.size()) - 1);
         } while (true);
 
         addClause(std::move(clause));
         ++clauses_read;
 
-        if (clauses_read == num_clauses) {
-            break;
-        }
+        if (clauses_read == num_clauses) break;
         stream >> token;
     }
 
@@ -285,6 +270,7 @@ Formula::readSAT(std::istream& stream)
     Variable              num_vars     = 0;
     std::size_t           num_clauses  = 1;
     std::size_t           clauses_read = 0;
+    std::set<Variable>    universal_vars;
     std::vector<Variable> var_map;
     Clause::ClauseData    clause;
 
@@ -311,10 +297,8 @@ Formula::readSAT(std::istream& stream)
             bool eof = false;
             auto lit = static_cast<int>(std::strtol(token.c_str(), nullptr, 10));
             do {
-                if (lit == 0) {
-                    break;
-                }
-                const Variable var = var_map[static_cast<std::size_t>(abs(lit))];
+                if (lit == 0) break;
+                const Variable var = var_map[abs(lit)];
                 clause.push_back(var2lit(var, lit < 0));
                 if (stream.eof()) {
                     eof = true;
@@ -325,12 +309,9 @@ Formula::readSAT(std::istream& stream)
             if (!eof) {
                 addClause(std::move(clause));
                 ++clauses_read;
-            } else {
+            } else
                 break;
-            }
-            if (clauses_read == num_clauses) {
-                break;
-            }
+            if (clauses_read == num_clauses) break;
         }
     }
 
@@ -362,14 +343,11 @@ Formula::write(std::ostream& stream, bool compact) const
     std::vector<Variable> translation_table(maxVarIndex() + 1, 0);
     Variable              current = 0;
     for (Variable var = minVarIndex(); var <= maxVarIndex(); ++var) {
-        if (varDeleted(var)) {
-            continue;
-        }
+        if (varDeleted(var)) continue;
         if (compact) {
             translation_table[var] = ++current;
-        } else {
+        } else
             translation_table[var] = var;
-        }
     }
 
     // If necessary, print the translation table
@@ -393,18 +371,15 @@ void
 Formula::writeClauses(std::ostream& stream, std::vector<Variable>* translation_table) const
 {
     auto trans = [translation_table](const Literal lit) -> Literal {
-        if (translation_table == nullptr) {
+        if (!translation_table)
             return lit;
-        } else {
+        else
             return var2lit((*translation_table)[lit2var(lit)], isNegative(lit));
-        }
     };
 
     // Print the clauses.
     for (ClauseID c_nr = 0; c_nr <= maxClauseIndex(); ++c_nr) {
-        if (clauseDeleted(c_nr)) {
-            continue;
-        }
+        if (clauseDeleted(c_nr)) continue;
         for (const Literal lit : _clauses[c_nr]) {
             stream << lit2dimacs(trans(lit)) << ' ';
         }

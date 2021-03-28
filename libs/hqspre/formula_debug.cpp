@@ -56,62 +56,53 @@ namespace hqspre {
 bool
 Formula::checkConsistency() const
 {
-    if (!_settings.consistency_check) {
-        return true;
-    }
+    if (!_settings.consistency_check) return true;
 
     // Check the prefix
-    if (_prefix == nullptr) {
+    if (!_prefix) {
         LOG(ERROR) << "Prefix is null.";
         return false;
     }
 
-    if (_prefix->type() == PrefixType::QBF && _qbf_prefix == nullptr) {
+    if (_prefix->type() == PrefixType::QBF && !_qbf_prefix) {
         LOG(ERROR) << "Prefix is a QBF prefix, but qbf_prefix is null.";
         return false;
     }
 
-    if (_prefix->type() == PrefixType::DQBF && _dqbf_prefix == nullptr) {
+    if (_prefix->type() == PrefixType::DQBF && !_dqbf_prefix) {
         LOG(ERROR) << "Prefix is a DQBF prefix, but dqbf_prefix is null.";
         return false;
     }
 
-    if (_qbf_prefix != nullptr && _dqbf_prefix != nullptr) {
+    if (_qbf_prefix && _dqbf_prefix) {
         LOG(ERROR) << "Both qbf_prefix and dqbf_prefix are in use.";
         return false;
     }
 
-    if (!_prefix->checkConsistency()) {
-        return false;
-    }
+    if (!_prefix->checkConsistency()) return false;
 
-    if (!_gates.checkConsistency()) {
-        return false;
-    }
+    if (!_gates.checkConsistency()) return false;
 
-    if (std::any_of(_deleted_var_numbers.cbegin(), _deleted_var_numbers.cend(),
-                    [this](const Variable var) -> bool { return !varDeleted(var); })) {
-        LOG(ERROR) << "Variable marked as deleted by is not.";
-        return false;
+    for (const Variable var : _deleted_var_numbers) {
+        if (!varDeleted(var)) {
+            LOG(ERROR) << "Variable marked as deleted by is not.";
+            return false;
+        }
     }
 
     // Check all clauses for consistency
     for (ClauseID c_nr = 0; c_nr < _clauses.size(); ++c_nr) {
-        if (clauseDeleted(c_nr)) {
-            continue;
-        }
-        if (!_clauses[c_nr].checkConsistency()) {
-            return false;
-        }
+        if (clauseDeleted(c_nr)) continue;
+        if (!_clauses[c_nr].checkConsistency()) return false;
     }
 
     // Clauses do not contain deleted variables
     for (const auto& clause : _clauses) {
-        const auto error = std::find_if(clause.cbegin(), clause.cend(),
-                                        [this](const Literal lit) -> bool { return varDeleted(lit2var(lit)); });
-        if (error != clause.cend()) {
-            LOG(ERROR) << "Clause contains a deleted variable (var = " << lit2var(*error) << ").";
-            return false;
+        for (const Literal lit : clause) {
+            if (varDeleted(lit2var(lit))) {
+                LOG(ERROR) << "Clause contains a deleted variable (var = " << lit2var(lit) << ").";
+                return false;
+            }
         }
     }
 
@@ -158,9 +149,7 @@ Formula::checkConsistency() const
 
     // All binary clauses are stored in the implication lists
     for (ClauseID c_nr = 0; c_nr < _clauses.size(); ++c_nr) {
-        if (clauseDeleted(c_nr) || _clauses[c_nr].size() != 2) {
-            continue;
-        }
+        if (clauseDeleted(c_nr) || _clauses[c_nr].size() != 2) continue;
 
         if (hasImplication(negate(_clauses[c_nr][0]), _clauses[c_nr][1]) == -1) {
             LOG(ERROR) << "We have the binary clause " << _clauses[c_nr] << ", but the implication "
@@ -179,9 +168,7 @@ Formula::checkConsistency() const
 
     // Consistency of occurrence lists
     for (ClauseID c_nr = 0; c_nr < _clauses.size(); ++c_nr) {
-        if (clauseDeleted(c_nr)) {
-            continue;
-        }
+        if (clauseDeleted(c_nr)) continue;
 
         for (Literal lit : _clauses[c_nr]) {
             if (std::find(_occ_list[lit].cbegin(), _occ_list[lit].cend(), c_nr) == _occ_list[lit].cend()) {
@@ -207,9 +194,11 @@ Formula::checkConsistency() const
     }
 
     // The _seen vector has to be cleared
-    if (std::any_of(_seen.cbegin(), _seen.cend(), [](const unsigned char b) -> bool { return b != 0u; })) {
-        LOG(ERROR) << "Seen vector is not cleared.";
-        return false;
+    for (bool b : _seen) {
+        if (b) {
+            LOG(ERROR) << "Seen vector is not cleared.";
+            return false;
+        }
     }
     return true;
 }
@@ -219,7 +208,7 @@ Formula::checkSeen() const
 {
     bool error = false;
     for (Literal lit = minLitIndex(); lit <= maxLitIndex(); ++lit) {
-        if (_seen[lit] != 0u) {
+        if (_seen[lit]) {
             LOG(ERROR) << lit2dimacs(lit) << " is already seen.";
             error = true;
         }
@@ -275,9 +264,7 @@ Formula::printAllClauses(std::ostream& stream, const bool print_implications) co
 {
     stream << "clause database:\n";
     for (unsigned int i = 0; i != _clauses.size(); ++i) {
-        if (clauseDeleted(i)) {
-            continue;
-        }
+        if (clauseDeleted(i)) continue;
         stream << (i + 1) << ": " << _clauses[i] << '\n';
     }
 

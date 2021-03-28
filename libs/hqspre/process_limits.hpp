@@ -60,7 +60,7 @@ enum class PreproMethod : unsigned int
 class ProcessLimit
 {
    public:
-    ProcessLimit() = default;
+    ProcessLimit()  = default;
     ~ProcessLimit() = default;
 
     void useLimit(bool value) noexcept { _check_limits = value; }
@@ -76,12 +76,6 @@ class ProcessLimit
     bool reachedLimit() const noexcept { return (_check_limits && _process_limit < 0); }
 
     void setLimit(PreproMethod method) { _process_limit = _limits[static_cast<unsigned int>(method)]; }
-
-	ProcessLimit& operator=(const ProcessLimit& other) {
-		_process_limit = other._process_limit;
-		_check_limits = other._check_limits;
-		return *this;
-	}
 
    private:
     const std::int64_t _limits[15] = {

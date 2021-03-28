@@ -1,9 +1,7 @@
-Version 1.5 (released 2021-??-??)
+Version 1.5 (released 2019-??-??)
 ---------------------------------
-- In case glkp does not find a cost-minimal elimination set, take one of minimum cardinality.
 - Fixed bugs in the (D)QDIMACS parser which led to crashs on invalid input files.
 - Fixed a bug in vivification which could lead to a SegFault.
-- Code cleanup.
 
 
 Version 1.4 (released 2018-05-31)

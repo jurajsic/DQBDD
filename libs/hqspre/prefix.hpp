@@ -173,9 +173,6 @@ class Prefix
     /// Checks if a variable is contained in the right-most block
     virtual bool inRMB(Variable var) const noexcept = 0;
 
-    /// Checks if an existential variable is in the left-most block (i.e. has no dependencies)
-    virtual bool inLMB(Variable var) const noexcept = 0;
-
     /// Returns the variables in the right-most block
     virtual const std::set<Variable>& getRMB() const noexcept = 0;
     //@}
@@ -248,7 +245,6 @@ class SATPrefix : public Prefix
     void                      uniteDependencies(Variable, Variable) override;
     void                      moveToRMB(Variable) override;
     bool                      inRMB(Variable) const noexcept override { return true; }
-    bool                      inLMB(Variable) const noexcept override { return true; }
     const std::set<Variable>& getRMB() const noexcept override;
     //@}
 
@@ -309,7 +305,7 @@ class QBFPrefix : public Prefix
     void        moveToRMB(Variable var) override;
     const std::set<Variable>& getRMB() const noexcept override;
     bool inRMB(Variable var) const noexcept override { return _depth[var] == (_blocks.size() - 1); }
-    bool inLMB(Variable var) const noexcept override { return _depth[var] == 0 && isExistential(var); }
+
     //@}
 
     //@{
@@ -352,14 +348,13 @@ class DQBFPrefix : public Prefix
     /**
      * \name Variable handling
      */
-    void addEVar(Variable var) override;
-    template <typename Container>
-    void addEVar(Variable var, const Container& dependencies);
-    void addEVar(Variable var, std::set<Variable>&& dependencies);
-    void addUVar(Variable var) override;
-    void removeVar(Variable var) override;
-    void makeCopy(Variable var, Variable original) override;
-    void setMaxVarIndex(Variable var) override;
+    void         addEVar(Variable var) override;
+    virtual void addEVar(Variable var, const std::set<Variable>& dependencies);
+    virtual void addEVar(Variable var, std::set<Variable>&& dependencies);
+    void         addUVar(Variable var) override;
+    void         removeVar(Variable var) override;
+    void         makeCopy(Variable var, Variable original) override;
+    void         setMaxVarIndex(Variable var) override;
     //@}
 
     //@{
@@ -374,10 +369,9 @@ class DQBFPrefix : public Prefix
     std::size_t               numDependencies(Variable var) const noexcept override;
     const std::set<Variable>& getRMB() const noexcept override;
     bool                      inRMB(Variable var) const noexcept override { return _in_rmb[var]; }
-    bool                      inLMB(Variable var) const noexcept override { return isExistential(var) && _dependencies[var].empty(); }
     void                      moveToRMB(Variable var) override;
 
-    template <typename Container>
+    template<typename Container>
     void                      setDependencies(Variable var, const Container& deps);
     void                      setDependencies(Variable var, std::set<Variable>&& deps);
     void                      removeDependency(Variable var1, Variable var2);

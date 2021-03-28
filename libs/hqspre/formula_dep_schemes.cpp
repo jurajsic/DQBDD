@@ -53,7 +53,7 @@ namespace hqspre {
  * reached by paths. \sa stdTriDep(bool, bool) \sa invStdTriDep(bool, bool) \sa
  * sstdQuadDep(bool, bool) \sa invSstdQuadDep(bool, bool)
  */
-template <typename Function>
+template<typename Function>
 void
 Formula::searchPath(const std::vector<Literal>& start_lits, Function forbidden, std::vector<unsigned char>& seen) const
 {
@@ -65,10 +65,8 @@ Formula::searchPath(const std::vector<Literal>& start_lits, Function forbidden, 
     // - all literals in open_vars are marked with seen[lit] = true
     // This ensures that no literal is added to open_vars twice.
     for (Literal lit : start_lits) {
-        if (seen[lit] == 0) {
-            open_lits.push(lit);
-        }
-        seen[lit] = 1u;
+        if (!seen[lit]) open_lits.push(lit);
+        seen[lit] = true;
     }
 
     while (!open_lits.empty()) {
@@ -76,20 +74,14 @@ Formula::searchPath(const std::vector<Literal>& start_lits, Function forbidden, 
         open_lits.pop();
         for (ClauseID c_nr : _occ_list[current_lit]) {
             val_assert(!clauseDeleted(c_nr));
-            if (clauseOptional(c_nr)) {
-                continue;
-            }  ///< \todo May we skip optional clauses?
+            if (clauseOptional(c_nr)) continue;  ///< \todo May we skip optional clauses?
 
             for (Literal next_lit : _clauses[c_nr]) {
-                if (seen[next_lit] == 0u && !forbidden(next_lit)) {
-                    open_lits.push(next_lit);
-                }
-                if (seen[negate(next_lit)] == 0u && !forbidden(negate(next_lit))) {
-                    open_lits.push(negate(next_lit));
-                }
+                if (!seen[next_lit] && !forbidden(next_lit)) open_lits.push(next_lit);
+                if (!seen[negate(next_lit)] && !forbidden(negate(next_lit))) open_lits.push(negate(next_lit));
 
-                seen[next_lit]         = 1u;
-                seen[negate(next_lit)] = 1u;
+                seen[next_lit]         = true;
+                seen[negate(next_lit)] = true;
             }
         }
     }
@@ -107,7 +99,7 @@ Formula::searchPath(const std::vector<Literal>& start_lits, Function forbidden, 
  * reached by paths. \sa stdTriDep(bool, bool) \sa invStdTriDep(bool, bool) \sa
  * sstdQuadDep(bool, bool) \sa invSstdQuadDep(bool, bool)
  */
-template <typename Function>
+template<typename Function>
 void
 Formula::searchResolutionPath(const std::vector<Literal>& start_lits, Function forbidden,
                               std::vector<unsigned char>& seen) const
@@ -122,15 +114,13 @@ Formula::searchResolutionPath(const std::vector<Literal>& start_lits, Function f
     for (const Literal lit : start_lits) {
         for (const ClauseID c_nr : _occ_list[lit]) {
             val_assert(!clauseDeleted(c_nr));
-            if (clauseOptional(c_nr)) {
-                continue;
-            }  ///< \todo May we skip optional clauses?
+            if (clauseOptional(c_nr)) continue;  ///< \todo May we skip optional clauses?
 
             for (Literal next_lit : _clauses[c_nr]) {
                 if (!forbidden(next_lit) && !seen[next_lit]) {
                     open_lits.push(next_lit);
                 }
-                seen[next_lit] = 1u;
+                seen[next_lit] = true;
             }
         }
     }
@@ -140,15 +130,13 @@ Formula::searchResolutionPath(const std::vector<Literal>& start_lits, Function f
         open_lits.pop();
         for (const ClauseID c_nr : _occ_list[current_lit]) {
             val_assert(!clauseDeleted(c_nr));
-            if (clauseOptional(c_nr)) {
-                continue;
-            }  ///< \todo May we skip optional clauses?
+            if (clauseOptional(c_nr)) continue;  ///< \todo May we skip optional clauses?
 
             for (Literal next_lit : _clauses[c_nr]) {
-                if (seen[next_lit] == 0u && !forbidden(next_lit)) {
+                if (!seen[next_lit] && !forbidden(next_lit)) {
                     open_lits.push(next_lit);
                 }
-                seen[next_lit] = 1u;
+                seen[next_lit] = true;
             }
         }
     }
@@ -159,12 +147,8 @@ Formula::invStdTriDep(bool resolution_paths, bool triangle)
 {
     bool modified = false;
     for (Variable u_var = minVarIndex(); u_var <= maxVarIndex(); ++u_var) {
-        if (!isUniversal(u_var)) {
-            continue;
-        }
-        if (invStdTriDep(u_var, resolution_paths, triangle)) {
-            modified = true;
-        }
+        if (!isUniversal(u_var)) continue;
+        if (invStdTriDep(u_var, resolution_paths, triangle)) modified = true;
     }
 
     return modified;
@@ -208,20 +192,16 @@ Formula::invStdTriDep(Variable u_var, bool resolution_paths, bool triangle, std:
     }
 
     for (Variable e_var = 1; e_var <= maxVarIndex(); ++e_var) {
-        if (!isExistential(e_var) || depends(e_var, u_var)) {
-            continue;
-        }
+        if (!isExistential(e_var) || depends(e_var, u_var)) continue;
 
         const Literal ep = var2lit(e_var, false);
         const Literal en = var2lit(e_var, true);
 
-        if ((triangle && ((_seen[ep] == 0u) || (_seen[en] == 0u)))
-            || (!triangle && (_seen[ep] == 0u) && (_seen[en] == 0u))) {
-            if (pseudo_deps == nullptr) {
+        if ((triangle && (!_seen[ep] || !_seen[en])) || (!triangle && !_seen[ep] && !_seen[en])) {
+            if (!pseudo_deps)
                 addDependency(u_var, e_var);
-            } else {
+            else
                 pseudo_deps->insert(e_var);
-            }
             ++count;
         }
     }
@@ -236,12 +216,8 @@ Formula::invSstdQuadDep(bool resolution_paths, bool quadrangle)
 {
     bool modified = false;
     for (Variable u_var = minVarIndex(); u_var <= maxVarIndex(); ++u_var) {
-        if (!isUniversal(u_var)) {
-            continue;
-        }
-        if (invSstdQuadDep(u_var, resolution_paths, quadrangle)) {
-            modified = true;
-        }
+        if (!isUniversal(u_var)) continue;
+        if (invSstdQuadDep(u_var, resolution_paths, quadrangle)) modified = true;
     }
 
     return modified;
@@ -272,7 +248,7 @@ Formula::invSstdQuadDep(Variable u_var, bool resolution_paths, bool quadrangle, 
 
     std::size_t                 count    = 0;
     std::vector<unsigned char>& seen_pos = _seen;
-    std::vector<unsigned char>  seen_neg(maxLitIndex() + 1, 0u);
+    std::vector<unsigned char>  seen_neg(maxLitIndex() + 1, false);
 
     const auto forbidden = [this, u_var](Literal lit) -> bool {
         return this->isUniversal(lit2var(lit)) || !this->depends(lit2var(lit), u_var);
@@ -286,30 +262,26 @@ Formula::invSstdQuadDep(Variable u_var, bool resolution_paths, bool quadrangle, 
         searchPath({var2lit(u_var, true)}, forbidden, seen_neg);
     }
 
-    for (Variable e_var = minVarIndex(); e_var <= maxVarIndex(); ++e_var) {
-        if (!isExistential(e_var) || depends(e_var, u_var)) {
-            continue;
-        }
+    for (Variable e_var = 1; e_var <= maxVarIndex(); ++e_var) {
+        if (!isExistential(e_var) || depends(e_var, u_var)) continue;
 
         const Literal ep = var2lit(e_var, false);
         const Literal en = var2lit(e_var, true);
 
         if (quadrangle) {
-            if (((seen_pos[ep] == 0u) || (seen_neg[ep] == 0u)) && ((seen_neg[ep] == 0u) || (seen_pos[en] == 0u))) {
-                if (pseudo_deps == nullptr) {
+            if ((!seen_pos[ep] || !seen_neg[ep]) && (!seen_neg[ep] || !seen_pos[en])) {
+                if (!pseudo_deps)
                     addDependency(u_var, e_var);
-                } else {
+                else
                     pseudo_deps->insert(e_var);
-                }
                 ++count;
             }
         } else {
-            if (((seen_pos[ep] == 0u) && (seen_pos[en] == 0u)) || ((seen_neg[ep] == 0u) && (seen_neg[en] == 0u))) {
-                if (pseudo_deps == nullptr) {
+            if ((!seen_pos[ep] && !seen_pos[en]) || (!seen_neg[ep] && !seen_neg[en])) {
+                if (!pseudo_deps)
                     addDependency(u_var, e_var);
-                } else {
+                else
                     pseudo_deps->insert(e_var);
-                }
                 ++count;
             }
         }
@@ -325,12 +297,8 @@ Formula::stdTriDep(bool resolution_paths, bool triangle)
 {
     bool modified = false;
     for (Variable u_var = minVarIndex(); u_var <= maxVarIndex(); ++u_var) {
-        if (!isUniversal(u_var)) {
-            continue;
-        }
-        if (stdTriDep(u_var, resolution_paths, triangle)) {
-            modified = true;
-        }
+        if (!isUniversal(u_var)) continue;
+        if (stdTriDep(u_var, resolution_paths, triangle)) modified = true;
     }
 
     return modified;
@@ -366,27 +334,23 @@ Formula::stdTriDep(Variable u_var, bool resolution_paths, bool triangle, std::se
         = [this, u_var](Literal lit) -> bool { return isUniversal(lit2var(lit)) || !depends(lit2var(lit), u_var); };
 
     // Peforming depth-first search starting at 'u_var'.
-    if (resolution_paths) {
+    if (resolution_paths)
         searchResolutionPath({var2lit(u_var, true), var2lit(u_var, false)}, forbidden, _seen);
-    } else {
+    else {
         searchPath({var2lit(u_var, true), var2lit(u_var, false)}, forbidden, _seen);
     }
 
     for (Variable e_var = 1; e_var <= maxVarIndex(); ++e_var) {
-        if (!isExistential(e_var) || !depends(e_var, u_var)) {
-            continue;
-        }
+        if (!isExistential(e_var) || !depends(e_var, u_var)) continue;
 
         const Literal ep = var2lit(e_var, false);
         const Literal en = var2lit(e_var, true);
 
-        if ((triangle && ((_seen[en] == 0u) || (_seen[ep] == 0u)))
-            || (!triangle && (_seen[en] == 0u) && (_seen[ep] == 0u))) {
-            if (pseudo_deps == nullptr) {
+        if ((triangle && (!_seen[en] || !_seen[ep])) || (!triangle && !_seen[en] && !_seen[ep])) {
+            if (!pseudo_deps)
                 removeDependency(e_var, u_var);
-            } else {
+            else
                 pseudo_deps->insert(e_var);
-            }
             ++count;
         }
     }
@@ -401,12 +365,8 @@ Formula::sstdQuadDep(bool resolution_paths, bool quadrangle)
 {
     bool modified = false;
     for (Variable u_var = minVarIndex(); u_var <= maxVarIndex(); ++u_var) {
-        if (!isUniversal(u_var)) {
-            continue;
-        }
-        if (sstdQuadDep(u_var, resolution_paths, quadrangle)) {
-            modified = true;
-        }
+        if (!isUniversal(u_var)) continue;
+        if (sstdQuadDep(u_var, resolution_paths, quadrangle)) modified = true;
     }
 
     return modified;
@@ -439,13 +399,13 @@ Formula::sstdQuadDep(Variable u_var, bool resolution_paths, bool quadrangle, std
 
     std::size_t                 count    = 0;
     std::vector<unsigned char>& seen_pos = _seen;
-    std::vector<unsigned char>  seen_neg(maxLitIndex() + 1, 0u);
+    std::vector<unsigned char>  seen_neg(maxLitIndex() + 1, false);
 
     const auto forbidden
         = [this, u_var](Literal lit) -> bool { return isUniversal(lit2var(lit)) || !depends(lit2var(lit), u_var); };
 
-    seen_pos.assign(seen_pos.size(), 0u);
-    seen_neg.assign(seen_neg.size(), 0u);
+    seen_pos.assign(seen_pos.size(), false);
+    seen_neg.assign(seen_neg.size(), false);
 
     if (resolution_paths) {
         // Peforming depth-first search starting at 'u_var'.
@@ -462,31 +422,25 @@ Formula::sstdQuadDep(Variable u_var, bool resolution_paths, bool quadrangle, std
     }
 
     for (Variable e_var = 1; e_var <= maxVarIndex(); ++e_var) {
-        if (!isExistential(e_var) || !depends(e_var, u_var)) {
-            continue;
-        }
+        if (!isExistential(e_var) || !depends(e_var, u_var)) continue;
 
         const Literal ep = var2lit(e_var, false);
         const Literal en = var2lit(e_var, true);
 
         if (quadrangle) {
-            // dependent if (x --> y /\ ~x --> ~y) \/ (~x --> y /\ x --> ~y)
-            // so: independent if (x -/-> y \/ ~x -/-> ~y) /\ (~x -/-> y \/ x -/-> ~y)
-            if (((seen_pos[ep] == 0u) || (seen_neg[en] == 0u)) && ((seen_neg[ep] == 0u) || (seen_pos[en] == 0u))) {
-                if (pseudo_deps == nullptr) {
+            if ((!seen_pos[ep] || !seen_neg[ep]) || (!seen_neg[ep] && !seen_pos[en])) {
+                if (!pseudo_deps)
                     removeDependency(e_var, u_var);
-                } else {
+                else
                     pseudo_deps->insert(e_var);
-                }
                 ++count;
             }
         } else {
-            if (((seen_pos[en] == 0u) && (seen_pos[ep] == 0u)) || ((seen_neg[en] == 0u) && (seen_neg[ep] == 0u))) {
-                if (pseudo_deps == nullptr) {
+            if ((!seen_pos[en] && !seen_pos[ep]) || (!seen_neg[en] && !seen_neg[ep])) {
+                if (!pseudo_deps)
                     removeDependency(e_var, u_var);
-                } else {
+                else
                     pseudo_deps->insert(e_var);
-                }
                 ++count;
             }
         }
@@ -517,9 +471,7 @@ Formula::gateDependencies(const DependencyOperation operation)
         // We can make all gate outputs depend on all universal variables
         // as they are implied by the gate inputs
         for (const auto& g : _gates) {
-            if (!_gates.gateValid(g)) {
-                continue;
-            }
+            if (!_gates.gateValid(g)) continue;
 
             const Variable output_var = lit2var(g._output_literal);
             count += (_prefix->numUVars() - numDependencies(output_var));
@@ -528,28 +480,25 @@ Formula::gateDependencies(const DependencyOperation operation)
         stat(Statistics::ADD_DEPENDENCY_SCHEMES) += count;
     } else if (operation == DependencyOperation::REMOVE) {
         for (const auto& g : _gates) {
-            if (!_gates.gateValid(g)) {
-                continue;
-            }
+            if (!_gates.gateValid(g)) continue;
 
             const Variable     outp_var = lit2var(g._output_literal);
             std::set<Variable> new_deps;
             for (const Literal inp_lit : g._input_literals) {
                 const Variable inp_var = lit2var(inp_lit);
-                if (isUniversal(inp_var)) {
+                if (isUniversal(inp_var))
                     new_deps.insert(inp_var);
-                } else {
+                else {
                     const auto& inp_deps = _dqbf_prefix->getDependencies(inp_var);
                     new_deps.insert(inp_deps.cbegin(), inp_deps.cend());
                 }
             }
 
             count += _dqbf_prefix->numDependencies(outp_var) - new_deps.size();
-            if (new_deps.size() == numUVars()) {
+            if (new_deps.size() == numUVars())
                 _dqbf_prefix->moveToRMB(outp_var);
-            } else {
+            else
                 _dqbf_prefix->setDependencies(outp_var, std::move(new_deps));
-            }
         }
         stat(Statistics::REM_DEPENDENCY_SCHEMES) += count;
     }
@@ -586,60 +535,52 @@ Formula::applyDependencyScheme(DependencyScheme scheme, DependencyOperation oper
         case DependencyScheme::TRIVIAL:
             return false;
         case DependencyScheme::STANDARD:
-            if (operation == DependencyOperation::REMOVE) {
+            if (operation == DependencyOperation::REMOVE)
                 return stdTriDep(false, false);
-            } else if (operation == DependencyOperation::ADD) {
+            else if (operation == DependencyOperation::ADD)
                 return invStdTriDep(false, false);
-            }
             break;
         case DependencyScheme::STRICT_STANDARD:
-            if (operation == DependencyOperation::REMOVE) {
+            if (operation == DependencyOperation::REMOVE)
                 return sstdQuadDep(false, false);
-            } else if (operation == DependencyOperation::ADD) {
+            else if (operation == DependencyOperation::ADD)
                 return invSstdQuadDep(false, false);
-            }
             break;
         case DependencyScheme::REF_TRIANGLE:
-            if (operation == DependencyOperation::REMOVE) {
+            if (operation == DependencyOperation::REMOVE)
                 return stdTriDep(false, true);
-            } else if (operation == DependencyOperation::ADD) {
+            else if (operation == DependencyOperation::ADD)
                 return invStdTriDep(false, true);
-            }
             break;
         case DependencyScheme::REF_QUADRANGLE:
-            if (operation == DependencyOperation::REMOVE) {
+            if (operation == DependencyOperation::REMOVE)
                 return sstdQuadDep(false, true);
-            } else if (operation == DependencyOperation::ADD) {
+            else if (operation == DependencyOperation::ADD)
                 return invSstdQuadDep(false, true);
-            }
             break;
         case DependencyScheme::RP_STANDARD:
-            if (operation == DependencyOperation::REMOVE) {
+            if (operation == DependencyOperation::REMOVE)
                 return stdTriDep(true, false);
-            } else if (operation == DependencyOperation::ADD) {
+            else if (operation == DependencyOperation::ADD)
                 return invStdTriDep(true, false);
-            }
             break;
         case DependencyScheme::RP_STRICT_STANDARD:
-            if (operation == DependencyOperation::REMOVE) {
+            if (operation == DependencyOperation::REMOVE)
                 return sstdQuadDep(true, false);
-            } else if (operation == DependencyOperation::ADD) {
+            else if (operation == DependencyOperation::ADD)
                 return invSstdQuadDep(true, false);
-            }
             break;
         case DependencyScheme::RP_REF_TRIANGLE:
-            if (operation == DependencyOperation::REMOVE) {
+            if (operation == DependencyOperation::REMOVE)
                 return stdTriDep(true, true);
-            } else if (operation == DependencyOperation::ADD) {
+            else if (operation == DependencyOperation::ADD)
                 return invStdTriDep(true, true);
-            }
             break;
         case DependencyScheme::RP_REF_QUADRANGLE:
-            if (operation == DependencyOperation::REMOVE) {
+            if (operation == DependencyOperation::REMOVE)
                 return sstdQuadDep(true, true);
-            } else if (operation == DependencyOperation::ADD) {
+            else if (operation == DependencyOperation::ADD)
                 return invSstdQuadDep(true, true);
-            }
             break;
         case DependencyScheme::GATE:
             return gateDependencies(operation);
@@ -658,9 +599,7 @@ Formula::identifyDontCares()
 {
     VLOG(1) << __FUNCTION__;
 
-    if (_prefix->type() != PrefixType::DQBF) {
-        return std::vector<std::vector<Variable>>();
-    }
+    if (_prefix->type() != PrefixType::DQBF) return std::vector<std::vector<Variable>>();
 
     val_assert(_dqbf_prefix && !_qbf_prefix);
     std::vector<std::vector<Literal>> result(maxVarIndex() + 1);
@@ -680,9 +619,7 @@ Formula::identifyDontCares()
     applyDependencyScheme(DependencyScheme::RP_REF_QUADRANGLE, DependencyOperation::REMOVE);
 
     for (Variable var = minVarIndex(); var <= maxVarIndex(); ++var) {
-        if (!isExistential(var)) {
-            continue;
-        }
+        if (!isExistential(var)) continue;
         if (max_prefix.inRMB(var)) {
             _prefix->moveToRMB(var);
             continue;

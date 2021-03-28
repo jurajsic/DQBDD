@@ -26,7 +26,6 @@
 
 #include "auxil.hpp"
 
-
 /**
  * \file varheap.hpp
  * \author Tobias Schubert
@@ -38,9 +37,10 @@
 namespace hqspre {
 
 /**
- * \brief Used to construct a min-heap which returns the element with the lowest value
+ * \brief Used to construct a min-heap which returns the element with the lowest
+ * value
  */
-template <typename Key, typename Value>
+template<typename Key, typename Value>
 class DescendingOrder
 {
    public:
@@ -56,7 +56,7 @@ class DescendingOrder
  * \brief Used to construct a max-heap which returns the element with the
  * highest value.
  */
-template <typename Key, typename Value>
+template<typename Key, typename Value>
 class AscendingOrder
 {
    public:
@@ -68,7 +68,7 @@ class AscendingOrder
     const std::vector<Value>& _act;
 };
 
-template <template <typename, typename> class Order, typename Key, typename Value>
+template<template<typename, typename> class Order, typename Key, typename Value>
 class VarHeap
 {
    public:
@@ -84,16 +84,8 @@ class VarHeap
     {}
 
     VarHeap(VarHeap<Order, Key, Value>&& other) noexcept = delete;
+    VarHeap& operator=(const VarHeap<Order, Key, Value>& other) = delete;
     VarHeap& operator=(VarHeap<Order, Key, Value>&& other) noexcept = delete;
-    VarHeap& operator=(const VarHeap& other)
-    {
-        _heap = other._heap;
-        _position = other._position;
-        _size = other._size;
-        _variables = other._variables;
-        return *this;
-    }
-
     ~VarHeap()                                                      = default;
 
     /**
@@ -250,7 +242,6 @@ class VarHeap
         val_assert(_position[var] == -1);
     }
 
-	
    private:
     /**
      * \brief Returns the position of the "father" of the element stored on

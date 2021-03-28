@@ -79,39 +79,32 @@ SatPropagator::enqueue(const Literal lit, const int except_clause)
     const bool     already_set = (_assignment[var] != TruthValue::UNKNOWN);
 
     if (isPositive(lit)) {
-        if (_assignment[var] == TruthValue::FALSE) {
+        if (_assignment[var] == TruthValue::FALSE)
             throw ConflictException();
-        } else {
+        else
             _assignment[var] = TruthValue::TRUE;
-        }
     } else {
         // literal is negative
-        if (_assignment[var] == TruthValue::TRUE) {
+        if (_assignment[var] == TruthValue::TRUE)
             throw ConflictException();
-        } else {
+        else
             _assignment[var] = TruthValue::FALSE;
-        }
     }
 
-    if (already_set) {
-        return;
-    }
+    if (already_set) return;
 
     _unit_stack.push_back(lit);
     for (std::size_t ptr = _unit_stack.size() - 1; ptr != _unit_stack.size(); ++ptr) {
         const Literal current_lit = _unit_stack[ptr];
         for (const auto bin : _implications[current_lit]) {
-            if (static_cast<int>(bin.getClauseID()) == except_clause) {
-                continue;
-            }
+            if (static_cast<int>(bin.getClauseID()) == except_clause) continue;
             const Literal  implied_lit = bin.getLiteral();
             const Variable implied_var = lit2var(implied_lit);
             if (_assignment[implied_var] == TruthValue::UNKNOWN) {
                 _assignment[implied_var] = makeSatisfied(implied_lit);
                 _unit_stack.push_back(implied_lit);
-            } else if (isUnsatisfied(implied_lit, _assignment)) {
+            } else if (isUnsatisfied(implied_lit, _assignment))
                 throw ConflictException();
-            }
         }
     }
 }
@@ -152,15 +145,11 @@ SatPropagator::createWatches(const ClauseID c_nr)
     const Clause&     clause      = _clauses[c_nr];
     const std::size_t clause_size = clause.size();
 
-    if (clause_size <= 2) {
-        return;
-    }
+    if (clause_size <= 2) return;
 
     const std::size_t pos1 = (std::rand() % clause_size);
     std::size_t       pos2 = (std::rand() % (clause_size - 1));
-    if (pos2 >= pos1) {
-        ++pos2;
-    }
+    if (pos2 >= pos1) ++pos2;
 
     _watchpos[c_nr] = std::make_pair(pos1, pos2);
     _watches[clause[pos1]].push_back(c_nr);
@@ -246,17 +235,13 @@ SatPropagator::bcp(const Literal assumption, const int except_clause)
 
             // We have to find a replacement for lit1
             std::size_t new_pos1 = pos1 + 1;
-            if (new_pos1 >= clause_size) {
-                new_pos1 = 0;
-            }
+            if (new_pos1 >= clause_size) new_pos1 = 0;
             while (new_pos1 != pos1) {
                 if (new_pos1 != pos2 && !isUnsatisfied(clause[new_pos1], _assignment)) {
                     break;
                 }
                 ++new_pos1;
-                if (new_pos1 >= clause_size) {
-                    new_pos1 = 0;
-                }
+                if (new_pos1 >= clause_size) new_pos1 = 0;
             }
 
             if (new_pos1 == pos1) {
@@ -337,9 +322,7 @@ SatPropagator::reset()
 void
 SatPropagator::addClause(const ClauseID c_nr)
 {
-    if (_watchpos.size() <= c_nr) {
-        _watchpos.resize(c_nr + 1);
-    }
+    if (_watchpos.size() <= c_nr) _watchpos.resize(c_nr + 1);
     createWatches(c_nr);
     val_assert(checkConsistency());
 }
@@ -383,7 +366,7 @@ SatPropagator::removeClause(const ClauseID c_nr)
 bool
 SatPropagator::checkConsistency() const
 {
-    if (_prefix == nullptr) {
+    if (!_prefix) {
         LOG(ERROR) << "Prefix is null.";
         return false;
     }
@@ -408,9 +391,7 @@ SatPropagator::checkConsistency() const
     }
 
     for (ClauseID c_nr = 0; c_nr < _clauses.size(); ++c_nr) {
-        if (_clauses[c_nr].getStatus() == ClauseStatus::DELETED || _clauses[c_nr].size() <= 2) {
-            continue;
-        }
+        if (_clauses[c_nr].getStatus() == ClauseStatus::DELETED || _clauses[c_nr].size() <= 2) continue;
 
         const Clause& clause = _clauses[c_nr];
 
@@ -425,9 +406,7 @@ SatPropagator::checkConsistency() const
                        << ").";
             LOG(ERROR) << "_clauses[" << c_nr << "] = " << clause;
             LOG(ERROR) << "_watches[" << lit2dimacs(lit1) << "] = ";
-            for (auto c : _watches[lit1]) {
-                LOG(ERROR) << c;
-            }
+            for (auto c : _watches[lit1]) LOG(ERROR) << c;
             return false;
         }
 
@@ -457,28 +436,25 @@ QbfPropagator::enqueue(const Literal lit, const int except_clause)
     const Variable var         = lit2var(lit);
     const bool     already_set = (_assignment[var] != TruthValue::UNKNOWN);
 
-    if (isUnsatisfied(lit, _assignment)) {
+    if (isUnsatisfied(lit, _assignment))
         throw ConflictException();
-    } else {
+    else
         _assignment[var] = makeSatisfied(lit);
-    }
 
     if (!already_set) {
         _unit_stack.push_back(lit);
         for (std::size_t ptr = _unit_stack.size() - 1; ptr != _unit_stack.size(); ++ptr) {
             const Literal current_lit = _unit_stack[ptr];
             for (const auto bin : _implications[current_lit]) {
-                if (static_cast<int>(bin.getClauseID()) == except_clause) {
-                    continue;
-                }
+                if (static_cast<int>(bin.getClauseID()) == except_clause) continue;
 
                 const Literal  implied_lit = bin.getLiteral();
                 const Variable implied_var = lit2var(implied_lit);
 
                 if (_assignment[implied_var] == TruthValue::UNKNOWN) {
-                    if (_prefix->isUniversal(implied_var)) {
+                    if (_prefix->isUniversal(implied_var))
                         throw ConflictException();
-                    } else {
+                    else {
                         _assignment[implied_var] = makeSatisfied(implied_lit);
                         _unit_stack.push_back(implied_lit);
                     }
@@ -507,15 +483,18 @@ QbfPropagator::createWatches()
     for (ClauseID c_nr = 0; c_nr < _clauses.size(); ++c_nr) {
         const Clause& clause = _clauses[c_nr];
         if (clause.getStatus() != ClauseStatus::DELETED && clause.size() > 2) {
-            const bool only_exist = std::all_of(clause.cbegin(), clause.cend(), [this](const Literal lit) -> bool {
-                return _prefix->isExistential(lit2var(lit));
-            });
-
-            if (only_exist) {
-                SatPropagator::createWatches(c_nr);
-            } else {
-                createUnivWatches(c_nr);
+            bool only_exist = true;
+            for (const auto lit : clause) {
+                if (_prefix->isUniversal(lit2var(lit))) {
+                    only_exist = false;
+                    break;
+                }
             }
+
+            if (only_exist)
+                SatPropagator::createWatches(c_nr);
+            else
+                createUnivWatches(c_nr);
         }
     }
 

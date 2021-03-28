@@ -8,5 +8,5 @@ settings.hpp
 CMakeLists.txt
   - removed some files from compiling (to remove GLPK dependency which is not needed for DQBDD), changed librt and pthread linking
 
-formula_forkExt.cpp
+formula_forkExt.cpp (only for the newer version of HQSpre, currently using the older one)
   - removed boost includes which are not needed (and DQBDD does not use them)

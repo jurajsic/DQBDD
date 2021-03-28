@@ -170,7 +170,7 @@ inline Formula::~Formula() noexcept
  * clause ID if the clause was actually added; -2 if the clause was a tautology;
  * -1 if the clause was unit. \throw UNSATException if an empty clause is added.
  */
-template <typename Container>
+template<typename Container>
 inline int
 Formula::addClause(const Container& clause, bool needs_sorting, bool check_subsumption, ClauseStatus status)
 {
@@ -445,7 +445,7 @@ Formula::removeFromOccList(Literal lit, ClauseID c_nr)
  * \brief Returns the literal from the given clause with the shortest occurrence
  * list
  */
-template <typename Container>
+template<typename Container>
 inline Literal
 Formula::getMinOccLit(const Container& clause) const
 {
@@ -465,24 +465,11 @@ Formula::getMinOccLit(const Container& clause) const
 inline Variable
 Formula::addEVar()
 {
-    return setEVar(nextVar());
-}
-
-/**
- * \brief Creates a new existential variable and returns its ID.
- *
- * The new variable is created in the right-most block, i.e., it
- * depends on all universal variables.
- */
-inline Variable
-Formula::setEVar(Variable index)
-{
     val_assert(_prefix);
-    val_assert(_prefix->varDeleted(index));
-    val_assert(index > 0);
 
-    _prefix->addEVar(index);
-    return index;
+    const Variable var = nextVar();
+    _prefix->addEVar(var);
+    return var;
 }
 
 /**
@@ -494,29 +481,11 @@ Formula::setEVar(Variable index)
  * \pre All variables in the dependency set must be universal (and be created
  * before).
  */
-template <typename Container>
-inline Variable
+template<typename Container>
+inline Literal
 Formula::addEVar(const Container& deps)
 {
-    return this->setEVar(nextVar(), deps);
-}
-
-/**
- * \brief Creates a new existential variable and returns its ID.
- *
- * If the current prefix is a QBF prefix, it is automatically
- * converted to a DQBF prefix.
- * \param deps container with the dependency set of the created variable
- * \pre All variables in the dependency set must be universal (and be created
- * before).
- */
-template <typename Container>
-inline Variable
-Formula::setEVar(Variable index, const Container& deps)
-{
     val_assert(_prefix);
-    val_assert(_prefix->varDeleted(index));
-    val_assert(index > 0);
 
     if (_prefix->type() == PrefixType::QBF) {
         _dqbf_prefix = _qbf_prefix->convertToDQBF();
@@ -525,10 +494,9 @@ Formula::setEVar(Variable index, const Container& deps)
         _qbf_prefix = nullptr;
     }
 
-    if (index > maxVarIndex()) setMaxVarIndex(index + 10);
-
-    _dqbf_prefix->addEVar(index, deps);
-    return index;
+    const Variable result = nextVar();
+    _dqbf_prefix->addEVar(result, deps);
+    return result;
 }
 
 /**
@@ -543,31 +511,7 @@ Formula::setEVar(Variable index, const Container& deps)
 inline Literal
 Formula::addEVar(std::set<Variable>&& deps)
 {
-    return setEVar(nextVar(), std::move(deps));
-}
-
-/**
- * \brief Creates a new existential variable and returns its ID.
- *
- * If the current prefix is a QBF prefix, it is automatically
- * converted to a DQBF prefix!
- * This function creates a variable with a predefined index. The caller
- * has to ensure that this variable does not exist yet. Additionally,
- * calling this function invalidates the list of unused variables
- * (Formula::_deleted_var_numbers); it needs to be re-created before
- * the next function (apart from Formula::addUVar(Variable) is called.
- *
- * \param index the index of the variable to be created.
- * \param deps container with the dependency set of the created variable
- * \pre All variables in the dependency set must be universal (and be created
- * before).
- */
-inline Literal
-Formula::setEVar(Variable index, std::set<Variable>&& deps)
-{
     val_assert(_prefix);
-    val_assert(_prefix->varDeleted(index));
-    val_assert(index > 0);
 
     if (_prefix->type() == PrefixType::QBF) {
         _dqbf_prefix = _qbf_prefix->convertToDQBF();
@@ -576,10 +520,9 @@ Formula::setEVar(Variable index, std::set<Variable>&& deps)
         _qbf_prefix = nullptr;
     }
 
-    if (index > maxVarIndex()) setMaxVarIndex(index + 10);
-
-    _dqbf_prefix->addEVar(index, std::move(deps));
-    return index;
+    const Variable result = nextVar();
+    _dqbf_prefix->addEVar(result, std::move(deps));
+    return result;
 }
 
 /**
@@ -588,31 +531,11 @@ Formula::setEVar(Variable index, std::set<Variable>&& deps)
 inline Variable
 Formula::addUVar()
 {
-    return setUVar(nextVar());
-}
-
-/**
- * \brief Creates a new universal variable and returns its ID.
- *
- * This function creates a variable with a predefined index. The caller
- * has to ensure that this variable does not exist yet. Additionally,
- * calling this function invalidates the list of unused variables
- * (Formula::_deleted_var_numbers); it needs to be re-created before
- * the next function (apart from Formula::addUVar(Variable) is called.
- *
- * \param index the index of the variable to be created.
- */
-inline Variable
-Formula::setUVar(Variable index)
-{
     val_assert(_prefix);
-    val_assert(_prefix->varDeleted(index));
-    val_assert(index > 0);
 
-    if (index > maxVarIndex()) setMaxVarIndex(index + 10);
-
-    _prefix->addUVar(index);
-    return index;
+    const Variable var = nextVar();
+    _prefix->addUVar(var);
+    return var;
 }
 
 /**
@@ -730,7 +653,7 @@ Formula::maxClauseIndex() const noexcept
  *       contained in the unit_stack list.
  * \pre `clause` must be sorted and may not contain duplicate literals.
  */
-template <typename Container>
+template<typename Container>
 inline int
 Formula::findClause(const Container& clause)
 {
@@ -963,6 +886,159 @@ Formula::varAssignment(const Variable var) const noexcept
     return 0;
 }
 
+#if 0
+/**
+ * \brief Enables or disables the application of universal reduction.
+ */
+inline void Formula::setUniveralReduction(const bool val) noexcept
+{
+    _settings.univ_reduction = val;
+}
+
+inline void Formula::setBlockedClauseElimination(const unsigned int val) noexcept
+{
+    val_assert( val <= 2);
+    _settings.bce = val;
+}
+
+inline void Formula::setHiddenLiterals(const unsigned int val) noexcept
+{
+    _settings.hidden = val;
+}
+
+inline void Formula::setCoveredLiterals(const bool val) noexcept
+{
+    _settings.covered = val;
+}
+
+inline void Formula::setBlockedLiteralElimination(const bool val) noexcept
+{
+    _settings.ble = val;
+}
+
+inline void Formula::setBlockedLiteralAddition(const bool val) noexcept
+{
+    _settings.bla = val;
+}
+
+inline void Formula::setBlockedImplicationAddition(const bool val) noexcept
+{
+    _settings.bia = val;
+}
+
+inline void Formula::setMaxClauseSize(const unsigned int val) noexcept
+{
+    _settings.max_clause_size = val;
+}
+
+inline void Formula::setHiddenSubsumptionElimination(const bool val) noexcept
+{
+    _settings.hse = val;
+}
+
+inline void Formula::setImplicationChains(const bool val) noexcept
+{
+    _settings.impl_chains = val;
+}
+
+inline void Formula::setHiddenEquivAndContraChecking(const bool val) noexcept
+{
+    _settings.hec = val;
+}
+
+inline void Formula::setContradictionChecking(const bool val) noexcept
+{
+    _settings.contradictions = val;
+}
+
+inline void Formula::setSubstitutions(const bool val) noexcept
+{
+    _settings.substitution = val;
+}
+
+inline void Formula::setMaxSubstitutionCost(const int val) noexcept
+{
+    _settings.max_substitution_cost = val;
+}
+
+inline void Formula::setMaxSubstitutionLoops(const unsigned int val) noexcept
+{
+    _settings.max_substitution_loops = val;
+}
+
+inline void Formula::setRewritings(const bool val) noexcept
+{
+    _settings.rewrite = val;
+}
+
+inline void Formula::setSelfSubsumption(const bool val) noexcept
+{
+    _settings.self_subsumption = val;
+}
+
+inline void Formula::setSubsumption(const bool val) noexcept
+{
+    _settings.subsumption = val;
+}
+
+inline void Formula::setResolution(const bool val) noexcept
+{
+    _settings.resolution = val;
+}
+
+inline void Formula::setEquivalentGates(const bool val) noexcept
+{
+    _settings.equiv_gates = val;
+}
+
+inline void Formula::setMaxResolutionCost(const int val) noexcept
+{
+    _settings.max_resolution_cost = val;
+}
+
+inline void Formula::setConstSatCheck(const bool val) noexcept
+{
+    _settings.sat_const = val;
+}
+
+inline void Formula::setImplSatCheck(const bool val) noexcept
+{
+    _settings.sat_impl = val;
+}
+
+inline void Formula::setUniversalExpansion(const unsigned int val) noexcept
+{
+    val_assert( val <= 2 );
+    _settings.univ_expand = val;
+}
+
+inline void Formula::setMaxLoops(const unsigned int val) noexcept
+{
+    _settings.max_loops = val;
+}
+
+inline void Formula::setConsistenceCheck(const bool val) noexcept
+{
+    _settings.do_consistency_check = val;
+}
+
+inline void Formula::setSatTimeout(const unsigned int val) noexcept
+{
+    _settings.sat_timeout = val;
+}
+
+inline void Formula::setPureSatTimeout(const unsigned int val) noexcept
+{
+    _settings.pure_sat_timeout = val;
+}
+
+inline void Formula::useProcessLimits(const bool val) noexcept
+{
+    _process_limit.useLimit(val);
+}
+
+#endif
+
 inline void
 Formula::enforceDQBF(const bool val) noexcept
 {
@@ -975,6 +1051,24 @@ Formula::enforceDQBF(const bool val) noexcept
         _prefix     = _dqbf_prefix;
     }
 }
+
+#if 0
+inline void Formula::setIncompleteChecks(const bool val) noexcept
+{
+    _settings.sat_incomplete = val;
+}
+
+
+inline void Formula::setPreserveGates(const bool val) noexcept
+{
+    _settings.preserve_gates = val;
+}
+
+inline void Formula::setVivification(const bool val) noexcept
+{
+    _settings.vivify = val;
+}
+#endif
 
 inline void
 Formula::setInterrupt(const bool val) noexcept
@@ -994,7 +1088,7 @@ Formula::stat(const Statistics which)
     return _statistics[static_cast<unsigned int>(which)];
 }
 
-template <typename Container>
+template<typename Container>
 inline void
 Formula::clearSeen(const Container& container) const
 {
@@ -1003,7 +1097,7 @@ Formula::clearSeen(const Container& container) const
     }
 }
 
-template <typename Container>
+template<typename Container>
 inline void
 Formula::setSeen(const Container& container) const
 {
@@ -1013,7 +1107,7 @@ Formula::setSeen(const Container& container) const
     }
 }
 
-template <typename Container>
+template<typename Container>
 inline void
 Formula::clearSeen2(const Container& container) const
 {
@@ -1022,7 +1116,7 @@ Formula::clearSeen2(const Container& container) const
     }
 }
 
-template <typename Container>
+template<typename Container>
 inline void
 Formula::setSeen2(const Container& container) const
 {

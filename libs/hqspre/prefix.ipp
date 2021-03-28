@@ -21,7 +21,6 @@
 #ifndef HQSPRE_PREFIX_IPP_
 #define HQSPRE_PREFIX_IPP_
 
-
 /**
  * \file prefix.ipp
  * \brief Inline functions for manipulating a formula's quantifier prefix
@@ -191,9 +190,6 @@ Prefix::addEVar(const Variable var)
 {
     val_assert(varDeleted(var));
 
-    if (var >= _var_status.size()) {
-        this->setMaxVarIndex(var);
-    }
     _var_status[var] = VariableStatus::EXISTENTIAL;
     ++_num_e_vars;
 }
@@ -214,9 +210,8 @@ SATPrefix::addEVar(const Variable var)
     _vars.insert(var);
 }
 
-template <typename Container>
 inline void
-DQBFPrefix::addEVar(const Variable var, const Container& dependencies)
+DQBFPrefix::addEVar(const Variable var, const std::set<Variable>& dependencies)
 {
     Prefix::addEVar(var);
     if (!dependencies.empty()) setDependencies(var, dependencies);
@@ -261,10 +256,6 @@ Prefix::addUVar(const Variable var)
 {
     val_assert(varDeleted(var));
 
-    if (var >= _var_status.size()) {
-        this->setMaxVarIndex(var);
-    }
-
     _var_status[var] = VariableStatus::UNIVERSAL;
     ++_num_u_vars;
 }
@@ -275,7 +266,6 @@ Prefix::addUVar(const Variable var)
 inline void
 SATPrefix::addUVar(const Variable)
 {
-    val_assert_msg(false, "SAT formulas do not have universal variables.");
     return;
 }
 
