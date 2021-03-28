@@ -66,8 +66,8 @@ int main(int argc, char **argv)
         ("e,elimination-choice", "Decide what to eliminate on each level of quantifier tree during transformation to formula", cxxopts::value<int>()->default_value("1"))
         ("u,uvar-choice", "The heuristics by which the next universal variable for elimination is chosen", cxxopts::value<int>()->default_value("0"))
         ("d,dyn-reordering", "Allow dynamic reordering of variables in BDDs", cxxopts::value<int>()->default_value("1"))
-        ("force-filetype", "Forces the filetype (0 - (DQ)DIMACS, 1 - QCIR)", cxxopts::value<int>())
-        ("f,file","(DQ)DIMACS/QCIR file to solve",cxxopts::value<std::string>())
+        ("force-filetype", "Forces the filetype (0 - (DQ)DIMACS, 1 - (D)QCIR)", cxxopts::value<int>())
+        ("f,file","(DQ)DIMACS/(D)QCIR file to solve",cxxopts::value<std::string>())
         ;
     optionsParser.parse_positional({"file"});
     optionsParser.positional_help("<input file>");

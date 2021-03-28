@@ -55,11 +55,11 @@ bool DQDIMACSParser::parse(std::string fileName) {
             continue;
         } else if (token == "p") {
             if (pLineProcessed) {
-                throw DQBDDexception("There are multiple problem lines (lines starting with 'p') in input DQDIMACS.");
+                throw DQBDDexception("There are multiple problem lines (lines starting with 'p') in input (DQ)DIMACS.");
             }
             streamline >> token;
             if (token != "cnf") {
-                std::cerr << "WARNING: The problem line in input DQDIMCS should have the form 'p cnf <num> <num>'" << std::endl;
+                std::cerr << "WARNING: The problem line (i.e. the first line after comments) in input (DQ)DIMACS should have the form 'p cnf <num> <num>'" << std::endl;
             }
             streamline >> token;
             //maximumVariable = std::stoi(token);

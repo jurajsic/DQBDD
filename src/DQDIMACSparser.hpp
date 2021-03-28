@@ -23,7 +23,7 @@
 #include "parser.hpp"
 
 /**
- * @brief Simple parser of formulas in DQDIMACS format
+ * @brief Simple parser of formulas in (DQ)DIMACS format
  */
 class DQDIMACSParser : public Parser {
     Cudd &mgr;
