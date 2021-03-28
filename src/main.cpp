@@ -87,7 +87,7 @@ int main(int argc, char **argv)
     }
 
     if (result->count("version")) {
-        std::cout << "DQBDD 1.2-beta3" << std::endl;
+        std::cout << "DQBDD 1.2-beta4" << std::endl;
         return 0;
     }
     
