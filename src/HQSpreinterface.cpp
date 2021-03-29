@@ -183,7 +183,9 @@ HQSPreInterface::~HQSPreInterface() = default;
 
 // code based on HQS 
 bool HQSPreInterface::parse(std::string fileName) {
+    // if this interface parsed something before, we need to remove saved information
     formulaPtr.reset(new HQSPreFormulaWrapper());
+    DQBFPrefix.clear();
 
     // Configure logging
     el::Configurations defaultConf;
@@ -213,8 +215,8 @@ bool HQSPreInterface::parse(std::string fileName) {
 
         // do the preprocessing magic
         formulaPtr->formula.determineGates();
-        if (formulaPtr->formula.getGates().size() > 0) { 
-            /* If we have some gates, we would like to preserve them, but first we would like to
+        if (formulaPtr->formula.getGates().size() > 5) { 
+            /* If we have more than 5 gates, we would like to preserve them, but first we would like to
              * try HQSpre to solve the formula without preserving them
              */
 
@@ -230,8 +232,9 @@ bool HQSPreInterface::parse(std::string fileName) {
             formula2.settings().vivify_fp        = true;
             // TODO timeout?
             //formula2.settings().pure_sat_timeout = 1000;
-            // in HQS fork is enabled, but it uses external MPhaseSAT64 solver, so here we better turn it off
+            // in HQS forksplitting is enabled, but it uses external MPhaseSAT64 solver, so here we better turn it off
             formula2.settings().enableFork       = false;
+            VLOG(1) << "Start preprocessing without gate preservation";
             formula2.preprocess();
 
             // Then do preprocessing, preserving gates
@@ -248,6 +251,8 @@ bool HQSPreInterface::parse(std::string fileName) {
             formulaPtr->formula.settings().enableFork       = false;
             // TODO timeout??
             //formulaPtr->formula.settings().pure_sat_timeout = 1000;
+
+            VLOG(1) << "Start preprocessing with gate preservation";
         } else { // if we have no gates, there is no points in preserving them, run HQSpre normally
             // TODO decide what settings to use (here are except timeout same as in HQS 18-03-2021)
             // bla and ble are only useful for QBF (I think)
@@ -261,6 +266,8 @@ bool HQSPreInterface::parse(std::string fileName) {
             //formula2.settings().pure_sat_timeout = 1000;
             // in HQS forking is enabled, but it uses external MPhaseSAT64 solver, so here we better turn it off
             formulaPtr->formula.settings().enableFork       = false;
+
+            VLOG(1) << "Start preprocessing without gate preservation";
         }
         formulaPtr->formula.preprocess();
         formulaPtr->formula.printStatistics();
@@ -272,8 +279,9 @@ bool HQSPreInterface::parse(std::string fileName) {
         return true;
     }
 
-    // do gate extraction
+    // update gates (if they were not preserved they might have gotten deleted)
     formulaPtr->formula.determineGates();
+    // enforce DQBF (to have DQBF prefix, it could have possibly changed to QBF)
     formulaPtr->formula.enforceDQBF(true);
 
     // Create the proper problem variables (without Tseitin variables)
