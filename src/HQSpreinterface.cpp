@@ -212,22 +212,30 @@ bool HQSPreInterface::parse(std::string fileName) {
         in.close();
 
         // do the preprocessing magic
-        formulaPtr->formula.determineGates(true, true, true, false);
-        if (formulaPtr->formula.getGates().size() > 5) {
-            // First do full preprocessing on a copy of the formula
+        formulaPtr->formula.determineGates();
+        if (formulaPtr->formula.getGates().size() > 0) { 
+            /* If we have some gates, we would like to preserve them, but first we would like to
+             * try HQSpre to solve the formula without preserving them
+             */
+
+            // First do full preprocessing (without preserving gates) on a copy of the formula
             hqspre::Formula formula2(formulaPtr->formula);
-            // TODO decide what settings to use (same as in HQS?)
+            // TODO decide what settings to use (here are except timeout same as in HQS 18-03-2021)
             // bla and ble are only useful for QBF (I think)
-            // formula2.settings().bla              = false;
-            // formula2.settings().ble              = false;
-            // formula2.settings().pure_sat_timeout = 1000;
-            // formula2.settings().impl_chains      = 3;
-            // formula2.settings().max_substitution_cost = 250;
-            // formula2.settings().max_resolution_cost = 100;
-            // formula2.settings().vivify_fp        = true;
+            formula2.settings().bla              = false;
+            formula2.settings().ble              = false;
+            formula2.settings().impl_chains      = 3;
+            formula2.settings().max_substitution_cost = 250;
+            formula2.settings().max_resolution_cost = 100;
+            formula2.settings().vivify_fp        = true;
+            // TODO timeout?
+            //formula2.settings().pure_sat_timeout = 1000;
+            // in HQS fork is enabled, but it uses external MPhaseSAT64 solver, so here we better turn it off
+            formula2.settings().enableFork       = false;
             formula2.preprocess();
 
             // Then do preprocessing, preserving gates
+            // TODO setting??? (here are except timeout same as in HQS 18-03-2021)
             formulaPtr->formula.settings().univ_expand      = 0; // maybe 2 is better???
             // bla and ble are only useful for QBF (I think)
             formulaPtr->formula.settings().bla              = false;
@@ -240,6 +248,19 @@ bool HQSPreInterface::parse(std::string fileName) {
             formulaPtr->formula.settings().enableFork       = false;
             // TODO timeout??
             //formulaPtr->formula.settings().pure_sat_timeout = 1000;
+        } else { // if we have no gates, there is no points in preserving them, run HQSpre normally
+            // TODO decide what settings to use (here are except timeout same as in HQS 18-03-2021)
+            // bla and ble are only useful for QBF (I think)
+            formulaPtr->formula.settings().bla              = false;
+            formulaPtr->formula.settings().ble              = false;
+            formulaPtr->formula.settings().impl_chains      = 3;
+            formulaPtr->formula.settings().max_substitution_cost = 250;
+            formulaPtr->formula.settings().max_resolution_cost = 100;
+            formulaPtr->formula.settings().vivify_fp        = true;
+            // TODO timeout?
+            //formula2.settings().pure_sat_timeout = 1000;
+            // in HQS forking is enabled, but it uses external MPhaseSAT64 solver, so here we better turn it off
+            formulaPtr->formula.settings().enableFork       = false;
         }
         formulaPtr->formula.preprocess();
         formulaPtr->formula.printStatistics();
@@ -252,7 +273,7 @@ bool HQSPreInterface::parse(std::string fileName) {
     }
 
     // do gate extraction
-    formulaPtr->formula.determineGates(true, true, true, false);
+    formulaPtr->formula.determineGates();
     formulaPtr->formula.enforceDQBF(true);
 
     // Create the proper problem variables (without Tseitin variables)
