@@ -33,11 +33,6 @@ class QuantifierTreeFormula;
  */
 class QuantifierTreeNode : virtual public QuantifiedVariablesManipulator {
 protected:
-    /**
-     * @brief the set of universal variables which are outside this subformula
-     * or in dependency set of existential variable which is outside this subformula
-     */
-    VariableSet uVarsOutsideThisSubtree = { };
     // the set of universal variables in support set or in dependecy set of ex. var in support set
     VariableSet uVarsSupportSet = {};
 
