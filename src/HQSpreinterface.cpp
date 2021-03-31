@@ -17,6 +17,8 @@
  * along with DQBDD. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include<vector>
+
 #include <easylogging++.hpp>
 #include <formula.hpp>
 
@@ -25,7 +27,15 @@
 
 INITIALIZE_EASYLOGGINGPP
 
+/**
+ * Everything here is based on the way how preprocessing is done in HQS, especially
+ * how the result of the preprocessing is tranformed into AIG.
+ **/
+
 class HQSPreInterface::HQSPreFormulaWrapper {
+private:
+    // this will map hqspre vars to dqbdd vars (we use it to create dqbdd vars starting from 1,2,...)
+    std::unordered_map<hqspre::Variable,Variable> hqspreVarToDqbddVar;
 public:
     hqspre::Formula formula;
     bool isSat = false;
@@ -33,7 +43,30 @@ public:
     HQSPreFormulaWrapper() {}
     ~HQSPreFormulaWrapper() {}
 
-    // following stuff is based on similar functions for AIGs from HQS
+    /* this function basically does hqspreVarToDqbddVar[hqspreVar] = dqbddVar but it assumes
+     * that hqspreVarToDqbddVar[hqspreVar] does not exists, otherwise it throws exception
+     */
+    void mapHqspreVarToDqbddVar(const hqspre::Variable &hqspreVar, const Variable &dqbddVar) {
+        if (!hqspreVarToDqbddVar.emplace(hqspreVar, dqbddVar).second) { // if hqspreVarToDqbddVar[hqspreVar] already exists 
+            throw DQBDDexception("We cannot map two different DQBDD variables into one hqspre variable");
+        }
+    }
+
+    /**
+     * @brief Returns hqspreVarToDqbddVar[hqspreVar] if it exists, otherwise throws error
+     */
+    const Variable &getDqbddVarMappedIntoHqspreVar(const hqspre::Variable &hqspreVar) {
+        auto foundIt = hqspreVarToDqbddVar.find(hqspreVar);
+        if (foundIt != hqspreVarToDqbddVar.end()) {
+            return foundIt->second;
+        } else {
+            throw DQBDDexception("HQSpre variable does not have any DQBDD variable mapped to it");
+        }
+    }
+
+    /*****************************************************************************************/
+    /*************** Stuff for transforming hqspre formula into BDD formula ******************/
+    /*****************************************************************************************/
 
     /**
      * @brief gate table mapping HQSpre vars to BDDs (either variables or BDDs representing extracted gates)
@@ -87,7 +120,10 @@ public:
         return (hqspre::isNegative(g._output_literal) ? !result : result);
     }
 
-    // stuff for transforming to quantifier tree
+    
+    /*****************************************************************************************/
+    /************* Stuff for transforming hqspre formula into quantifier tree ****************/
+    /*****************************************************************************************/
 
     std::vector<const hqspre::Gate*> outputvarToGate;
 
@@ -102,7 +138,7 @@ public:
         } else {
             //std::cout << "not a gate" << std::endl;
             QuantifierTreeFormula *varFormula = new QuantifierTreeFormula(mgr, qvm);
-            varFormula->setMatrix(Variable(var, mgr));
+            varFormula->setMatrix(getDqbddVarMappedIntoHqspreVar(var));
             result = varFormula;
         }
 
@@ -215,7 +251,9 @@ bool HQSPreInterface::parse(std::string fileName) {
 
         // do the preprocessing magic
         formulaPtr->formula.determineGates();
-        if (formulaPtr->formula.getGates().size() > 5) { 
+        auto numOfDetectedGates = formulaPtr->formula.getGates().size();
+        VLOG(1) << "Detected " << numOfDetectedGates << " gates in the input formula";
+        if (numOfDetectedGates > 5) { 
             /* If we have more than 5 gates, we would like to preserve them, but first we would like to
              * try HQSpre to solve the formula without preserving them
              */
@@ -270,6 +308,8 @@ bool HQSPreInterface::parse(std::string fileName) {
             VLOG(1) << "Start preprocessing without gate preservation";
         }
         formulaPtr->formula.preprocess();
+        VLOG(1) << "Preprocessing finished with formula with " << formulaPtr->formula.numEVars() << " existential vars, " << formulaPtr->formula.numUVars() << " univ. vars, and "
+            << formulaPtr->formula.numClauses() << " clauses.";
         formulaPtr->formula.printStatistics();
     } catch (hqspre::SATException&) {
         formulaPtr->isSat = true;
@@ -285,22 +325,29 @@ bool HQSPreInterface::parse(std::string fileName) {
     formulaPtr->formula.enforceDQBF(true);
 
     // Create the proper problem variables (without Tseitin variables)
+    // we will use varNum as a way to have variables starting from one
+    int varNum = 1;
     // first universal...
     for (hqspre::Variable var = formulaPtr->formula.minVarIndex(); var <= formulaPtr->formula.maxVarIndex(); ++var) {
         if (!formulaPtr->formula.varDeleted(var) && !formulaPtr->formula.isGateOutput(var) && formulaPtr->formula.isUniversal(var)) {
-            DQBFPrefix.addUnivVar(Variable(var, mgr));
+            Variable uVar = Variable(varNum, mgr);
+            ++varNum;
+            DQBFPrefix.addUnivVar(uVar);
+            formulaPtr->mapHqspreVarToDqbddVar(var, uVar);
         }
     }
     // ...and then existential (so we can add dependencies without worrying whether univ var to be added to dependency was created or not)
     for (hqspre::Variable var = formulaPtr->formula.minVarIndex(); var <= formulaPtr->formula.maxVarIndex(); ++var) {
         if (!formulaPtr->formula.varDeleted(var) && !formulaPtr->formula.isGateOutput(var) && formulaPtr->formula.isExistential(var)) {
-            Variable eVar = Variable(var, mgr);
+            Variable eVar = Variable(varNum, mgr);
+            ++varNum;
             DQBFPrefix.addExistVar(eVar);
+            formulaPtr->mapHqspreVarToDqbddVar(var, eVar);
             for (auto dep : formulaPtr->formula.getDependencies(var)) {
-                DQBFPrefix.addDependency(eVar, Variable(dep, mgr));
                 if (!formulaPtr->formula.isUniversal(dep)) {
                     throw DQBDDexception("Existential variable is depending on non universal one in hqspre, this should not happen");
                 }
+                DQBFPrefix.addDependency(eVar, formulaPtr->getDqbddVarMappedIntoHqspreVar(dep));
             }
         }
     }
@@ -333,8 +380,7 @@ Formula* HQSPreInterface::getFormula() {
     // Load the gate_table with the primary inputs
     for (auto var = formulaPtr->formula.minVarIndex(); var <= formulaPtr->formula.maxVarIndex(); ++var) {
         if (!formulaPtr->formula.varDeleted(var) && !formulaPtr->formula.isGateOutput(var)) {
-            Variable dqbddVar = Variable(var, mgr);
-            formulaPtr->gate_table[var] = dqbddVar;
+            formulaPtr->gate_table[var] = formulaPtr->getDqbddVarMappedIntoHqspreVar(var);
         }
     }
 
