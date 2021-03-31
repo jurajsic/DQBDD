@@ -104,7 +104,7 @@ int main(int argc, char **argv)
     options.treeElimChoice = static_cast<TreeElimChoice>((*result)["elimination-choice"].as<int>());
     options.uVarElimChoice = static_cast<UnivVarElimChoice>((*result)["uvar-choice"].as<int>());
     
-    // fileType = 0 - (DQ)DIMACS, filetype = 1 - QCIR
+    // fileType = 0 - (DQ)DIMACS, filetype = 1 - (D)QCIR
     int fileType = 0;
     if (!result->count("force-filetype")) { // try to guess filetype automatically
         std::string fileExt = getLowercaseFileType(fileName);
