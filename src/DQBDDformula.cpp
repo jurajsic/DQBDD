@@ -64,7 +64,11 @@ void Formula::eliminateUnivVar(Variable uVarToEliminate, bool useAlreadyComputed
         return;
     }
     
-    std::cout << "Eliminating universal variable " << uVarToEliminate.getId() << std::endl;
+    std::cout << "Eliminating universal variable " 
+              << uVarToEliminate.getId()
+              //<< " where we have " << getExistVars().size() 
+              //<< " existential and " << getUnivVars().size() << " universal variables"
+              << std::endl;
 
     // find existential variables that should be duplicated
     //VariableSet eVarsToDuplicate;
