@@ -22,9 +22,54 @@
 
 #include <list>
 #include <ostream>
+#include <memory>
 
 #include "DQBDDvariable.hpp"
 #include "DQBDDformula.hpp"
+
+// TODO maybe add needToRecomputeSupportSets for quantifierTree also, so that it is not computed
+// for combine trees in disjunction, as it will not needed there (I think) supportSet and uVarSupportSet
+
+/* TODO how to implement shared subtrees
+ *     - change children into QuantifierTreeConnection
+ *     - probably keep the number of parents???
+ *     - the next thing is probably wrong, have to think it trough again:
+ *     - add something like turnToNNF(??over which QuantifierTreeConnection??)
+ *          - this function is called only on the subtree without quantifiers (only in root)
+ *          - keep the number of parents which were already processed (if it turns to 0, we start pushing for the node)
+ *          - i have to also keep the set of parents (or connections to parents) which are waiting for negation to be pushed further (i.e. they have negation on the parent-this node connection)
+ *          - if "the number of parents which were already processed" == "the number of parents"
+ *              - if "the set of parents which are waiting for negation to be pushed" == "the number of parents"
+ *                  - we just delete this set and call pushNegationsFurther() for this node, as it needs to be pushed for every parent
+ *              - else if "the set of parents which are waiting for negation to be pushed" > 0
+ *                  - take the set of (connections to) parents that are waiting
+ *                  - create new node with same children connections as this node (except we have to change 'parent' field of course)
+ *                  - "the set of parents which are waiting for negation to be pushed" should be zero + the actual set should be empty for the new node
+ *                  - update the connection from the set with the new node as a child, change isChildNegated to false (should be true here)
+ *                  - delete this set and update number of parents for both nodes
+ *                  - call pushNegationsFurther() for the newly created node
+ *              - call turnToNNF for each child
+ *          - else 
+ *              - if isChildNegated==true in the connnection to parent which called turnToNNF(), change it to false and add it to the set of connections of parent that are waiting
+ *              - decrement "the number of parents which were already processed"
+ *     - pushNegationsFurther()
+ *          - takes each children connection and changes the value of isChildNegated to its complement
+ *     - update localisation, we need to check for number of parents during pushing, if it is more than one, we need to create new node
+ *     - update changeToFormula() .... how?????, I need parents!!
+ * 
+ *     - maybe pushUVar,pushEVar should also be implemented in QuantifierTreeConnection where it would do the shit about splitting child if it has more than one parent??
+ */
+
+class QuantifierTreeNode;
+
+class QuantifierTreeConnection {
+    // you sure you want shared?? what happens in changeToFormula?? won't there be cyclical ownership? -- how will i 
+    QuantifierTreeNode* parent;
+    bool isChildNegated;
+    std::shared_ptr<QuantifierTreeNode> child;
+
+    // HMMMM, if we only keep this as children connections and only update the child in the connection, there is no problem, right??? no need to delete from children and we do not keep the set of parents
+};
 
 class QuantifierTreeFormula;
 
