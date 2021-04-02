@@ -60,17 +60,6 @@
  *     - maybe pushUVar,pushEVar should also be implemented in QuantifierTreeConnection where it would do the shit about splitting child if it has more than one parent??
  */
 
-class QuantifierTreeNode;
-
-class QuantifierTreeConnection {
-    // you sure you want shared?? what happens in changeToFormula?? won't there be cyclical ownership? -- how will i 
-    QuantifierTreeNode* parent;
-    bool isChildNegated;
-    std::shared_ptr<QuantifierTreeNode> child;
-
-    // HMMMM, if we only keep this as children connections and only update the child in the connection, there is no problem, right??? no need to delete from children and we do not keep the set of parents
-};
-
 class QuantifierTreeFormula;
 
 /**
@@ -124,13 +113,26 @@ public:
     //void addToUVarsOutsideThisSubtree(const VariableSet &varsToAdd) override;
 };
 
+class QuantifierTreeConnection {
+public:
+    // you sure you want shared?? what happens in changeToFormula?? won't there be cyclical ownership? -- how will i 
+    //QuantifierTreeNode* parent;
+    bool isChildNegated;
+    std::shared_ptr<QuantifierTreeNode> child;
+
+    // HMMMM, if we only keep this as children connections and only update the child in the connection, there is no problem, right??? no need to delete from children and we do not keep the set of parents
+};
+
 /**
  * @brief A node that represents a root of a quantifier subtree
  */
 class QuantifierTree : public QuantifierTreeNode {
 private:
-    // the children of root
-    std::list<QuantifierTreeNode*> children;
+    // the connections to children of the root
+    std::list<std::shared_ptr<QuantifierTreeConnection>> childrenConnections;
+
+    // the connections to parents of the root
+    std::list<std::weak_ptr<QuantifierTreeConnection>> parentsConnections;
 
     // if isConj==true, the root has assigned conjuction, otherwise disjunction
     bool isConj;
@@ -142,21 +144,19 @@ private:
     bool needsToLocalise = true;
 
     /**
-     * @brief Adds another child to the list of children (assuming *this is a root)
+     * @brief Adds another child to the list of children
      * 
-     * If child has the same operator as this quantifier tree and does not contain a quantifier prefix,
-     * the children of this child are added instead, while child is deleted.
-     * 
-     * @param child - the root of subtree of the child to add
+     * If collapseChildren==true and the child is without quantifiers and has the same operator as this quantifier tree,
+     * then the children of this child are added instead, while child is deleted.
      */
-    void addChild(QuantifierTreeNode *child, bool collapseChildren = true);
+    void addChild(std::shared_ptr<QuantifierTreeNode> child, bool collapseChildren = true);
 
     /**
-     * @brief Removes from one ordered list another where both are assumed to be ordered by the ordering in of children list
+     * @brief Removes from one ordered list of subset of childrent another where both are assumed to be ordered by the ordering of children list
      * 
      * @return true if something was removed
      */
-    bool removeFromOrderedListOtherOrderedListUsingChildrenOrder(std::list<QuantifierTreeNode*> &listToRemoveFrom, std::list<QuantifierTreeNode*> &listOfItemsToRemove);
+    bool removeFromOrderedListOtherOrderedListUsingChildrenOrder(std::list<std::weak_ptr<QuantifierTreeNode>> &listToRemoveFrom, const std::list<std::weak_ptr<QuantifierTreeNode>> &listOfItemsToRemove);
 
     /**
      * This mapping maps each variable that we will want to push during localisation
@@ -169,7 +169,7 @@ private:
      * addExistVarsToChildrenToCombineMapping and addUnivVarsToChildrenToCombineMapping.
      * Function pushVarsWithCombining is then used to create new children and pushing variables.
      */
-    std::unordered_map<Variable, std::list<QuantifierTreeNode*>> childrenToCombineMapping;
+    std::unordered_map<Variable, std::list<std::weak_ptr<QuantifierTreeNode>>> childrenToCombineMapping;
     //void initialiseChildrenToCombineMapping(const VariableSet &varsToCombine);
     /**
      * Adds each exist var y from eVarsToAdd to childrenToCombineMapping, i.e.
@@ -210,9 +210,9 @@ private:
      * to remove non-renamed copies of univ vars which should not be passed during localisation. Therefore, to 
      * access uVarsOutsideChildSubtree[child] use the function getUVarsOutsideChildSubtree(child, ...).
      */
-    std::unordered_map<QuantifierTreeNode*, VariableSet> uVarsOutsideChildSubtree;
+    std::unordered_map<std::weak_ptr<QuantifierTreeNode>, VariableSet> uVarsOutsideChildSubtree;
     // to save on time, only access uVarsOutsideChildSubtree[child] trough this function, it will compute it only once
-    VariableSet &getUVarsOutsideChildSubtree(QuantifierTreeNode* child, std::list<QuantifierTreeNode*> childAndSiblings, const VariableSet &uVarsOutsideThisSubtree);
+    VariableSet &getUVarsOutsideChildSubtree(std::shared_ptr<QuantifierTreeNode> child, const std::list<std::shared_ptr<QuantifierTreeNode>> &childAndSiblings, const VariableSet &uVarsOutsideThisSubtree);
 
 
     std::ostream& print(std::ostream& out) const override;
@@ -232,14 +232,14 @@ public:
      * 
      * @param collapseChildren - should we collapse children (i.e. the children of children with the same operation are moved into this node)
      */
-    QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> children, QuantifiedVariablesManager &qvMgr, bool collapseChildren = true);
+    QuantifierTree(bool isConj, std::list<std::shared_ptr<QuantifierTreeNode>> children, QuantifiedVariablesManager &qvMgr, bool collapseChildren = true);
     /**
      * @brief Construct a new Quantifier Tree object from some existing QuantifiedVariablesManipulator (i.e. it copies the quantifiers from the manipulator here)
      * 
      * @param qvManipulator - the QuantifiedVariablesManipulator whose quantifiers will be copied here
      * @param collapseChildren - should we collapse children (i.e. the children of children with the same operation are moved into this node)
      */
-    QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> children, QuantifiedVariablesManipulator &qvManipulator, bool collapseChildren = true);
+    QuantifierTree(bool isConj, std::list<std::shared_ptr<QuantifierTreeNode>> children, QuantifiedVariablesManipulator &qvManipulator, bool collapseChildren = true);
     QuantifierTree(const QuantifierTree&) = delete;
     QuantifierTree& operator=(const QuantifierTree&) = delete;
 
