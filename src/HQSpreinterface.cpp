@@ -301,15 +301,13 @@ bool HQSPreInterface::parse(std::string fileName) {
             formulaPtr->formula.settings().max_resolution_cost = 100;
             formulaPtr->formula.settings().vivify_fp        = true;
             // TODO timeout?
-            //formula2.settings().pure_sat_timeout = 1000;
+            //formulaPtr->formula.settings().pure_sat_timeout = 1000;
             // in HQS forking is enabled, but it uses external MPhaseSAT64 solver, so here we better turn it off
             formulaPtr->formula.settings().enableFork       = false;
 
             VLOG(1) << "Start preprocessing without gate preservation";
         }
         formulaPtr->formula.preprocess();
-        VLOG(1) << "Preprocessing finished with formula with " << formulaPtr->formula.numEVars() << " existential vars, " << formulaPtr->formula.numUVars() << " univ. vars, and "
-            << formulaPtr->formula.numClauses() << " clauses.";
         formulaPtr->formula.printStatistics();
     } catch (hqspre::SATException&) {
         formulaPtr->isSat = true;
@@ -321,8 +319,10 @@ bool HQSPreInterface::parse(std::string fileName) {
 
     // update gates (if they were not preserved they might have gotten deleted)
     formulaPtr->formula.determineGates();
+        
     // enforce DQBF (to have DQBF prefix, it could have possibly changed to QBF)
     formulaPtr->formula.enforceDQBF(true);
+    
 
     // Create the proper problem variables (without Tseitin variables)
     // we will use varNum as a way to have variables starting from one
@@ -351,6 +351,9 @@ bool HQSPreInterface::parse(std::string fileName) {
             }
         }
     }
+    
+    VLOG(1) << "Preprocessing finished with formula with " << DQBFPrefix.getExistVars().size() << " existential vars, " << DQBFPrefix.getUnivVars().size() << " univ. vars, "
+            << formulaPtr->formula.getGates().size() << " gates, and " << formulaPtr->formula.numClauses() << " clauses which potentionally encode the gates.";
 
     return false;
 }
@@ -483,4 +486,200 @@ QuantifierTreeNode* HQSPreInterface::getQuantifierTree() {
     auto qt = new QuantifierTree(true, clauses, DQBFPrefix);
     DQBFPrefix.clear();
     return qt;
+}
+
+void HQSPreInterface::turnIntoDQCIR(std::ostream &output) {
+    if (formulaPtr == nullptr) {
+        throw DQBDDexception("A file must be parsed before it is possible to turn it into DQCIR format");
+    }
+
+    if (formulaPtr->isSat) {
+        output << "#QCIR-G14 0" << std::endl
+               << "output(1)" << std::endl
+               << "1 = and()" << std::endl;
+        return;
+    }
+    if (formulaPtr->isUnSat) {
+        output << "#QCIR-G14 0" << std::endl
+               << "output(1)" << std::endl
+               << "1 = or()" << std::endl;
+        return;
+    }
+
+
+    output << "#QCIR-G14 " 
+           // TODO what number here? number of normal variables, or number of all (normal + gate) variables?? the format is unclear about it
+           //<< formulaPtr->hqspreVarToDqbddVar.size() 
+           //<< formulaPtr->formula.maxVarIndex() 
+           << std::endl;
+
+    /*********************************/
+    /**** Print quantifier prefix ****/
+    /*********************************/
+    // TODO if formula is QBF, we should print QBF style prefix (just QCIR)
+
+    //first universal variables
+    if (!DQBFPrefix.getUnivVars().empty()) {
+        output << "forall(";
+        for (auto uVarIter = DQBFPrefix.getUnivVars().begin(); uVarIter != DQBFPrefix.getUnivVars().end(); ++uVarIter) {
+            if (uVarIter == DQBFPrefix.getUnivVars().begin()) {
+                output << uVarIter->getId();
+            } else {
+                output << std::string(", ") << uVarIter->getId();
+            }
+        }
+        output << std::string(")") << std::endl;
+    }
+
+    //then existential variables
+    for (const Variable &eVar : DQBFPrefix.getExistVars()) {
+        output << std::string("henkin(") << eVar.getId();
+        for (const Variable &depVar : DQBFPrefix.getExistVarDependencies(eVar)) {
+            output << std::string(", ") << depVar.getId();
+        }
+        output << std::string(")") << std::endl;
+    }
+
+    // gates need to be copied, otherwise it can get a bit funky for some reason
+    const auto gates = formulaPtr->formula.getGates();
+
+    std::vector<unsigned long> hqspreVarToOutputVar = std::vector<unsigned long>(formulaPtr->formula.maxVarIndex() + 1);
+    auto hqspreLitToStringVar = [&hqspreVarToOutputVar](const hqspre::Literal lit) {
+                                std::string var = std::to_string(hqspreVarToOutputVar[hqspre::lit2var(lit)]);
+                                return (hqspre::isNegative(lit) ? (std::string("-") + var) : var);
+                                };
+
+    // Load the hqspreVarToOutputVar with the primary inputs
+    unsigned int maxQuantifiedVarIndex = 0; 
+    for (auto var = formulaPtr->formula.minVarIndex(); var <= formulaPtr->formula.maxVarIndex(); ++var) {
+        if (!formulaPtr->formula.varDeleted(var) && !formulaPtr->formula.isGateOutput(var)) {
+            auto varId = formulaPtr->getDqbddVarMappedIntoHqspreVar(var).getId();
+            hqspreVarToOutputVar[var] = varId;
+            if (varId > maxQuantifiedVarIndex) {
+                maxQuantifiedVarIndex = varId;
+            }
+        }
+    }
+
+    unsigned long outputVar = maxQuantifiedVarIndex + 1; 
+    output << "output(" << outputVar << ")" << std::endl;
+
+    // Print the gates
+    unsigned long gateVarId = outputVar + 1; 
+    for (const hqspre::Gate& g: gates) {
+        const hqspre::Variable out_var = hqspre::lit2var(g._output_literal);
+
+        switch (g._type) {
+            case hqspre::GateType::AND_GATE:
+            {
+                output << gateVarId << " = and(";
+                for (auto inputLitIter = g._input_literals.begin(); inputLitIter != g._input_literals.end(); ++inputLitIter) {
+                    if (inputLitIter == g._input_literals.begin()) {
+                        output << hqspreLitToStringVar(*inputLitIter);
+                    } else {
+                        output << ", " << hqspreLitToStringVar(*inputLitIter);
+                    }
+                }
+                output << ")" << std::endl;
+                break;
+            }
+
+            case hqspre::GateType::XOR_GATE:
+            {
+                auto inputLit1 = g._input_literals[0];
+                unsigned long inputVar1 = hqspreVarToOutputVar[hqspre::lit2var(inputLit1)];
+                auto inputLit2 = g._input_literals[1];
+                unsigned long inputVar2 = hqspreVarToOutputVar[hqspre::lit2var(inputLit2)];
+                if ((hqspre::isNegative(inputLit1) && hqspre::isNegative(inputLit2))
+                        || (!hqspre::isNegative(inputLit1) && !hqspre::isNegative(inputLit2))) {
+                    // A XOR B = !A XOR !B = (A AND !B) OR (!A AND B)
+                    output << gateVarId << " = and(" << inputVar1 << ", -" << inputVar2 << ")" << std::endl;
+                    ++gateVarId;
+                    output << gateVarId << " = and(-" << inputVar1 << ", " << inputVar2 << ")" << std::endl;
+                    ++gateVarId;
+                    output << gateVarId << " = or(" << (gateVarId - 1) << ", " << (gateVarId - 2) << ")" << std::endl;
+                } else {
+                    // A XOR !B = !A XOR B = (A AND B) OR (!A AND !B)
+                    output << gateVarId << " = and(" << inputVar1 << ", " << inputVar2 << ")" << std::endl;
+                    ++gateVarId;
+                    output << gateVarId << " = and(-" << inputVar1 << ", -" << inputVar2 << ")" << std::endl;
+                    ++gateVarId;
+                    output << gateVarId << " = or(" << (gateVarId - 1) << ", " << (gateVarId - 2) << ")" << std::endl;
+                }
+                break;
+            }
+
+            case hqspre::GateType::MUX_GATE:
+            {
+                auto litA = g._input_literals[0];
+                unsigned long varA = hqspreVarToOutputVar[hqspre::lit2var(litA)];;
+                std::string varB = hqspreLitToStringVar(g._input_literals[1]);
+                std::string varC = hqspreLitToStringVar(g._input_literals[2]);
+                if (hqspre::isNegative(litA)) {
+                    // MUX(!A,B,C) = (!A AND B) OR (A AND C)
+                    output << gateVarId << " = and(-" << varA << ", " << varB << ")" << std::endl;
+                    ++gateVarId;
+                    output << gateVarId << " = and(" << varA << ", " << varC << ")" << std::endl;
+                    ++gateVarId;
+                    output << gateVarId << " = or(" << (gateVarId - 1) << ", " << (gateVarId - 2) << ")" << std::endl;
+                } else {
+                    // MUX(A,B,C) = (A AND B) OR (!A AND C)
+                    output << gateVarId << " = and(" << varA << ", " << varB << ")" << std::endl;
+                    ++gateVarId;
+                    output << gateVarId << " = and(-" << varA << ", " << varC << ")" << std::endl;
+                    ++gateVarId;
+                    output << gateVarId << " = or(" << (gateVarId - 1) << ", " << (gateVarId - 2) << ")" << std::endl;
+                }
+                break;
+            }
+
+            default:
+            {
+                throw DQBDDexception("Invalid gate type encountered");
+                break;
+            }
+        }
+
+        if (hqspre::isNegative(g._output_literal)) {
+            ++gateVarId;
+            output << gateVarId << " = and(-" << (gateVarId - 1)  << ")" << std::endl;
+        }
+
+        hqspreVarToOutputVar[out_var] = gateVarId;
+        ++gateVarId;
+
+        for (const auto c_nr: g._encoding_clauses) {
+            formulaPtr->formula.removeClause(c_nr);
+        }
+    }
+
+    // Convert the clauses
+    std::list<unsigned long> clauseGateIDs;
+    for (hqspre::ClauseID c_nr = 0; c_nr <= formulaPtr->formula.maxClauseIndex(); c_nr++) {
+        if (!formulaPtr->formula.clauseDeleted(c_nr)) {
+            output << gateVarId << " = or(";
+            const auto& clause = formulaPtr->formula.getClause(c_nr);
+            for (auto inputLitIter = clause.begin(); inputLitIter != clause.end(); ++inputLitIter) {
+                if (inputLitIter == clause.begin()) {
+                    output << hqspreLitToStringVar(*inputLitIter);
+                } else {
+                    output << ", " << hqspreLitToStringVar(*inputLitIter);
+                }
+            }
+            output << ")" << std::endl;
+            clauseGateIDs.push_back(gateVarId);
+            ++gateVarId;
+        }
+    }
+
+    // print out the output gate
+    output << outputVar << " = and(";
+    for (auto clauseIDiter = clauseGateIDs.begin(); clauseIDiter != clauseGateIDs.end(); ++ clauseIDiter) {
+        if (clauseIDiter == clauseGateIDs.begin()) {
+            output << *clauseIDiter;
+        } else {
+            output << ", " << *clauseIDiter;
+        }
+    }
+    output << ")" << std::endl;
 }

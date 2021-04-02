@@ -21,6 +21,7 @@
 #define DQBDD_HQSPRE_INTERFACE_HPP
 
 #include <memory>
+#include <ostream>
 
 #include "parser.hpp"
 
@@ -47,6 +48,8 @@ public:
     Formula* getFormula() override;
     QuantifierTreeNode* getQuantifierTree() override;
     ~HQSPreInterface();
+
+    void turnIntoDQCIR(std::ostream &output);
 };
 
 #endif

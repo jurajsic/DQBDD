@@ -67,6 +67,7 @@ int main(int argc, char **argv)
         ("u,uvar-choice", "The heuristics by which the next universal variable for elimination is chosen", cxxopts::value<int>()->default_value("0"))
         ("d,dyn-reordering", "Allow dynamic reordering of variables in BDDs", cxxopts::value<int>()->default_value("1"))
         ("force-filetype", "Forces the filetype (0 - (DQ)DIMACS, 1 - (D)QCIR)", cxxopts::value<int>())
+        ("hqspre-dqcir-output", "DQBDD will not solve filename.DQDIMACS input file, but transforms it into filename.DQCIR after preprocessing it with HQSpre")
         ("f,file","(DQ)DIMACS/(D)QCIR file to solve",cxxopts::value<std::string>())
         ;
     optionsParser.parse_positional({"file"});
@@ -131,6 +132,24 @@ int main(int argc, char **argv)
     Formula *f = nullptr;
     bool preprocessorSolved = false;
 
+    if (result->count("hqspre-dqcir-output")) {
+        HQSPreInterface hqspreparser(mgr, qvMgr);
+        std::cout << "Starting HQSpre" << std::endl;
+        hqspreparser.parse(fileName);
+        std::cout << "Turning into DQCIR format" << std::endl;
+        auto outputFileName = fileName.substr(0, fileName.size()-9) + ".dqcir";
+        std::ofstream outputFile(outputFileName);
+        if (outputFile.is_open()) {
+            hqspreparser.turnIntoDQCIR(outputFile);
+            outputFile.close();
+        } else {
+            std::cerr << "Could not open output file" << std::endl;
+            return -1;
+        }
+        std::cout << "Input file was successfully preprocessed and tranformed into DQCIR file: " << outputFileName << std::endl;
+        return 0;
+    }
+
     try {
         std::unique_ptr<Parser> parser;
         std::cout << "Parsing" << std::endl;
@@ -163,7 +182,7 @@ int main(int argc, char **argv)
                 std::cout << "Quantifier tree created with " 
                           << qtroot->getUnivVars().size() << " universal and "
                           << qtroot->getExistVars().size() << " existential variables quantified in it." << std::endl
-                          //<< *qtroot << std::endl
+                          << *qtroot << std::endl
                           << "Pushing quantifiers inside" << std::endl;
                 //std::cout << qtroot->getUnivVars() << std::endl
                 //          << qtroot->getExistVars() << std::endl;
