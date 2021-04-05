@@ -10,6 +10,9 @@ add_executable(DQBDD
                 quantifiedvariablesmanipulator.cpp
                 quantifiedvariablesmanipulator.hpp
                 quantifiertree.cpp
+                quantifiertreenode.cpp
+                quantifiertreeformula.cpp
+                quantifiertreeconnection.cpp
                 quantifiertree.hpp
                 DQBDDvariable.cpp
                 DQBDDvariable.hpp

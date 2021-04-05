@@ -1,7 +1,7 @@
 /*
  * This file is part of DQBDD.
  *
- * Copyright 2020 Juraj Síč
+ * Copyright 2020, 2021 Juraj Síč
  *
  * DQBDD is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -21,51 +21,6 @@
 
 #include "quantifiertree.hpp"
 #include "DQBDDexceptions.hpp"
-
-#include<iostream>
-
-QuantifierTreeNode::QuantifierTreeNode(QuantifiedVariablesManager &qvmgr) : QuantifiedVariablesManipulator(qvmgr) {}
-
-void QuantifierTreeNode::pushExistVar(Variable var) {
-    // only put var in this node if it is used in this node
-    if (getSupportSet().contains(var)) {
-        addExistVar(var);
-    }
-}
-
-void QuantifierTreeNode::pushUnivVar(Variable var) {
-    /* We do not need to rename universal variables,
-     * because we assume all existential variables
-     * depending on it in this subtree are not in 
-     * different subtrees (which is always true if we
-     * created this tree by localising, because only 
-     * for disjunction we create two subtrees with
-     * same existential variables, but for universal
-     * variable we cannot push two copies inside the subtrees
-     * for disjunction.
-     */ 
-    if (getSupportSet().contains(var)) { // only put var in this node if it is used in this node
-        addUnivVar(var);
-    } else { // otherwise we can basically eliminate it by removing dependencies 
-        VariableSet dependentExistVars = getUnivVarDependencies(var);
-        for (const Variable &dependentExistVar : dependentExistVars) {
-            //std::cout << dependentExistVar << " is in support set:" << getSupportSet().contains(dependentExistVar) << std::endl;
-            if (getSupportSet().contains(dependentExistVar)) { // we assume this is the only tree that contains dependentExistVar
-                removeDependency(dependentExistVar,var);
-            }
-        }
-    }
-}
-
-VariableSet const& QuantifierTreeNode::getUVarsSupportSet() {
-    return uVarsSupportSet;
-}
-
-/*******************************************/
-/*******************************************/
-/************ QUANTIFIER TREE **************/
-/*******************************************/
-/*******************************************/ 
 
 QuantifierTree::QuantifierTree(bool isConj, const std::list<std::shared_ptr<QuantifierTreeConnection>> &childrenConnections, QuantifiedVariablesManager &qvMgr, bool collapseChildren) : QuantifiedVariablesManipulator(qvMgr), QuantifierTreeNode(qvMgr), isConj(isConj) {
     supportSet = {};
@@ -653,58 +608,3 @@ std::ostream& QuantifierTree::print(std::ostream& out) const {
     return out;
 }
 
-/*********************************************************/
-/*********************************************************/
-/************     QUANTIFIERTREEFORMULA     **************/
-/*********************************************************/
-/*********************************************************/
-
-QuantifierTreeFormula::QuantifierTreeFormula(const Cudd &mgr, QuantifiedVariablesManager &qvmgr)
-                            : QuantifiedVariablesManipulator(qvmgr), QuantifierTreeNode(qvmgr), Formula(mgr, qvmgr) 
-                            {
-                            }
-
-QuantifierTreeFormula::QuantifierTreeFormula(const Cudd &mgr, QuantifiedVariablesManipulator &qvManipulator)
-                            : QuantifiedVariablesManipulator(qvManipulator), QuantifierTreeNode(*qvManipulator.getManager()), Formula(mgr, qvManipulator)
-                            {
-                            }
-
-void QuantifierTreeFormula::localise(const VariableSet &uVarsOutsideThisSubtree) {
-    removeUnusedVars();
-}
-
-QuantifierTreeFormula* QuantifierTreeFormula::changeToFormula(Cudd &) {
-    return this;
-}
-
-void QuantifierTreeFormula::negate() {
-    setMatrix(!getMatrix());
-}
-
-// computes supportSet and uVarsSupportSet
-void QuantifierTreeFormula::computeSupportSets() {
-    if (needsToRecomputeSupportSet()) { // only if we need to compute it though
-        // this computes supportSet
-        Formula::getSupportSet();
-        // this computes uVarsSupportSet
-        uVarsSupportSet.clear();
-        for (const Variable &var : supportSet) {
-            if (isVarUniv(var)) {
-                uVarsSupportSet.insert(var);
-            } else if (isVarExist(var)) {
-                uVarsSupportSet.insert(getExistVarDependencies(var).begin(),
-                                       getExistVarDependencies(var).end());
-            }
-        }
-    }
-}
-
-VariableSet const& QuantifierTreeFormula::getSupportSet() {
-    computeSupportSets();
-    return supportSet;
-}
-
-VariableSet const& QuantifierTreeFormula::getUVarsSupportSet() {
-    computeSupportSets();
-    return uVarsSupportSet;
-}
