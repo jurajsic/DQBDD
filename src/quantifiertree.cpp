@@ -668,7 +668,7 @@ QuantifierTreeFormula::QuantifierTreeFormula(const Cudd &mgr, QuantifiedVariable
                             {
                             }
 
-void QuantifierTreeFormula::localise(const VariableSet &uVarsOutsideThisSubtree) {
+void QuantifierTreeFormula::localise(const VariableSet&) {
     removeUnusedVars();
 }
 

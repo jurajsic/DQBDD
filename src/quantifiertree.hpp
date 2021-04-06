@@ -70,7 +70,7 @@ private:
 public:
     QuantifierTreeFormula(const Cudd &mgr, QuantifiedVariablesManager &qvmgr);
     QuantifierTreeFormula(const Cudd &mgr, QuantifiedVariablesManipulator &qvManipulator);
-    void localise(const VariableSet &uVarsOutsideThisSubtree) override;
+    void localise(const VariableSet&) override;
     QuantifierTreeFormula* changeToFormula(Cudd &) override;
     void negate() override;
 
