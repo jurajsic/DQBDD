@@ -60,6 +60,11 @@
  *     - maybe pushUVar,pushEVar should also be implemented in QuantifierTreeConnection where it would do the shit about splitting child if it has more than one parent??
  */
 
+enum class QuantifierTreeOperator {
+    andOperator,
+    orOperator,
+};
+
 class QuantifierTreeNode;
 class QuantifierTreeFormula;
 
@@ -70,15 +75,14 @@ private:
     bool isNegated;
     std::shared_ptr<QuantifierTreeNode> node;
 
-    // TODO name and what exactly needed
+    // TODO name and what exactly needed (hasParent - check while adding parent iter??)
     bool hasParent = false;
     std::list<std::list<QuantifierTreeConnection>::iterator>::iterator iterToChildToParent;
 
     QuantifierTreeConnection() = delete;
 
 
-    QuantifierTreeConnection(std::shared_ptr<QuantifierTreeNode> node, bool isNegated);
-    QuantifierTreeConnection(Variable var, bool isNegated);
+    QuantifierTreeConnection(bool isNegated, std::shared_ptr<QuantifierTreeNode> node);
 
 public:
     // TODO copy and assignment constructor should not be deleted? because of parent or something??
@@ -93,8 +97,8 @@ public:
     static QuantifierTreeConnection varQT(bool isNegated, const Variable &var, const Cudd &mgr, QuantifiedVariablesManager &qvMgr);
     static QuantifierTreeConnection negatedQT(const QuantifierTreeConnection &operand);
 
-    //bool isNegated() { return isNegated; }
-    //std::shared_ptr<QuantifierTreeNode> getNode() { return node; }
+    bool isNodeNegated() const;
+    std::shared_ptr<QuantifierTreeNode> getNode() const;
 
     void changeNodeToFormula();
     void turnToNNF();
@@ -111,12 +115,17 @@ public:
 class QuantifierTreeNode : virtual public QuantifiedVariablesManipulator {
 protected:
 
-    // the connections of parents to this node
-    std::list<std::weak_ptr<QuantifierTreeConnection>> parentsConnections;
+    // the iterators pointing to the connection (in parent's childrenConnections) connecting this node to its parent
+    std::list<std::list<QuantifierTreeConnection>::iterator> parentConnections;
+    /**
+     * @brief Adds iterator pointing to the connection connecting this node to its parent to parentConnections
+     * 
+     * @return Iterator pointing to the newly added parent connection iterator
+     */
+    std::list<std::list<QuantifierTreeConnection>::iterator>::iterator addToParentConnections(std::list<QuantifierTreeConnection>::iterator iterToParentConnection);
 
     // the set of universal variables in support set or in dependecy set of ex. var in support set
     VariableSet uVarsSupportSet = {};
-
 public:
     QuantifierTreeNode(QuantifiedVariablesManager &qvmgr);
     virtual ~QuantifierTreeNode() = default;
@@ -157,7 +166,6 @@ public:
 
     VariableSet const &getSupportSet() override;
     VariableSet const &getUVarsSupportSet() override;
-    //void addToUVarsOutsideThisSubtree(const VariableSet &varsToAdd) override;
 };
 
 /**
@@ -166,10 +174,10 @@ public:
 class QuantifierTree : public QuantifierTreeNode {
 private:
     // the connections to children of the root
-    std::list<std::shared_ptr<QuantifierTreeConnection>> childrenConnections;
+    std::list<QuantifierTreeConnection> childrenConnections;
 
-    // if isConj==true, the root has assigned conjuction, otherwise disjunction
-    bool isConj;
+    
+    QuantifierTreeOperator operatorType;
 
     /* if needsToLocalise==true, then in localise(), we need to check and push quantifiers
      * further down, otherwise it is assumed that nothing can be pushed (newly created
@@ -183,7 +191,9 @@ private:
      * If collapseChildren==true and the child is without quantifiers and has the same operator as this quantifier tree,
      * then the children of this child are added instead, while child is deleted.
      */
-    void addChild(std::shared_ptr<QuantifierTreeConnection> childConnection, bool collapseChildren = true);
+    void addChild(const QuantifierTreeConnection &childConnection, bool collapseChildren = true);
+
+    void instertIntoChildrenConnections(const QuantifierTreeConnection &childConnection);
 
     /**
      * @brief Removes from one ordered list of subset of childrent another where both are assumed to be ordered by the ordering of children list
@@ -266,14 +276,16 @@ public:
      * 
      * @param collapseChildren - should we collapse children (i.e. the children of children with the same operation are moved into this node)
      */
-    QuantifierTree(bool isConj, const std::list<std::shared_ptr<QuantifierTreeConnection>> &childrenConnections, QuantifiedVariablesManager &qvMgr, bool collapseChildren = true);
+    QuantifierTree(QuantifierTreeOperator operatorType, const std::list<QuantifierTreeConnection> &childrenConnections, QuantifiedVariablesManager &qvMgr, bool collapseChildren = true);
     /**
      * @brief Construct a new Quantifier Tree object from some existing QuantifiedVariablesManipulator (i.e. it copies the quantifiers from the manipulator here)
      * 
      * @param qvManipulator - the QuantifiedVariablesManipulator whose quantifiers will be copied here
      * @param collapseChildren - should we collapse children (i.e. the children of children with the same operation are moved into this node)
      */
-    QuantifierTree(bool isConj, const std::list<std::shared_ptr<QuantifierTreeConnection>> &childrenConnections, QuantifiedVariablesManipulator &qvManipulator, bool collapseChildren = true);
+    QuantifierTree(QuantifierTreeOperator operatorType, const std::list<QuantifierTreeConnection> &childrenConnections, QuantifiedVariablesManipulator &qvManipulator, bool collapseChildren = true);
+    
+    // delete copy constructor and assignment operator
     QuantifierTree(const QuantifierTree&) = delete;
     QuantifierTree& operator=(const QuantifierTree&) = delete;
 

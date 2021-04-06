@@ -18,29 +18,76 @@
  */
 
 #include <algorithm>
+#include <memory>
 
 #include "quantifiertree.hpp"
 #include "DQBDDexceptions.hpp"
 
-QuantifierTree::QuantifierTree(bool isConj, const std::list<std::shared_ptr<QuantifierTreeConnection>> &childrenConnections, QuantifiedVariablesManager &qvMgr, bool collapseChildren) : QuantifiedVariablesManipulator(qvMgr), QuantifierTreeNode(qvMgr), isConj(isConj) {
+QuantifierTree::QuantifierTree(QuantifierTreeOperator operatorType, const std::list<QuantifierTreeConnection> &childrenConnections, QuantifiedVariablesManager &qvMgr, bool collapseChildren) : QuantifiedVariablesManipulator(qvMgr), QuantifierTreeNode(qvMgr), operatorType(operatorType) {
     supportSet = {};
     uVarsSupportSet = {};
     if (childrenConnections.size() < 2) {
         throw DQBDDexception((std::string("You cannot create a quantifier tree with ") + std::to_string(childrenConnections.size()) + std::string(" operands")).c_str());
     }
-    for (std::shared_ptr<QuantifierTreeConnection> childConnection : childrenConnections) {
+    for (const QuantifierTreeConnection &childConnection : childrenConnections) {
         addChild(childConnection, collapseChildren);
     }
 }
 
-QuantifierTree::QuantifierTree(bool isConj, const std::list<std::shared_ptr<QuantifierTreeConnection>> &childrenConnections, QuantifiedVariablesManipulator &qvManipulator, bool collapseChildren) : QuantifiedVariablesManipulator(qvManipulator), QuantifierTreeNode(*qvManipulator.getManager()), isConj(isConj) {
+QuantifierTree::QuantifierTree(QuantifierTreeOperator operatorType, const std::list<QuantifierTreeConnection> &childrenConnections, QuantifiedVariablesManipulator &qvManipulator, bool collapseChildren) : QuantifiedVariablesManipulator(qvManipulator), QuantifierTreeNode(*qvManipulator.getManager()), operatorType(operatorType) {
     supportSet = {};
     uVarsSupportSet = {};
     if (childrenConnections.size() < 2) {
         throw DQBDDexception((std::string("You cannot create a quantifier tree with ") + std::to_string(childrenConnections.size()) + std::string(" operands")).c_str());
     }
-    for (std::shared_ptr<QuantifierTreeConnection> childConnection : childrenConnections) {
+    for (const QuantifierTreeConnection &childConnection : childrenConnections) {
         addChild(childConnection, collapseChildren);
+    }
+}
+
+void QuantifierTree::instertIntoChildrenConnections(const QuantifierTreeConnection &childConnection) {
+    auto iterToChildConnection = childrenConnections.insert(childrenConnections.end(), childConnection);
+    auto iterToParentConnection = iterToChildConnection->getNode()->addToParentConnections(iterToChildConnection);
+    iterToChildConnection->//setParent(iterToParentConnection); TODO
+}
+
+void QuantifierTree::addChild(const QuantifierTreeConnection &childConnection, bool collapseChildren) {
+    auto childPtr = childConnection.getNode();
+
+    // add variables of the child to the support sets here (TODO update to compute only sometime)
+    supportSet.insert(childPtr->getSupportSet().begin(),
+                    childPtr->getSupportSet().end());
+    uVarsSupportSet.insert(childPtr->getUVarsSupportSet().begin(),
+                        childPtr->getUVarsSupportSet().end());
+
+
+    // collapsing children
+    auto treeChild = std::dynamic_pointer_cast<QuantifierTree>(childPtr);
+    if (collapseChildren                        // if we want to collapse children...
+            && treeChild != nullptr             // ...and the child is QuantifierTree...
+               //... with either the same operatorType (when connection is not negated)
+            && ((!childConnection.isNodeNegated() && treeChild->operatorType == operatorType)
+               //... or opposite operatorTypes (when connection is negated)
+               || (!childConnection.isNodeNegated() && treeChild->operatorType == operatorType))      // ...with the same operation... TODO, check if connection is negated, if yes, then this should be != and childchild connections should be negated
+            // ...and with empty quantifier prefix...
+            && treeChild->getExistVars().empty() && treeChild->getUnivVars().empty()) {
+
+        // TODO fucky thingy with connections
+
+        // ...then we collapse children, i.e. set its children as current children, not itself...
+        // for (auto childOfChild : treeChild->children) {
+        //     children.push_back(childOfChild);
+        // }
+
+        // ...and finally delete it
+        //treeChild->children.clear();
+        //delete child;
+    } else {
+        // otherwise just add this child to children
+        // TODO do some fucky thing with connection
+        childrenConnections.push_back(childConnection);
+        
+
     }
 }
 
@@ -556,35 +603,7 @@ void QuantifierTree::negate() {
     }
 }
 
-void QuantifierTree::addChild(std::shared_ptr<QuantifierTreeConnection> childConnection, bool collapseChildren) {
-    auto childPtr = childConnection->node;
-    // add variables of the child to the support sets here
-    supportSet.insert(childPtr->getSupportSet().begin(),
-                    childPtr->getSupportSet().end());
-    uVarsSupportSet.insert(childPtr->getUVarsSupportSet().begin(),
-                        childPtr->getUVarsSupportSet().end());
 
-    // collapsing children
-    auto treeChild = dynamic_cast<QuantifierTree*>(child);
-    if (collapseChildren                        // if we want to collapse children...
-            && treeChild != nullptr             // ...and the child is QuantifierTree...
-            && treeChild->isConj == isConj      // ...with the same operation... TODO, check if connection is negated, if yes, then this should be != and childchild connections should be negated
-            // ...and with empty quantifier prefix...
-            && treeChild->getExistVars().empty() && treeChild->getUnivVars().empty()) {
-
-        // ...then we collapse children, i.e. set its children as current children, not itself...
-        for (auto childOfChild : treeChild->children) {
-            children.push_back(childOfChild);
-        }
-
-        // ...and finally delete it
-        treeChild->children.clear();
-        delete child;
-    } else {
-        // otherwise just add this child to children
-        children.push_back(child);
-    }
-}
 
 std::ostream& QuantifierTree::print(std::ostream& out) const {
     std::string op;
@@ -594,17 +613,15 @@ std::ostream& QuantifierTree::print(std::ostream& out) const {
         op = '|';
     }
 
-    auto size = children.size();
     out << std::string("(");
-    for (QuantifierTreeNode *child : children) {
-        out << *child;
-        // print the last element without operator
-        if (size != 1) {
+    for (auto childrenConIter = childrenConnections.begin(); childrenConIter != childrenConnections.end(); ++childrenConIter) {
+        if (childrenConIter != childrenConnections.begin()) {
             out << std::string(" ") << op << std::string(" ");
         }
-        --size;
+        out << *(childrenConIter->getNode());
     }
     out << std::string(")");
+
     return out;
 }
 

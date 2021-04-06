@@ -21,26 +21,23 @@
 #include "DQBDDexceptions.hpp"
 
 
-QuantifierTreeConnection::QuantifierTreeConnection(std::shared_ptr<QuantifierTreeNode> node, bool isNegated) {
-    // TODO update iterToChildToParent or something
-}
-
-QuantifierTreeConnection::QuantifierTreeConnection(Variable var, bool isNegated) {
+QuantifierTreeConnection::QuantifierTreeConnection(bool isNegated, std::shared_ptr<QuantifierTreeNode> node) : isNegated(isNegated), node(node) {
     // TODO update iterToChildToParent or something
 }
 
 QuantifierTreeConnection QuantifierTreeConnection::andQT(bool isNegated, const std::list<QuantifierTreeConnection> &operands, QuantifiedVariablesManager &qvMgr) {
-    std::shared_ptr<QuantifierTree> andQuantTree = std::make_shared<QuantifierTree>(true, operands, qvMgr);
-    return QuantifierTreeConnection(andQuantTree, isNegated);
+    std::shared_ptr<QuantifierTree> andQuantTree = std::make_shared<QuantifierTree>(QuantifierTreeOperator::andOperator, operands, qvMgr);
+    return QuantifierTreeConnection(isNegated, andQuantTree);
 }
 
 QuantifierTreeConnection QuantifierTreeConnection::orQT(bool isNegated, const std::list<QuantifierTreeConnection> &operands, QuantifiedVariablesManager &qvMgr) {
-    std::shared_ptr<QuantifierTree> orQuantTree = std::make_shared<QuantifierTree>(false, operands, qvMgr);
-    return QuantifierTreeConnection(orQuantTree, isNegated);
+    std::shared_ptr<QuantifierTree> orQuantTree = std::make_shared<QuantifierTree>(QuantifierTreeOperator::orOperator, operands, qvMgr);
+    return QuantifierTreeConnection(isNegated, orQuantTree);
 }
 QuantifierTreeConnection QuantifierTreeConnection::varQT(bool isNegated, const Variable &var, const Cudd &mgr, QuantifiedVariablesManager &qvMgr) {
     std::shared_ptr<QuantifierTreeFormula> varFormula = std::make_shared<QuantifierTreeFormula>(mgr, qvMgr);
-    return QuantifierTreeConnection(varFormula, isNegated);
+    varFormula->setMatrix(var);
+    return QuantifierTreeConnection(isNegated, varFormula);
 }
 QuantifierTreeConnection QuantifierTreeConnection::negatedQT(const QuantifierTreeConnection &operand) {
     QuantifierTreeConnection result(operand);
@@ -48,12 +45,17 @@ QuantifierTreeConnection QuantifierTreeConnection::negatedQT(const QuantifierTre
     return result;
 }
 
-    //bool isNegated() { return isNegated; }
-    //std::shared_ptr<QuantifierTreeNode> getNode() { return node; }
+bool QuantifierTreeConnection::isNodeNegated() const {
+    return isNegated;
+}
 
-void QuantifierTreeConnection::changeNodeToFormula();
-void QuantifierTreeConnection::turnToNNF();
-void QuantifierTreeConnection::localise(const VariableSet &uVarsOutsideThisSubtree);
+std::shared_ptr<QuantifierTreeNode> QuantifierTreeConnection::getNode() const {
+    return node;
+}
+
+// void QuantifierTreeConnection::changeNodeToFormula();
+// void QuantifierTreeConnection::turnToNNF();
+// void QuantifierTreeConnection::localise(const VariableSet &uVarsOutsideThisSubtree);
 
     //TODO add operations here
 

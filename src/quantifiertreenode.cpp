@@ -20,8 +20,17 @@
 #include <algorithm>
 
 #include "quantifiertree.hpp"
+#include "DQBDDexceptions.hpp"
 
 QuantifierTreeNode::QuantifierTreeNode(QuantifiedVariablesManager &qvmgr) : QuantifiedVariablesManipulator(qvmgr) {}
+
+std::list<std::list<QuantifierTreeConnection>::iterator>::iterator QuantifierTreeNode::addToParentConnections(std::list<QuantifierTreeConnection>::iterator iterToParentConnection) {
+    if (iterToParentConnection->getNode().get() != this) {
+        throw DQBDDexception("Trying to add to parents of quantifier tree node a connection which does not point into that node");
+    }
+
+    return parentConnections.insert(parentConnections.end(), iterToParentConnection);
+}
 
 void QuantifierTreeNode::pushExistVar(Variable var) {
     // only put var in this node if it is used in this node
