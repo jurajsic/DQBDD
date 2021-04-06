@@ -6,7 +6,10 @@ settings.hpp
   - added '#include <cstddef>' to have std::size_t defined on mac
 
 CMakeLists.txt
-  - removed some files from compiling (to remove GLPK dependency which is not needed for DQBDD), changed librt and pthread linking
+  - removed formula_elim_set.cpp, milp_solver.hpp, and milp_solver.cpp from compiling (to remove GLPK dependency which is not needed for DQBDD), removed GLPK and librt dependency
 
 formula_forkExt.cpp
   - removed boost includes which are not needed (and DQBDD does not use them)
+
+timer.cpp
+  - removed createTimeout function, as it was only used in main.cpp and it needed librt dependency
