@@ -22,8 +22,8 @@
 #include <easylogging++.hpp>
 #include <formula.hpp>
 
-#include "HQSpreinterface.hpp"
-#include "DQBDDexceptions.hpp"
+#include "hqspreinterface.hpp"
+#include "dqbddexceptions.hpp"
 
 INITIALIZE_EASYLOGGINGPP
 
@@ -31,6 +31,8 @@ INITIALIZE_EASYLOGGINGPP
  * Everything here is based on the way how preprocessing is done in HQS, especially
  * how the result of the preprocessing is tranformed into AIG.
  **/
+
+namespace dqbdd {
 
 class HQSPreInterface::HQSPreFormulaWrapper {
 private:
@@ -48,7 +50,7 @@ public:
      */
     void mapHqspreVarToDqbddVar(const hqspre::Variable &hqspreVar, const Variable &dqbddVar) {
         if (!hqspreVarToDqbddVar.emplace(hqspreVar, dqbddVar).second) { // if hqspreVarToDqbddVar[hqspreVar] already exists 
-            throw DQBDDexception("We cannot map two different DQBDD variables into one hqspre variable");
+            throw dqbddException("We cannot map two different DQBDD variables into one hqspre variable");
         }
     }
 
@@ -60,7 +62,7 @@ public:
         if (foundIt != hqspreVarToDqbddVar.end()) {
             return foundIt->second;
         } else {
-            throw DQBDDexception("HQSpre variable does not have any DQBDD variable mapped to it");
+            throw dqbddException("HQSpre variable does not have any DQBDD variable mapped to it");
         }
     }
 
@@ -112,7 +114,7 @@ public:
 
             default:
             {
-                throw DQBDDexception("Invalid gate type encountered");
+                throw dqbddException("Invalid gate type encountered");
                 break;
             }
         }
@@ -201,7 +203,7 @@ public:
 
             default:
             {
-                throw DQBDDexception("Invalid gate type encountered");
+                throw dqbddException("Invalid gate type encountered");
                 break;
             }
         }
@@ -240,11 +242,11 @@ bool HQSPreInterface::parse(std::string fileName) {
         // Parse the file
         std::string in_name(fileName);
         if (in_name == "") {
-            throw DQBDDexception("No input file given.");
+            throw dqbddException("No input file given.");
         }
         std::ifstream in(in_name);
         if (!in) {
-            throw DQBDDexception("Could not open input file '");
+            throw dqbddException("Could not open input file '");
         }
         in >> formulaPtr->formula;
         in.close();
@@ -345,7 +347,7 @@ bool HQSPreInterface::parse(std::string fileName) {
             formulaPtr->mapHqspreVarToDqbddVar(var, eVar);
             for (auto dep : formulaPtr->formula.getDependencies(var)) {
                 if (!formulaPtr->formula.isUniversal(dep)) {
-                    throw DQBDDexception("Existential variable is depending on non universal one in hqspre, this should not happen");
+                    throw dqbddException("Existential variable is depending on non universal one in hqspre, this should not happen");
                 }
                 DQBFPrefix.addDependency(eVar, formulaPtr->getDqbddVarMappedIntoHqspreVar(dep));
             }
@@ -360,7 +362,7 @@ bool HQSPreInterface::parse(std::string fileName) {
 
 Formula* HQSPreInterface::getFormula() {
     if (formulaPtr == nullptr) {
-        throw DQBDDexception("A file must be parsed before it is possible to get formula");
+        throw dqbddException("A file must be parsed before it is possible to get formula");
     }
 
     Formula *DQBFformula = new Formula(mgr, DQBFPrefix);
@@ -415,7 +417,7 @@ Formula* HQSPreInterface::getFormula() {
 
 QuantifierTreeNode* HQSPreInterface::getQuantifierTree() {
     if (formulaPtr == nullptr) {
-        throw DQBDDexception("A file must be parsed first before it is possible to get quantifier tree");
+        throw dqbddException("A file must be parsed first before it is possible to get quantifier tree");
     }
 
     if (formulaPtr->isSat || formulaPtr->isUnSat) {
@@ -490,7 +492,7 @@ QuantifierTreeNode* HQSPreInterface::getQuantifierTree() {
 
 void HQSPreInterface::turnIntoDQCIR(std::ostream &output) {
     if (formulaPtr == nullptr) {
-        throw DQBDDexception("A file must be parsed before it is possible to turn it into DQCIR format");
+        throw dqbddException("A file must be parsed before it is possible to turn it into DQCIR format");
     }
 
     if (formulaPtr->isSat) {
@@ -635,7 +637,7 @@ void HQSPreInterface::turnIntoDQCIR(std::ostream &output) {
 
             default:
             {
-                throw DQBDDexception("Invalid gate type encountered");
+                throw dqbddException("Invalid gate type encountered");
                 break;
             }
         }
@@ -683,3 +685,5 @@ void HQSPreInterface::turnIntoDQCIR(std::ostream &output) {
     }
     output << ")" << std::endl;
 }
+
+} // namespace dqbdd

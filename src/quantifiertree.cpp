@@ -20,9 +20,9 @@
 #include <algorithm>
 
 #include "quantifiertree.hpp"
-#include "DQBDDexceptions.hpp"
+#include "dqbddexceptions.hpp"
 
-#include<iostream>
+namespace dqbdd {
 
 QuantifierTreeNode::QuantifierTreeNode(QuantifiedVariablesManager &qvmgr) : QuantifiedVariablesManipulator(qvmgr) {}
 
@@ -71,7 +71,7 @@ QuantifierTree::QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> child
     supportSet = {};
     uVarsSupportSet = {};
     if (children.size() < 2) {
-        throw DQBDDexception((std::string("You cannot create a quantifier tree with ") + std::to_string(children.size()) + std::string(" operands")).c_str());
+        throw dqbddException((std::string("You cannot create a quantifier tree with ") + std::to_string(children.size()) + std::string(" operands")).c_str());
     }
     for (QuantifierTreeNode *child : children) {
         addChild(child, collapseChildren);
@@ -82,7 +82,7 @@ QuantifierTree::QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> child
     supportSet = {};
     uVarsSupportSet = {};
     if (children.size() < 2) {
-        throw DQBDDexception((std::string("You cannot create a quantifier tree with ") + std::to_string(children.size()) + std::string(" operands")).c_str());
+        throw dqbddException((std::string("You cannot create a quantifier tree with ") + std::to_string(children.size()) + std::string(" operands")).c_str());
     }
     for (QuantifierTreeNode *child : children) {
         addChild(child, collapseChildren);
@@ -245,7 +245,7 @@ void QuantifierTree::pushVarsWithCombining() {
                 // for exist var, we need to push (or prepare to push) univ vars which became pushable
                 pushOrPrepareToPushUnivVars();
             } else {
-                throw DQBDDexception("Found variable which is neither universal or existential, this should not happen");
+                throw dqbddException("Found variable which is neither universal or existential, this should not happen");
             }
             childrenToCombineMapping.erase(varToPush);
             continue;
@@ -282,7 +282,7 @@ void QuantifierTree::pushVarsWithCombining() {
             newChild->pushUnivVar(varToPush);
             removeUnivVar(varToPush);
         } else {
-            throw DQBDDexception("Found variable which is neither universal or existential, this should not happen");
+            throw dqbddException("Found variable which is neither universal or existential, this should not happen");
         }
         children.push_back(newChild);
 
@@ -326,7 +326,7 @@ VariableSet &QuantifierTree::getUVarsOutsideChildSubtree(QuantifierTreeNode* chi
 void QuantifierTree::pushExistVarsSeparately(const VariableSet &uVarsOutsideThisSubtree) {
 
     if (isConj) {
-        throw DQBDDexception("Trying to push existential variables as in disjunction for a conjuction node");
+        throw dqbddException("Trying to push existential variables as in disjunction for a conjuction node");
     }
 
     /**
@@ -539,7 +539,7 @@ QuantifierTreeFormula* QuantifierTree::changeToFormula(Cudd &mgr) {
             break;
         }
         default: {
-            throw DQBDDexception("Selected choice of variables to eliminate in tree is not supported.");
+            throw dqbddException("Selected choice of variables to eliminate in tree is not supported.");
             break;
         }
         }
@@ -707,3 +707,5 @@ VariableSet const& QuantifierTreeFormula::getUVarsSupportSet() {
     computeSupportSets();
     return uVarsSupportSet;
 }
+
+} // namespace dqbdd

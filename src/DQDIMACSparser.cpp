@@ -19,10 +19,14 @@
 
 #include <sstream>
 #include <fstream>
+
+// for warnings
 #include <iostream>
 
-#include "DQDIMACSparser.hpp"
-#include "DQBDDexceptions.hpp"
+#include "dqdimacsparser.hpp"
+#include "dqbddexceptions.hpp"
+
+namespace dqbdd {
 
 DQDIMACSParser::DQDIMACSParser(Cudd &mgr, QuantifiedVariablesManager &qvmgr) : mgr(mgr), DQBFPrefix(qvmgr) {}
 
@@ -33,7 +37,7 @@ bool DQDIMACSParser::parse(std::string fileName) {
     if (!inputFile.is_open()) {
         std::string errorMes = "Could not open file '";
         errorMes += fileName + "'.";
-        throw DQBDDexception(errorMes);
+        throw dqbddException(errorMes);
     }
 
     bool pLineProcessed = false;
@@ -55,7 +59,7 @@ bool DQDIMACSParser::parse(std::string fileName) {
             continue;
         } else if (token == "p") {
             if (pLineProcessed) {
-                throw DQBDDexception("There are multiple problem lines (lines starting with 'p') in input (DQ)DIMACS.");
+                throw dqbddException("There are multiple problem lines (lines starting with 'p') in input (DQ)DIMACS.");
             }
             streamline >> token;
             if (token != "cnf") {
@@ -67,9 +71,9 @@ bool DQDIMACSParser::parse(std::string fileName) {
             expectedNumOfClauses = std::stoul(token);
             pLineProcessed = true;
         } else if (!pLineProcessed && (token == "a" || token == "e" || token == "d")) {
-            throw DQBDDexception("Input DQDIMACS file is missing the problem line (line starting with 'p').");
+            throw dqbddException("Input DQDIMACS file is missing the problem line (line starting with 'p').");
         } else if (prefixFinished && (token == "a" || token == "e" || token == "d")) {
-            throw DQBDDexception("Prefix in input DQDIMACS file cannot be between the definition of clauses.");
+            throw dqbddException("Prefix in input DQDIMACS file cannot be between the definition of clauses.");
         } else if (token == "a") {
             if (lastToken == "a") {
                 std::cerr << "WARNING: Multiple 'a' lines in input after each other." << std::endl;
@@ -78,7 +82,7 @@ bool DQDIMACSParser::parse(std::string fileName) {
                 if (token != "0") {
                     Variable univVar(std::stoi(token), mgr);
                     if (DQBFPrefix.isVarExist(univVar)) {
-                        throw DQBDDexception("Cannot have the same variable as both universal and existential.");
+                        throw dqbddException("Cannot have the same variable as both universal and existential.");
                     }
                     DQBFPrefix.addUnivVar(univVar);
                 }
@@ -91,7 +95,7 @@ bool DQDIMACSParser::parse(std::string fileName) {
                 if (token != "0") {
                     Variable existVar(std::stoi(token), mgr);
                     if (DQBFPrefix.isVarUniv(existVar)) {
-                        throw DQBDDexception("Cannot have the same variable as both universal and existential.");
+                        throw dqbddException("Cannot have the same variable as both universal and existential.");
                     }
                     DQBFPrefix.addExistVar(existVar, DQBFPrefix.getUnivVars());
                 }
@@ -100,14 +104,14 @@ bool DQDIMACSParser::parse(std::string fileName) {
             streamline >> token;
             Variable existVar(std::stoi(token), mgr);
             if (DQBFPrefix.isVarUniv(existVar)) {
-                throw DQBDDexception("Cannot have the same variable as both universal and existential.");
+                throw dqbddException("Cannot have the same variable as both universal and existential.");
             }
             DQBFPrefix.addExistVar(existVar);
             while (streamline >> token) {
                 if (token != "0") {
                     Variable univVar(std::stoi(token), mgr);
                     if (!DQBFPrefix.isVarUniv(univVar)) {
-                        throw DQBDDexception("Not able to add existential variable which has non universal variable in dependency list.");
+                        throw dqbddException("Not able to add existential variable which has non universal variable in dependency list.");
                     }
                     DQBFPrefix.addDependency(existVar, univVar);
                 }
@@ -151,8 +155,6 @@ bool DQDIMACSParser::parse(std::string fileName) {
 
     return false;
 }
-
-#include <iostream>
 
 Formula* DQDIMACSParser::getFormula() {
     BDD matrix = mgr.bddOne();
@@ -246,3 +248,5 @@ QuantifierTreeNode* DQDIMACSParser::getQuantifierTree() {
     DQBFPrefix.clear();
     return qt;
 }
+
+} // namespace dqbdd

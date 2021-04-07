@@ -25,6 +25,8 @@
 
 #include "parser.hpp"
 
+namespace dqbdd {
+
 /**
  * @brief Parser which uses HQSpre preprocessor to also preprocess the parsed formula
  */
@@ -51,5 +53,7 @@ public:
 
     void turnIntoDQCIR(std::ostream &output);
 };
+
+} // namespace dqbdd
 
 #endif

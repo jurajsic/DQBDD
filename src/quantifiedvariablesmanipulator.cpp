@@ -18,7 +18,9 @@
  */
 
 #include "quantifiedvariablesmanipulator.hpp"
-#include "DQBDDexceptions.hpp"
+#include "dqbddexceptions.hpp"
+
+namespace dqbdd {
 
 bool VariableSet::contains(Variable const &var) const {
     return (this->count(var) != 0);
@@ -262,13 +264,13 @@ void QuantifiedVariablesManipulator::removeVar(Variable var) {
 
 VariableSet const &QuantifiedVariablesManipulator::getExistVarDependencies(Variable eVar) const {
     if (!isVarExist(eVar))
-        throw DQBDDexception("Trying to get the dependency set of variable which is not existential.");
+        throw dqbddException("Trying to get the dependency set of variable which is not existential.");
     return qvMgr->getExistVarDependencies(eVar);
 }
 
 VariableSet const &QuantifiedVariablesManipulator::getUnivVarDependencies(Variable uVar) const {
     if (!isVarUniv(uVar))
-        throw DQBDDexception("Trying to get the set of dependent variable for variable which is not universal.");
+        throw dqbddException("Trying to get the set of dependent variable for variable which is not universal.");
     return qvMgr->getUnivVarDependencies(uVar);
 }
 
@@ -352,3 +354,5 @@ std::ostream& operator<<(std::ostream& out, const QuantifiedVariablesManipulator
     // print the inner formula
     return qvm.print(out);
 }
+
+} // namespace dqbdd

@@ -22,6 +22,8 @@
 
 #include "parser.hpp"
 
+namespace dqbdd {
+
 /**
  * @brief Simple parser of formulas in (DQ)DIMACS format
  */
@@ -37,5 +39,7 @@ public:
     Formula* getFormula() override;
     QuantifierTreeNode* getQuantifierTree() override;
 };
+
+} // namespace dqbdd
 
 #endif

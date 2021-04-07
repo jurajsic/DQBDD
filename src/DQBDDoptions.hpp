@@ -20,6 +20,8 @@
 #ifndef DQBDD_OPTIONS_HPP
 #define DQBDD_OPTIONS_HPP
 
+namespace dqbdd {
+
 // heuristic by which the next universal variable for elimination is chosen
 enum UnivVarElimChoice {
     NumOfDependenciesOnce, // by number of existential variables dependent on u. vars decided at beginning
@@ -43,5 +45,7 @@ public:
     // decides what to eliminate on each level of quantifier tree
     TreeElimChoice treeElimChoice = TreeElimChoice::Simple;
 };
+
+} // namespace dqbdd
 
 #endif

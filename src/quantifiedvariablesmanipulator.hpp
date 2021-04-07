@@ -23,8 +23,10 @@
 #include <unordered_map>
 #include <ostream>
 
-#include "DQBDDvariable.hpp"
-#include "DQBDDoptions.hpp"
+#include "dqbddvariable.hpp"
+#include "dqbddoptions.hpp"
+
+namespace dqbdd {
 
 class VariableSet : public std::unordered_set<Variable> {
 public:
@@ -185,5 +187,7 @@ public:
 };
 
 std::ostream& operator<<(std::ostream& os, const QuantifiedVariablesManipulator& qvm);
+
+} // namespace dqbdd
 
 #endif

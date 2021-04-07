@@ -19,11 +19,12 @@
 
 #include <sstream>
 #include <fstream>
-#include <iostream>
 #include <algorithm>
 
 #include "prenexcleansedqcirparser.hpp"
-#include "DQBDDexceptions.hpp"
+#include "dqbddexceptions.hpp"
+
+namespace dqbdd {
 
 PrenexCleansedQCIRParser::PrenexCleansedQCIRParser(Cudd &mgr, QuantifiedVariablesManager &qvmgr) : mgr(mgr), DQBFPrefix(qvmgr) {}
 
@@ -137,7 +138,7 @@ bool PrenexCleansedQCIRParser::parse(std::string fileName) {
     if (!inputFile.is_open()) {
         std::string errorMes = "Could not open file '";
         errorMes += fileName + "'.";
-        throw DQBDDexception(errorMes);
+        throw dqbddException(errorMes);
     }
 
     bool prefixFinished = false;
@@ -158,7 +159,7 @@ bool PrenexCleansedQCIRParser::parse(std::string fileName) {
                 while (streamLine >> token) {
                     Variable existVar(std::stoul(token), mgr);
                     if (DQBFPrefix.isVarUniv(existVar)) {
-                        throw DQBDDexception("Cannot have the same variable as both universal and existential.");
+                        throw dqbddException("Cannot have the same variable as both universal and existential.");
                     }
                     DQBFPrefix.addExistVar(existVar, DQBFPrefix.getUnivVars());
                 }
@@ -166,7 +167,7 @@ bool PrenexCleansedQCIRParser::parse(std::string fileName) {
                 while (streamLine >> token) {
                     Variable univVar(std::stoul(token), mgr);
                     if (DQBFPrefix.isVarExist(univVar)) {
-                        throw DQBDDexception("Cannot have the same variable as both universal and existential.");
+                        throw dqbddException("Cannot have the same variable as both universal and existential.");
                     }
                     DQBFPrefix.addUnivVar(univVar);
                 }
@@ -174,13 +175,13 @@ bool PrenexCleansedQCIRParser::parse(std::string fileName) {
                 streamLine >> token;
                 Variable existVar(std::stoul(token), mgr);
                 if (DQBFPrefix.isVarUniv(existVar)) {
-                    throw DQBDDexception("Cannot have the same variable as both universal and existential.");
+                    throw dqbddException("Cannot have the same variable as both universal and existential.");
                 }
                 DQBFPrefix.addExistVar(existVar);
                 while (streamLine >> token) {
                     Variable univVar(std::stoul(token), mgr);
                     if (!DQBFPrefix.isVarUniv(univVar)) {
-                        throw DQBDDexception("Not able to add existential variable which has non universal variable in dependency list.");
+                        throw dqbddException("Not able to add existential variable which has non universal variable in dependency list.");
                     }
                     DQBFPrefix.addDependency(existVar, univVar);
                 }
@@ -189,7 +190,7 @@ bool PrenexCleansedQCIRParser::parse(std::string fileName) {
                 outputGate = getLiteralFromString(token);
                 prefixFinished = true;
             } else {
-                throw DQBDDexception("Unexpected token found in the quantifier prefix of the input file (maybe forgotten output gate?).");
+                throw dqbddException("Unexpected token found in the quantifier prefix of the input file (maybe forgotten output gate?).");
             }
         } else {
             // processing gates
@@ -197,7 +198,7 @@ bool PrenexCleansedQCIRParser::parse(std::string fileName) {
             
             streamLine >> token;
             if (token != "=") {
-                throw DQBDDexception("Unexpected token in input file");
+                throw dqbddException("Unexpected token in input file");
             }
             
             OperationAndOperands ops;
@@ -208,7 +209,7 @@ bool PrenexCleansedQCIRParser::parse(std::string fileName) {
             } else if (token == "or") {
                 ops.first = false;
             } else {
-                throw DQBDDexception("Only operations 'and' and 'or' are allowed in cleansed QCIR");
+                throw dqbddException("Only operations 'and' and 'or' are allowed in cleansed QCIR");
             }
             
             while (streamLine >> token) {
@@ -216,7 +217,7 @@ bool PrenexCleansedQCIRParser::parse(std::string fileName) {
             }
 
             if (gates.count(inputGate) > 0) {
-                throw DQBDDexception("There cannot be two definitions of the same gate");
+                throw dqbddException("There cannot be two definitions of the same gate");
             }
             gates[inputGate] = ops;
         }
@@ -254,3 +255,5 @@ QuantifierTreeNode* PrenexCleansedQCIRParser::getQuantifierTree() {
     DQBFPrefix.clear();
     return outputGateTree;
 }
+
+} // namespace dqbdd

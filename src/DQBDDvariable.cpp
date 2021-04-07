@@ -20,7 +20,9 @@
 #include <functional>
 #include <iostream>
 
-#include "DQBDDvariable.hpp"
+#include "dqbddvariable.hpp"
+
+namespace dqbdd {
 
 Variable::Variable(int id, Cudd &mgr) : id(id), mgr(mgr) {
     representation = mgr.bddVar(id);
@@ -70,8 +72,10 @@ BDD Variable::operator!() const {
     return !getBDD();
 }
 
-std::ostream& operator<<(std::ostream& os, const Variable& obj)
+std::ostream& operator<<(std::ostream& os, const dqbdd::Variable& obj)
 {
     os << obj.getBDD();
     return os;
 }
+
+} // namespace dqbdd

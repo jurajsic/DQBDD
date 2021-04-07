@@ -25,6 +25,8 @@
 
 #include "cuddObj.hh"
 
+namespace dqbdd {
+
 class Variable {
 private:
     // each variable has unique ID based on Cudd manager
@@ -52,12 +54,14 @@ public:
 
 std::ostream& operator<<(std::ostream& os, const Variable& obj);
 
+} // namespace dqbdd
+
 namespace std
 {
     template <>
-    struct hash<Variable>
+    struct hash<dqbdd::Variable>
     {
-        size_t operator()(const Variable& k) const
+        size_t operator()(const dqbdd::Variable& k) const
         {
             return hash<int>()(k.getId());
         }

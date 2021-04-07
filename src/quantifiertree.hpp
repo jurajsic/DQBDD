@@ -23,8 +23,10 @@
 #include <list>
 #include <ostream>
 
-#include "DQBDDvariable.hpp"
-#include "DQBDDformula.hpp"
+#include "dqbddvariable.hpp"
+#include "dqbddformula.hpp"
+
+namespace dqbdd {
 
 class QuantifierTreeFormula;
 
@@ -214,5 +216,6 @@ public:
     void negate() override;
 };
 
+} // namespace dqbdd
 
 #endif

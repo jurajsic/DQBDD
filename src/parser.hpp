@@ -20,8 +20,10 @@
 #ifndef DQBDD_PARSER_HPP
 #define DQBDD_PARSER_HPP
 
-#include "DQBDDformula.hpp"
+#include "dqbddformula.hpp"
 #include "quantifiertree.hpp"
+
+namespace dqbdd {
 
 /**
  * @brief Base class for formula parsers to inherit from
@@ -35,5 +37,7 @@ public:
     virtual Formula* getFormula() = 0;
     virtual QuantifierTreeNode* getQuantifierTree() = 0;
 };
+
+} // namespace dqbdd
 
 #endif

@@ -22,9 +22,13 @@
 
 #include <stdexcept>
 
-class DQBDDexception : public std::logic_error
+namespace dqbdd {
+
+class dqbddException : public std::logic_error
 {
     using std::logic_error::logic_error;
 };
+
+} // namespace dqbdd
 
 #endif

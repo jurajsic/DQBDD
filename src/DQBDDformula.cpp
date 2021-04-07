@@ -20,8 +20,10 @@
 #include <iostream>
 #include <algorithm>
 
-#include "DQBDDexceptions.hpp"
-#include "DQBDDformula.hpp"
+#include "dqbddexceptions.hpp"
+#include "dqbddformula.hpp"
+
+namespace dqbdd {
 
 Formula::Formula(const Cudd &mgr, QuantifiedVariablesManager &qvmgr) : QuantifiedVariablesManipulator(qvmgr), mgr(mgr) {}
 
@@ -33,7 +35,7 @@ BDD Formula::getMatrix() const {
 
 void Formula::setMatrix(const BDD &matrix) {
     if (mgr.getManager() != matrix.manager()) {
-        throw DQBDDexception("Not possible to set matrix of formula with BDD from different CUDD manager.");
+        throw dqbddException("Not possible to set matrix of formula with BDD from different CUDD manager.");
     }
     this->matrix = matrix;
     needToRecomputeSupportSet = true;
@@ -222,7 +224,7 @@ void Formula::initializeUnivVarEliminationOrder() {
     case UnivVarElimChoice::NumOfDependenciesContinuous:
         return;
     default:
-        throw DQBDDexception("Chosen heuristic to choose next universal variable to eliminate is not implemented.");
+        throw dqbddException("Chosen heuristic to choose next universal variable to eliminate is not implemented.");
         break;
     }
 }
@@ -304,7 +306,7 @@ Variable Formula::getUnivVarToEliminate() {
         return minUnivVar;
     }
     default:
-        throw DQBDDexception("Chosen heuristic to choose next universal variable to eliminate is not implemented.");
+        throw dqbddException("Chosen heuristic to choose next universal variable to eliminate is not implemented.");
         break;
     }
 }
@@ -449,3 +451,5 @@ void Formula::printStats() {
                 << " nodes and there are " << getUnivVars().size() << " universal and "
                 << getExistVars().size() << " existential variables quantified in the formula." << std::endl;
 }
+
+} // namespace dqbdd

@@ -26,8 +26,10 @@
 
 #include <cuddObj.hh>
 
-#include "DQBDDvariable.hpp"
+#include "dqbddvariable.hpp"
 #include "quantifiedvariablesmanipulator.hpp"
+
+namespace dqbdd {
 
 class Formula : public virtual QuantifiedVariablesManipulator {
 private:
@@ -132,5 +134,7 @@ public:
 
     void printStats();
 };
+
+} // namespace dqbdd
 
 #endif

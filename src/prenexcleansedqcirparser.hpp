@@ -24,9 +24,11 @@
 #include <string>
 #include <vector>
 
-#include "DQBDDformula.hpp"
+#include "dqbddformula.hpp"
 #include "quantifiertree.hpp"
 #include "parser.hpp"
+
+namespace dqbdd {
 
 /**
  * @brief Parser of formulas in prenex cleansed (D)QCIR format
@@ -60,5 +62,7 @@ public:
     Formula* getFormula() override;
     QuantifierTreeNode* getQuantifierTree() override;
 };
+
+} // namespace dqbdd
 
 #endif

@@ -23,8 +23,8 @@
 
 #include <cxxopts.hpp>
 
-#include "HQSpreinterface.hpp"
-#include "DQDIMACSparser.hpp"
+#include "hqspreinterface.hpp"
+#include "dqdimacsparser.hpp"
 #include "prenexcleansedqcirparser.hpp"
 
 enum ReturnCode {
@@ -101,9 +101,9 @@ int main(int argc, char **argv)
     bool localise = (*result)["localise"].as<int>();
     bool preprocess = (*result)["preprocess"].as<int>();
     bool dynReorder = (*result)["dyn-reordering"].as<int>();
-    Options options;
-    options.treeElimChoice = static_cast<TreeElimChoice>((*result)["elimination-choice"].as<int>());
-    options.uVarElimChoice = static_cast<UnivVarElimChoice>((*result)["uvar-choice"].as<int>());
+    dqbdd::Options options;
+    options.treeElimChoice = static_cast<dqbdd::TreeElimChoice>((*result)["elimination-choice"].as<int>());
+    options.uVarElimChoice = static_cast<dqbdd::UnivVarElimChoice>((*result)["uvar-choice"].as<int>());
     
     // fileType = 0 - (DQ)DIMACS, filetype = 1 - (D)QCIR
     int fileType = 0;
@@ -128,12 +128,12 @@ int main(int argc, char **argv)
         mgr.AutodynDisable();
     }
 
-    QuantifiedVariablesManager qvMgr(options);
-    Formula *f = nullptr;
+    dqbdd::QuantifiedVariablesManager qvMgr(options);
+    dqbdd::Formula *f = nullptr;
     bool preprocessorSolved = false;
 
     if (result->count("hqspre-dqcir-output")) {
-        HQSPreInterface hqspreparser(mgr, qvMgr);
+        dqbdd::HQSPreInterface hqspreparser(mgr, qvMgr);
         std::cout << "Starting HQSpre" << std::endl;
         hqspreparser.parse(fileName);
         std::cout << "Turning into DQCIR format" << std::endl;
@@ -151,17 +151,17 @@ int main(int argc, char **argv)
     }
 
     try {
-        std::unique_ptr<Parser> parser;
+        std::unique_ptr<dqbdd::Parser> parser;
         std::cout << "Parsing" << std::endl;
         if (fileType == 0) {
             if (preprocess) {
-                parser = std::make_unique<HQSPreInterface>(mgr, qvMgr);
+                parser = std::make_unique<dqbdd::HQSPreInterface>(mgr, qvMgr);
                 std::cout << "Starting HQSpre" << std::endl;
             } else {
-                parser = std::make_unique<DQDIMACSParser>(mgr,qvMgr);
+                parser = std::make_unique<dqbdd::DQDIMACSParser>(mgr,qvMgr);
             }
         } else if (fileType == 1) {
-            parser = std::make_unique<PrenexCleansedQCIRParser>(mgr,qvMgr);
+            parser = std::make_unique<dqbdd::PrenexCleansedQCIRParser>(mgr,qvMgr);
         } else {
             std::cerr << "Unknown filetype (this should not happen)" << std::endl;
             return -1;
@@ -186,7 +186,7 @@ int main(int argc, char **argv)
                           << "Pushing quantifiers inside" << std::endl;
                 //std::cout << qtroot->getUnivVars() << std::endl
                 //          << qtroot->getExistVars() << std::endl;
-                qtroot->localise( VariableSet{ } );
+                qtroot->localise( dqbdd::VariableSet{ } );
                 std::cout << "Quantifiers pushed inside" << std::endl
                           //<< *qtroot << std::endl
                           << "Creating BDD formula" << std::endl;
