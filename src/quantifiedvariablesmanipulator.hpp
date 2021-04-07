@@ -54,7 +54,7 @@ public:
 std::ostream& operator<<(std::ostream& os, const VariableSet& variableSet);
 
 
-typedef std::unordered_map<Variable, VariableSet> DependencyMap;
+using DependencyMap = std::unordered_map<Variable, VariableSet>;
 
 /**
  * @brief Manager of quantified variables.

@@ -31,7 +31,7 @@ class DQDIMACSParser : public Parser {
     Cudd &mgr;
     QuantifiedVariablesManipulator DQBFPrefix;
 
-    typedef std::pair<bool,Variable> Literal;
+    using Literal = std::pair<bool,Variable>;
     std::vector<std::vector<Literal>> clauses;
 public:
     DQDIMACSParser(Cudd &mgr, QuantifiedVariablesManager &qvmgr);

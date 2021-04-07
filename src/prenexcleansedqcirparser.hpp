@@ -43,9 +43,9 @@ class PrenexCleansedQCIRParser : public Parser {
     QuantifiedVariablesManipulator DQBFPrefix;
 
     // bool says if it is negated or not (true is not, false it is), unsigned long is the gate/var number
-    typedef std::pair<bool, unsigned long> Literal;
+    using Literal = std::pair<bool, unsigned long>;
     // bool - true=and, false=or; vector of Literals = operands
-    typedef std::pair<bool, std::vector<Literal>> OperationAndOperands;
+    using OperationAndOperands = std::pair<bool, std::vector<Literal>>;
 
     Literal outputGate;
     std::unordered_map<unsigned long, OperationAndOperands> gates;
