@@ -70,7 +70,8 @@ void Formula::eliminateUnivVar(Variable uVarToEliminate, bool useAlreadyComputed
               << uVarToEliminate.getId()
               //<< " where we have " << getExistVars().size() 
               //<< " existential and " << getUnivVars().size() << " universal variables"
-              << std::endl;
+              << "....."
+              << std::flush;
 
     // find existential variables that should be duplicated
     //VariableSet eVarsToDuplicate;
@@ -131,6 +132,8 @@ void Formula::eliminateUnivVar(Variable uVarToEliminate, bool useAlreadyComputed
     // get their conjuction and thus remove uVarToEliminate from the formula
     setMatrix(f1 & f2);
     //std::cout << "BDD created" << std::endl;
+
+    std::cout << "done" << std::endl;
 }
 
 void Formula::eliminateExistVar(Variable existVarToEliminate) {
