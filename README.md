@@ -4,7 +4,7 @@ DQBDD is a dependency quantified Boolean formula (DQBF) solver that uses binary 
 
 ## Installation
 
-You can find binaries in [tagged release versions](https://github.com/jurajsic/DQBDD/releases). If you want to compile it yourself, you need C++ compiler supporting C++14 standard and [CMake](https://cmake.org/) (3.5 or later). Execute 
+You can find binaries in [tagged release versions](https://github.com/jurajsic/DQBDD/releases). If you want to compile it yourself, you need C++ compiler supporting C++14 standard (GCC 7.4.0 on Ubuntu 18.04.1 and Clang 11.0.3 on macOS 11.1 are known to work) and [CMake](https://cmake.org/) (3.5 or later). Execute 
 ```
 mkdir Release
 cd Release
