@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.2] - 09-04-2021
 ### Fixes
 - added checks in DQDIMACS parser for errors and fixed parsing of free variables
 - some solved instances by HQSpre during parsing were not caught, leading to a thrown exception

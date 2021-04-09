@@ -1,7 +1,7 @@
 /*
  * This file is part of DQBDD.
  *
- * Copyright 2020 Juraj Síč
+ * Copyright 2021 Juraj Síč
  *
  * DQBDD is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
