@@ -66,7 +66,7 @@ This represents DQBF `∀x1 ∀x2 ∀x4 ∃x3(x1, x2) ∃x5(x1, x2, x4) ∃x6(x1
 
     DQBDD [OPTION...] <input file>
 
-`<input file>` should be formula to solve in DQDIMACS or DQCIR format, for the list of options run `DQBDD --help`. If the formula is satisfiable, the return value is 10, otherwise it is 20.
+`<input file>` should be a path to formula in DQDIMACS or DQCIR format. For the list of options run `DQBDD --help`. If the formula is satisfiable, the return value is 10, otherwise it is 20.
 
 ## Examples
 
