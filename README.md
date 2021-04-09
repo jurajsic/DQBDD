@@ -45,7 +45,7 @@ This represents DQBF `∀x1 ∀x2 ∀x4 ∃x3(x1, x2) ∃x5(x1, x2, x4) ∃x6(x1
 
 ### Prenex Cleansed DQCIR
 
-Prenex cleansed DQCIR is an extension of [prenex cleansed QCIR](http://www.qbflib.org/qcir.pdf) format. This format add quantifiers of type `depend(v, v1, ..., vn)` which represent existential variable `v` with the dependency set `v1, ..., vn`. It is assumed that `v1, ..., vn` were already defined as `forall` variables and that `v` was not yet defined. The quantifier `exists` can still be used and it represents existential variable with the dependency set equal to the set of universal variables which were already defined with `forall` quantifier.
+Prenex cleansed DQCIR is an extension of [prenex cleansed QCIR](http://www.qbflib.org/qcir.pdf) format. This format adds quantifiers of type `depend(v, v1, ..., vn)` which represent existential variable `v` with the dependency set `v1, ..., vn`. It is assumed that `v1, ..., vn` were already defined as `forall` variables and that `v` was not yet defined. The quantifier `exists` can still be used and it represents existential variable with the dependency set equal to the set of universal variables which were already defined with `forall` quantifier.
 
 Example of DQCIR format:
 ```
