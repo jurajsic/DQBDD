@@ -78,7 +78,7 @@ solves the formula in `file.dqdimacs` with the default settings.
 ```
 DQBDD --preprocess 0 --dyn-reordering 0 file.dqdimacs
 ```
-solves the formula in `file.dqdimacs` without running the preprocessor HQSpre first (for DQDIMACS files it is enabled by default) and without using dynamic reordering of variables in BDDs as implemented in CUDD (dynamic reordering is enabled by default).
+solves the formula in `file.dqdimacs` without running the preprocessor HQSpre first (for DQDIMACS files it is enabled by default) and without using dynamic reordering of variables in BDDs as implemented in CUDD (dynamic reordering is enabled by default, DQBDD uses [Rudell's sifting algorithm](https://ieeexplore.ieee.org/document/580029)).
 
 ```
 DQBDD --localise 0 --uvar-choice 1 file.dqdimacs
