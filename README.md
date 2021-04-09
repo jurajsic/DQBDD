@@ -32,7 +32,7 @@ d 6 1 4 0
 -1 6 3 5 0
 -2 -4 5 0
 ```
-This represents DQBF `∀x1∀x2∀x4∃x3(x1, x2)∃x5(x1, x2, x4)∃x6(x1, x4) ((¬x1 ∨ x6 ∨ x3 ∨ x5) ∧ (¬x2 ∨ ¬x4 ∨ x5))`
+This represents DQBF `∀x1∀x2∀x4∃x3(x1, x2)∃x5(x1, x2, x4)∃x6(x1, x4).(¬x1 ∨ x6 ∨ x3 ∨ x5) ∧ (¬x2 ∨ ¬x4 ∨ x5)`
 
 ### Prenex Cleansed DQCIR
 
