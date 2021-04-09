@@ -11,7 +11,7 @@
 - added an option to force file format (otherwise it is selected automatically by file type)
 - DQBDD now works also on Mac
 - changed how localisation is computed to save on memory/time
-- added option '--hqspre-dqcir-output' which takes filename.dqdimacs file, preprocesses it with HQSpre and transforms the result into filename.dqcir
+- added option '--hqspre-dqcir-output' which takes filename.dqdimacs file, preprocesses it with HQSpre and transforms the result (with gate extraction) into filename.dqcir
 
 ## [1.1] - 26-04-2020
 ### Fixes
