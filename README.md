@@ -4,14 +4,54 @@ DQBDD is a dependency quantified Boolean formula (DQBF) solver that uses binary 
 
 ## Installation
 
-You can find binaries in [tagged release versions](https://github.com/jurajsic/DQBDD/releases). If you want to compile it yourself, you need C++ compiler supporting C++14 standard and [CMake](https://cmake.org/). Execute 
+You can find binaries in [tagged release versions](https://github.com/jurajsic/DQBDD/releases). If you want to compile it yourself, you need C++ compiler supporting C++14 standard and [CMake](https://cmake.org/) (3.5 or later). Execute 
 ```
 mkdir Release
 cd Release
 cmake -DCMAKE_BUILD_TYPE=Release ..
 make
 ```
-to build DQBDD which will be located in `Release/src/`. However, do not use `master` branch as it is generally a work in progress.
+to build DQBDD which will be located in `Release/src/`. However, using `master` branch is not recommended as it is generally a work in progress.
+
+## Input Formats
+
+DQBDD accepts two input formats: [DQDIMACS](https://doi.org/10.29007/1s5k) and prenex cleansed DQCIR.
+
+### DQDIMACS
+
+DQDIMACS is used to represent DQBFs in prenex CNF form. It is an extension of [QDIMACS](http://www.qbflib.org/qdimacs.html) format where not only `a` and `e` quantifiers can be used (representing universal and existential variables respectively), but also `d` quantifier is introduced (representing existential variable with its dependencies). Appendix C of my [thesis](https://is.muni.cz/th/prexv/) contains a full definition of DQDIMACS format.
+
+Example of DQDIMACS format:
+```
+p cnf 6 2
+a 1 2 0
+e 3 0
+a 4 0
+e 5 0
+d 6 1 4 0
+-1 6 3 5 0
+-2 -4 5 0
+```
+This represents DQBF ∀x1∀x2∀x4∃x3(x1,x2)∃x5(x1,x2,x4)∃x6(x1,x4) ((¬x1 ∨ x6 ∨ x3 ∨ x5) ∧ (¬x2 ∨ ¬x4 ∨ x5))
+
+### Prenex Cleansed DQCIR
+
+Prenex cleansed DQCIR is an extension of [prenex cleansed QCIR](http://www.qbflib.org/qcir.pdf) format. This format add quantifiers of type `depend(v, v1, ..., vn)` which represent existential variable `v` with the dependency set `v1, ..., vn`. It is assumed that `v1, ..., vn` were already defined as `forall` variables and that `v` was not yet defined. The quantifier `exists` can still be used and it represents existential variable with the dependency set equal to the set of universal variables which were already defined with `forall` quantifier.
+
+Example of DQCIR format:
+```
+#QCIR-G14 
+forall(1, 2)
+exists(3)
+forall(4)
+exists(5)
+depend(6, 1, 4)
+output(7)
+8 = or(-1, 6, 3, 5)
+9 = or(-2, -4, 5)
+7 = and(8, 9)
+```
+This represents DQBF ∀x1∀x2∀x4∃x3(x1,x2)∃x5(x1,x2,x4)∃x6(x1,x4) ((¬x1 ∨ x6 ∨ x3 ∨ x5) ∧ (¬x2 ∨ ¬x4 ∨ x5))
 
 ## Usage
 
@@ -57,4 +97,4 @@ There is no need to install any dependency, all of them are in `libs/` and are c
 ## Licence
 
 - **[LGPL v3](https://www.gnu.org/licenses/lgpl-3.0.en.html)**
-- Copyright 2020 Juraj Síč
+- Copyright 2020, 2021 Juraj Síč
