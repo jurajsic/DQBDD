@@ -90,7 +90,7 @@ solves the formula in `file.dqdimacs` without localising quantifiers (or creatin
 ```
 DQBDD --localise 1 --elimination-choice 2 file.dqdimacs
 ```
-solves the formula in `file.dqdimacs` with localising quantifiers (this is the default behaviour) where it eliminates all universal and possible existential variables while creating the final BDD from the quantifier tree. The other options are:
+solves the formula in `file.dqdimacs` with localising quantifiers (this is the default behaviour) where it eliminates all universal and possible existential variables while creating the final BDD from the quantifier tree. The other options of `--elimination-choice` are:
 - 0 - does not eliminate any quantifiers,
 - 1 - eliminates only universal variables which do not have any dependencies and all possible existential variables (this is the default).
 
