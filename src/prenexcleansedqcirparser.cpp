@@ -171,7 +171,7 @@ bool PrenexCleansedQCIRParser::parse(std::string fileName) {
                     }
                     DQBFPrefix.addUnivVar(univVar);
                 }
-            } else if (token == "henkin") {
+            } else if (token == "depend") {
                 streamLine >> token;
                 Variable existVar(std::stoul(token), mgr);
                 if (DQBFPrefix.isVarUniv(existVar)) {

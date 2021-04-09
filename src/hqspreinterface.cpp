@@ -535,7 +535,7 @@ void HQSPreInterface::turnIntoDQCIR(std::ostream &output) {
 
     //then existential variables
     for (const Variable &eVar : DQBFPrefix.getExistVars()) {
-        output << std::string("henkin(") << eVar.getId();
+        output << std::string("depend(") << eVar.getId();
         for (const Variable &depVar : DQBFPrefix.getExistVarDependencies(eVar)) {
             output << std::string(", ") << depVar.getId();
         }
