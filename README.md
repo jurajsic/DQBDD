@@ -38,29 +38,30 @@ e 3 0
 a 4 0
 e 5 0
 d 6 1 4 0
--1 6 3 5 0
+-1 6 -3 5 0
 -2 -4 5 0
 ```
-This represents DQBF `∀x1 ∀x2 ∀x4 ∃x3(x1, x2) ∃x5(x1, x2, x4) ∃x6(x1, x4).(¬x1 ∨ x6 ∨ x3 ∨ x5) ∧ (¬x2 ∨ ¬x4 ∨ x5)`
+This represents DQBF `∀x1 ∀x2 ∀x4 ∃x3(x1, x2) ∃x5(x1, x2, x4) ∃x6(x1, x4).(¬x1 ∨ x6 ∨ ¬x3 ∨ x5) ∧ (¬x2 ∨ ¬x4 ∨ x5)`
 
 ### Prenex Cleansed DQCIR
 
-Prenex cleansed DQCIR is an extension of [prenex cleansed QCIR](http://www.qbflib.org/qcir.pdf) format. This format adds quantifiers of type `depend(v, v1, ..., vn)` which represent existential variable `v` with the dependency set `v1, ..., vn`. It is assumed that `v1, ..., vn` were already defined as `forall` variables and that `v` was not yet defined. The quantifier `exists` can still be used and it represents existential variable with the dependency set equal to the set of universal variables which were already defined with `forall` quantifier.
+Prenex cleansed DQCIR is an extension of [prenex cleansed QCIR](http://www.qbflib.org/qcir.pdf) format. This format is used for DQBFs in prenex form, however, it does not need to be in CNF. It adds quantifiers of type `depend(v, v1, ..., vn)` which represents existential variable `v` with the dependency set `v1, ..., vn`. It is assumed that `v1, ..., vn` were already defined as `forall` variables and that `v` was not yet defined. The quantifier `exists` can still be used and it represents existential variables with the dependency set equal to the set of universal variables which were already defined with `forall` quantifier.
 
-Example of DQCIR format:
+Example of prenex cleansed DQCIR format:
 ```
-#QCIR-G14 
+#QCIR-G14 10
 forall(1, 2)
 exists(3)
 forall(4)
 exists(5)
 depend(6, 1, 4)
 output(7)
-8 = or(-1, 6, 3, 5)
-9 = or(-2, -4, 5)
-7 = and(8, 9)
+8 = and(-6, 3)
+9 = or(-1, -8, 5)
+10 = or(-2, -4, 5)
+7 = and(9, 10)
 ```
-This represents DQBF `∀x1 ∀x2 ∀x4 ∃x3(x1, x2) ∃x5(x1, x2, x4) ∃x6(x1, x4).(¬x1 ∨ x6 ∨ x3 ∨ x5) ∧ (¬x2 ∨ ¬x4 ∨ x5)`
+This represents DQBF `∀x1 ∀x2 ∀x4 ∃x3(x1, x2) ∃x5(x1, x2, x4) ∃x6(x1, x4).(¬x1 ∨ ¬(¬x6 ∧ x3) ∨ x5) ∧ (¬x2 ∨ ¬x4 ∨ x5)`
 
 ## Usage
 
@@ -78,12 +79,12 @@ solves the formula in `file.dqdimacs` with the default settings.
 ```
 DQBDD --preprocess 0 --dyn-reordering 0 file.dqdimacs
 ```
-solves the formula in `file.dqdimacs` without running the preprocessor HQSpre first (for DQDIMACS files it is enabled by default) and without using dynamic reordering of variables in BDDs as implemented in CUDD (dynamic reordering is enabled by default, DQBDD uses [Rudell's sifting algorithm](https://ieeexplore.ieee.org/document/580029)).
+solves the formula in `file.dqdimacs` without running the preprocessor HQSpre first (for DQDIMACS files preprocessing is enabled by default) and without using dynamic reordering of variables in BDDs as implemented in CUDD (dynamic reordering is enabled by default, DQBDD uses [Rudell's sifting algorithm](https://ieeexplore.ieee.org/document/580029)).
 
 ```
 DQBDD --localise 0 --uvar-choice 1 file.dqdimacs
 ```
-solves the formula in `file.dqdimacs` without localising quantifiers (or creating quantifier tree, which is a default behaviour) where the next universal variable for universal expansion is always the one that has the minimal number of dependent existential variables. The other options of `--uvar-choice` are:
+solves the formula in `file.dqdimacs` without localising quantifiers (or creating quantifier tree, the default behaviour is `--localise 1`) where the next universal variable for universal expansion is always the one that has the minimal number of dependent existential variables. The other options of `--uvar-choice` are:
 - 0 - the order of universal variables to expand is set at beginning from the smallest to the largest number of dependencies (this is the default),
 - 2 - the next variable is chosen by the number of variables in BDDs representing the two conjucts of universal expansion.
 
@@ -97,7 +98,7 @@ solves the formula in `file.dqdimacs` with localising quantifiers (this is the d
 ```
 DQBDD file.dqcir
 ```
-solves the formula in DQCIR format with default settings. The default settings are the same as for DQDIMACS format except for preprocessing. As HQSpre can only accept files in DQDIMACS format, there is no preprocessing for DQCIR files.
+solves the formula in DQCIR format with the default settings. The default settings are the same as for DQDIMACS format except for preprocessing. As HQSpre can only accept files in DQDIMACS format, there is no preprocessing for DQCIR files.
 
 ```
 DQBDD --hqspre-dqcir-output file.dqdimacs
