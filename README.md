@@ -28,7 +28,7 @@ DQBDD accepts two input formats: [DQDIMACS](https://doi.org/10.29007/1s5k) and p
 
 ### DQDIMACS
 
-DQDIMACS is used to represent DQBFs in prenex CNF form. It is an extension of [QDIMACS](http://www.qbflib.org/qdimacs.html) format where not only `a` and `e` quantifiers can be used (representing universal and existential variables respectively), but also `d` quantifier is introduced (representing existential variable with its dependencies). Appendix C of my [thesis](https://is.muni.cz/th/prexv/) contains a full definition of DQDIMACS format.
+DQDIMACS is used to represent DQBFs in prenex CNF form. It is an extension of [QDIMACS](http://www.qbflib.org/qdimacs.html) format where not only `a` and `e` quantifiers can be used (representing universal and existential variables respectively), but also `d` quantifier is introduced (representing existential variable with its dependencies). [Appendix C](https://is.muni.cz/th/prexv/thesis.pdf#appendix.C) of my [thesis](https://is.muni.cz/th/prexv/) contains a full definition of DQDIMACS format.
 
 Example of DQDIMACS format:
 ```
