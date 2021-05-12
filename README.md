@@ -79,19 +79,19 @@ solves the formula in `file.dqdimacs` with the default settings.
 ```
 DQBDD --preprocess 0 --dyn-reordering 0 file.dqdimacs
 ```
-solves the formula in `file.dqdimacs` without running the preprocessor HQSpre first (for DQDIMACS files preprocessing is enabled by default) and without using dynamic reordering of variables in BDDs as implemented in CUDD (dynamic reordering is enabled by default, DQBDD uses [Rudell's sifting algorithm](https://ieeexplore.ieee.org/document/580029)).
+solves the formula in `file.dqdimacs` without running the preprocessor HQSpre first (the default for DQDIMACS files is `preprocess 1`, i.e. preprocessing is enabled) and without using dynamic reordering of variables in BDDs as implemented in CUDD (dynamic reordering is enabled by default, DQBDD uses [Rudell's sifting algorithm](https://ieeexplore.ieee.org/document/580029)).
 
 ```
 DQBDD --localise 0 --uvar-choice 1 file.dqdimacs
 ```
-solves the formula in `file.dqdimacs` without localising quantifiers (or creating quantifier tree, the default behaviour is `--localise 1`) where the next universal variable for universal expansion is always the one that has the minimal number of dependent existential variables. The other options of `--uvar-choice` are:
+solves the formula in `file.dqdimacs` without localising quantifiers (or creating quantifier tree, the default behaviour is `--localise 1`) where the next universal variable for universal expansion is always the one that has the minimal number of dependent existential variables (`--uvar-choice 1`). The other options of `--uvar-choice` are:
 - 0 - the order of universal variables to expand is set at beginning from the smallest to the largest number of dependencies (this is the default),
 - 2 - the next variable is chosen by the number of variables in BDDs representing the two conjucts of universal expansion.
 
 ```
 DQBDD --localise 1 --elimination-choice 2 file.dqdimacs
 ```
-solves the formula in `file.dqdimacs` with localising quantifiers (this is the default behaviour) where it eliminates all universal and possible existential variables while creating the final BDD from the quantifier tree. The other options of `--elimination-choice` are:
+solves the formula in `file.dqdimacs` with localising quantifiers (this is the default behaviour) where it eliminates all universal and possible existential variables while creating the final BDD from the quantifier tree (`--elimination-choice 2`). The other options of `--elimination-choice` are:
 - 0 - does not eliminate any quantifiers,
 - 1 - eliminates only universal variables which do not have any dependencies and all possible existential variables (this is the default).
 
