@@ -135,7 +135,7 @@ main(int argc, char** argv)
         "hec", boost::program_options::value<bool>(&settings.hec)->default_value(settings.hec),
         "Find hidden equivalences and contradictions")(
         "ic", boost::program_options::value<std::uint32_t>(&settings.impl_chains)->default_value(settings.impl_chains),
-        "Eliminate implication chains (0=no, 1=strong, 2=weak")(
+        "Eliminate implication chains (0 = no, 1 = strong, 2 = semi, 3 = weak)")(
         "contra", boost::program_options::value<bool>(&settings.contradictions)->default_value(settings.contradictions),
         "Find contradictions")(
         "substitute", boost::program_options::value<bool>(&settings.substitution)->default_value(settings.substitution),
@@ -171,7 +171,7 @@ main(int argc, char** argv)
         "Detect constants with SAT-based techniques")(
         "sat_impl", boost::program_options::value<bool>(&settings.sat_impl)->default_value(settings.sat_impl),
         "Detect implications with SAT-based techniques")(
-        "pure_sat_timeout", boost::program_options::value<unsigned int>(&settings.pure_sat_timeout)->default_value(20),
+        "pure_sat_timeout", boost::program_options::value<unsigned int>(&settings.pure_sat_timeout)->default_value(settings.pure_sat_timeout),
         "Timeout for solving pure SAT instances")(
         "univ_exp",
         boost::program_options::value<unsigned int>(&settings.univ_expand)->default_value(settings.univ_expand),

@@ -13,3 +13,7 @@ formula_forkExt.cpp
 
 timer.cpp
   - removed createTimeout function, as it was only used in main.cpp and it needed librt dependency
+
+main.cpp (not used for DQBDD)
+  - fixed a bug with the default value of pure_sat_timeout
+  - fixed description of impl_chains
