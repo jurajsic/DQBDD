@@ -1,6 +1,6 @@
 # DQBDD
 
-DQBDD is a dependency quantified Boolean formula (DQBF) solver that uses binary decision diagrams (BDDs) as an underlying representation of formulas. It is written in C++ and it reads DQBFs encoded in DQDIMACS or prenex cleansed DQCIR format for which it checks their satisfiability using quantifier elimination. For an explanation of the techniques used in DQBDD, see my [master's thesis](https://is.muni.cz/th/prexv/).
+DQBDD is a dependency quantified Boolean formula (DQBF) solver that uses binary decision diagrams (BDDs) as an underlying representation of formulas. It is written in C++ and it reads DQBFs encoded in DQDIMACS or prenex cleansed DQCIR format for which it checks their satisfiability using quantifier elimination. For an explanation of the techniques used in DQBDD, see [this paper](https://doi.org/10.1007/978-3-030-80223-3_36) and my [master's thesis](https://is.muni.cz/th/prexv/).
 
 ## Installation
 
