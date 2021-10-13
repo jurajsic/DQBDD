@@ -23,6 +23,7 @@
 #include <utility>
 #include <vector>
 #include <unordered_map>
+#include <list>
 
 #include "parser.hpp"
 
@@ -48,28 +49,34 @@ struct Gate {
 class GateParser : public Parser {
 private:
     Cudd &mgr;
-    QuantifiedVariablesManipulator DQBFPrefix;
 
     GateLiteral outputGateLiteral;
     std::unordered_map<unsigned long, Gate> gateIDtoGate;
 
-    // true if parse(fileName) was called and we did not transformed formula either with getForumla() or getQuantifierTree()
-    bool isFormulaParsed;
+    // ordered list of gates ID based on when they were added to the parser
+    std::list<unsigned long> gateInputOrder;
 
-    void clearParser();
+    // true if parse(fileName) was called and we have not transformed formula either with getForumla() or getQuantifierTree()
+    bool isFormulaParsed = false;
 
+
+    // TODO implement
+    void removeMUXAndXORGates();
     // TODO implement
     void transformToNNF();
 
 protected:
-    // TODO implement
+    QuantifiedVariablesManipulator DQBFPrefix;
+
+    // TODO description
     void addGate(unsigned long gateID, GateType type);
-    // TODO implement
-    void addGate(unsigned long gateID, GateType type, std::vector<unsigned long> &operands);
-    // TODO implement
-    void finishedParsing(unsigned long outputGateID);
+    // TODO description - operands should be already added gates, or they should be var (implicitly existential without dependencies, if they are not in DQBFprefix)
+    void addGate(unsigned long gateID, GateType type, const std::vector<GateLiteral> &operands);
+    // TODO description
+    void finishedParsing(bool outputGateNegation, unsigned long outputGateID);
 
 public:
+    // TODO description
     GateParser(Cudd &mgr, QuantifiedVariablesManager &qvmgr);
     // TODO return should be void, HQSpreparser can have its own member bool preprocessorSolved
     // TODO explain that this function should parse formula from some file by adding gates using addGate and at the end finishedParsing should be called with outputGate
@@ -93,6 +100,9 @@ public:
     void printPrenexDQCIR(std::ostream &output);
     // TODO implement
     void printPrenexCleansedDQCIR(std::ostream &output);
+
+    // TODO description
+    void clearParser();
 };
 
 } // namespace dqbdd
