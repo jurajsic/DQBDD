@@ -51,19 +51,32 @@ private:
     Cudd &mgr;
 
     GateLiteral outputGateLiteral;
-    std::unordered_map<unsigned long, Gate> gateIDtoGate;
+    std::unordered_map<unsigned long, Gate> gateIDToGate;
 
     // ordered list of gates ID based on when they were added to the parser
     std::list<unsigned long> gateInputOrder;
 
+    unsigned long maxGateID = 0;
+
     // true if parse(fileName) was called and we have not transformed formula either with getForumla() or getQuantifierTree()
     bool isFormulaParsed = false;
 
+    // TODO description
+    unsigned long addNewGateAtPositionWithoutChecks(GateType type, const std::vector<GateLiteral> &operands, const std::list<unsigned long>::iterator &position);
 
-    // TODO implement
+    // TODO description
     void removeMUXAndXORGates();
-    // TODO implement
+
+    // TODO describe - fucks up order of gateIDToGate, can only be used if we are not plannign to print after
     void transformToNNF();
+    std::unordered_map<unsigned long, unsigned long> gateIDToNegatedGateID;
+    // TODO describe - fucks up order of gateIDToGate, can only be used if we are not plannign to print after
+    unsigned long getNegatedGateID(unsigned long gateIDToNegate);
+    // TODO describe - fucks up order of gateIDToGate, can only be used if we are not plannign to print after
+    void pushNegation(GateLiteral &gateLiteralToPushNegation);
+
+    // TODO description
+    void printPrefixAndGates(std::ostream &output);
 
 protected:
     QuantifiedVariablesManipulator DQBFPrefix;
@@ -78,6 +91,9 @@ protected:
 public:
     // TODO description
     GateParser(Cudd &mgr, QuantifiedVariablesManager &qvmgr);
+
+    virtual ~GateParser() = default;
+
     // TODO return should be void, HQSpreparser can have its own member bool preprocessorSolved
     // TODO explain that this function should parse formula from some file by adding gates using addGate and at the end finishedParsing should be called with outputGate
     virtual bool parse(std::string fileName) = 0;
@@ -87,18 +103,18 @@ public:
      * Can be only used after parsing a formula saved in some file with parse(fileName) and by using
      * this method, the parsed formula is deleted from this parser
      */
-    Formula* getFormula();
+    Formula* getFormula() override;
     /**
      * @brief Get DQBF as a quantifier tree from formula saved as gates in this parser
      * 
      * Can be only used after parsing a formula saved in some file with parse(fileName) and by using
      * this method, the parsed formula is deleted from this parser
      */
-    QuantifierTreeNode* getQuantifierTree();
+    QuantifierTreeNode* getQuantifierTree() override;
 
-    // TODO implement
+    // TODO description
     void printPrenexDQCIR(std::ostream &output);
-    // TODO implement
+    // TODO description - important: removes MUX and XOR gates!
     void printPrenexCleansedDQCIR(std::ostream &output);
 
     // TODO description
