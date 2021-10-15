@@ -49,6 +49,7 @@ struct Gate {
 class GateParser : public Parser {
 private:
     Cudd &mgr;
+    QuantifiedVariablesManipulator DQBFPrefix;
 
     GateLiteral outputGateLiteral;
     std::unordered_map<unsigned long, Gate> gateIDToGate;
@@ -79,12 +80,18 @@ private:
     void printPrefixAndGates(std::ostream &output);
 
 protected:
-    QuantifiedVariablesManipulator DQBFPrefix;
+    // TODO describe that existVarID is also the ID of the corresponding var gate; variable can be added at most once
+    void addExistVar(unsigned long existVarID, bool dependsOnAllDefinedUnivVars = false);
+    void addExistVar(unsigned long existVarID, const std::vector<unsigned long> &dependencySetVarIDs);
+    void addUnivVar(unsigned long univVarID);
 
     // TODO description
     void addGate(unsigned long gateID, GateType type);
     // TODO description - operands should be already added gates, or they should be var (implicitly existential without dependencies, if they are not in DQBFprefix)
     void addGate(unsigned long gateID, GateType type, const std::vector<GateLiteral> &operands);
+    // TODO describe (adding a new gate with automatic ID which is returned)
+    unsigned long addGate(GateType type);
+    unsigned long addGate(GateType type, const std::vector<GateLiteral> &operands);
     // TODO description
     void finishedParsing(bool outputGateNegation, unsigned long outputGateID);
 
@@ -94,9 +101,8 @@ public:
 
     virtual ~GateParser() = default;
 
-    // TODO return should be void, HQSpreparser can have its own member bool preprocessorSolved
     // TODO explain that this function should parse formula from some file by adding gates using addGate and at the end finishedParsing should be called with outputGate
-    virtual bool parse(std::string fileName) = 0;
+    virtual void parse(std::string fileName) override = 0;
     /**
      * @brief Get DQBF from formula saved as gates in this parser
      * 

@@ -27,6 +27,59 @@ namespace dqbdd {
 
 GateParser::GateParser(Cudd &mgr, QuantifiedVariablesManager &qvmgr) : mgr(mgr), DQBFPrefix(qvmgr) {}
 
+void GateParser::addExistVar(unsigned long existVarID, bool dependsOnAllDefinedUnivVars) {
+    if (dependsOnAllDefinedUnivVars) {
+        std::vector<unsigned long> univVarsGateIDs;
+        for (const Variable &univVar : DQBFPrefix.getUnivVars()) {
+            univVarsGateIDs.push_back(univVar.getId());
+        }
+        addExistVar(existVarID, univVarsGateIDs);
+    } else {
+        addExistVar(existVarID, std::vector<unsigned long>{});
+    }
+}
+
+void GateParser::addExistVar(unsigned long existVarID, const std::vector<unsigned long> &dependencySetVarIDs) {
+    Variable varToAdd(existVarID, mgr);
+
+    if (DQBFPrefix.isVarHereQuantified(varToAdd)) {
+        throw dqbddException(std::string("Trying to add an existential variable with ID ") + std::to_string(existVarID) + std::string(" in GateParser while it was already added before"));
+    } else {
+        DQBFPrefix.addExistVar(varToAdd);
+        addGate(existVarID, GateType::VAR);
+        for (unsigned long univVarID : dependencySetVarIDs) {
+            Variable dependentVar(univVarID, mgr);
+            if (!DQBFPrefix.isVarUniv(dependentVar)) {
+                throw dqbddException(std::string("Trying to add existential variable ") + std::to_string(existVarID) + std::string(" with variable with ID ") + std::to_string(univVarID) + std::string(" which is not defined as universal"));
+            } else {
+                DQBFPrefix.addDependency(varToAdd, dependentVar);
+            }
+        }
+    }
+}
+
+void GateParser::addUnivVar(unsigned long univVarID) {
+    Variable varToAdd(univVarID, mgr);
+
+    if (DQBFPrefix.isVarHereQuantified(varToAdd)) {
+        throw dqbddException(std::string("Trying to add a universal variable with ID ") + std::to_string(univVarID) + std::string(" in GateParser while it was already added before"));
+    } else {
+        DQBFPrefix.addUnivVar(varToAdd);
+        addGate(univVarID, GateType::VAR);
+    }
+}
+
+unsigned long GateParser::addGate(GateType type) {
+    ++maxGateID;
+    addGate(maxGateID, type, std::vector<GateLiteral>{});
+    return maxGateID;
+}
+
+unsigned long GateParser::addGate(GateType type, const std::vector<GateLiteral> &operands) {
+    ++maxGateID;
+    addGate(maxGateID, type, operands);
+    return maxGateID;
+}
 
 void GateParser::addGate(unsigned long gateID, GateType type) {
     addGate(gateID, type, std::vector<GateLiteral>{});
@@ -78,10 +131,7 @@ void GateParser::addGate(unsigned long gateID, GateType type, const std::vector<
                 }
                 
                 // variables which are not already in prefix are set as existential variables without dependencies
-                Variable addedVariable = Variable(gateID, mgr);
-                if (!DQBFPrefix.isVarHereQuantified(addedVariable)) {
-                    DQBFPrefix.addExistVar(addedVariable);
-                }
+                addExistVar(gateID);
 
                 break;
             }
