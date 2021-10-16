@@ -67,7 +67,7 @@ void PrenexDQCIRParser::parse(std::string fileName) {
 
     auto getLiteralFromString = [&getIDFromGateString](std::string LiteralStr)->GateLiteral {
         if (LiteralStr[0] == '-') {
-            return GateLiteral(false, -getIDFromGateString(LiteralStr.substr(1))); 
+            return GateLiteral(false, getIDFromGateString(LiteralStr.substr(1))); 
         } else {
             return GateLiteral(true, getIDFromGateString(LiteralStr));
         }

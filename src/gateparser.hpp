@@ -92,14 +92,12 @@ protected:
     // TODO describe (adding a new gate with automatic ID which is returned)
     unsigned long addGate(GateType type);
     unsigned long addGate(GateType type, const std::vector<GateLiteral> &operands);
-    // TODO description
+    // TODO description (change name of outputGateNegation, because if it is true, then the output is not negated)
     void finishedParsing(bool outputGateNegation, unsigned long outputGateID);
 
 public:
     // TODO description
     GateParser(Cudd &mgr, QuantifiedVariablesManager &qvmgr);
-
-    virtual ~GateParser() = default;
 
     // TODO explain that this function should parse formula from some file by adding gates using addGate and at the end finishedParsing should be called with outputGate
     virtual void parse(std::string fileName) override = 0;

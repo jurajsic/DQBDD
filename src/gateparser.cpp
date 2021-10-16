@@ -131,7 +131,10 @@ void GateParser::addGate(unsigned long gateID, GateType type, const std::vector<
                 }
                 
                 // variables which are not already in prefix are set as existential variables without dependencies
-                addExistVar(gateID);
+                Variable varToAdd(gateID, mgr);
+                if (!DQBFPrefix.isVarHereQuantified(varToAdd)) {
+                    DQBFPrefix.addExistVar(varToAdd);
+                }
 
                 break;
             }
@@ -252,9 +255,9 @@ QuantifierTreeNode* GateParser::getQuantifierTree() {
 
     transformToNNF();
 
-    std::function<QuantifierTreeNode*(const GateLiteral&, bool)> gateLitToTree;
+    std::function<QuantifierTreeNode*(const GateLiteral&)> gateLitToTree;
     // isRoot is ugly, but needed to copy variables from DQBFPrefix to the root of tree
-    gateLitToTree = [&](const GateLiteral &processedGateLit, bool isRoot)->QuantifierTreeNode* {
+    gateLitToTree = [&](const GateLiteral &processedGateLit)->QuantifierTreeNode* {
         QuantifierTreeNode* result;
         auto &processedGateID = processedGateLit.second;
         auto &processedGate = gateIDToGate[processedGateID];
@@ -267,26 +270,17 @@ QuantifierTreeNode* GateParser::getQuantifierTree() {
                 }
                 std::list<QuantifierTreeNode*> treeOperands;
                 for (const auto &operandGateLiteral : processedGate.operands) {
-                    treeOperands.push_back(gateLitToTree(operandGateLiteral, false));
+                    treeOperands.push_back(gateLitToTree(operandGateLiteral));
                 }
 
                 if (treeOperands.size() == 0) { // if AND gate does not have operands, it represents the constant true
-                    QuantifierTreeFormula *DQBFtrue;
-                    if (isRoot) {
-                        DQBFtrue = new QuantifierTreeFormula(mgr, DQBFPrefix);
-                    } else {
-                        DQBFtrue = new QuantifierTreeFormula(mgr, *DQBFPrefix.getManager());
-                    }
+                    QuantifierTreeFormula *DQBFtrue = new QuantifierTreeFormula(mgr, *DQBFPrefix.getManager());
                     DQBFtrue->setMatrix(mgr.bddOne());
                     result = DQBFtrue;
                 } else if (treeOperands.size() == 1) { // for one operand we just return the tree of this operand
                     result = *treeOperands.begin();
                 } else {
-                    if (isRoot) {
-                        result = new QuantifierTree(true, treeOperands, DQBFPrefix);
-                    } else {
-                        result = new QuantifierTree(true, treeOperands, *DQBFPrefix.getManager());
-                    }
+                    result = new QuantifierTree(true, treeOperands, *DQBFPrefix.getManager());
                 }
                 break;
             }
@@ -298,38 +292,24 @@ QuantifierTreeNode* GateParser::getQuantifierTree() {
                 }
                 std::list<QuantifierTreeNode*> treeOperands;
                 for (const auto &operandGateLiteral : processedGate.operands) {
-                    treeOperands.push_back(gateLitToTree(operandGateLiteral, false));
+                    treeOperands.push_back(gateLitToTree(operandGateLiteral));
                 }
 
                 if (treeOperands.size() == 0) { // if OR gate does not have operands, it represents the constant false
-                    QuantifierTreeFormula *DQBFfalse;
-                    if (isRoot) {
-                        DQBFfalse = new QuantifierTreeFormula(mgr, DQBFPrefix);
-                    } else {
-                        DQBFfalse = new QuantifierTreeFormula(mgr, *DQBFPrefix.getManager());
-                    }
+                    QuantifierTreeFormula *DQBFfalse = new QuantifierTreeFormula(mgr, *DQBFPrefix.getManager());
                     DQBFfalse->setMatrix(mgr.bddZero());
                     result = DQBFfalse;
                 } else if (treeOperands.size() == 1) { // for one operand we just return the tree of this operand
                     result = *treeOperands.begin();
                 } else {
-                    if (isRoot) {
-                        result = new QuantifierTree(false, treeOperands, DQBFPrefix);
-                    } else {
-                        result = new QuantifierTree(false, treeOperands, *DQBFPrefix.getManager());
-                    }
+                    result = new QuantifierTree(false, treeOperands, *DQBFPrefix.getManager());
                 }
                 break;
             }
 
             case GateType::VAR:
             {
-                QuantifierTreeFormula *varFormula;
-                if (isRoot) {
-                    varFormula = new QuantifierTreeFormula(mgr, DQBFPrefix);
-                } else {
-                    varFormula = new QuantifierTreeFormula(mgr, *DQBFPrefix.getManager());
-                }
+                QuantifierTreeFormula *varFormula = new QuantifierTreeFormula(mgr, *DQBFPrefix.getManager());
                 Variable resultingVar = Variable(processedGateID, mgr);
                 varFormula->setMatrix((processedGateLit.first ? resultingVar : !resultingVar));
                 result = varFormula;
@@ -346,7 +326,16 @@ QuantifierTreeNode* GateParser::getQuantifierTree() {
         return result;
     };
 
-    auto res = gateLitToTree(outputGateLiteral, true);
+    auto res = gateLitToTree(outputGateLiteral);
+
+    // we move variables from DQBFPrefix to root of quantifier tree (as is done in constructor that takes quantifier manipulator)
+    for (Variable uVar : DQBFPrefix.getUnivVars()) {
+        res->addUnivVar(uVar);
+    }
+    for (Variable eVar : DQBFPrefix.getExistVars()) { // dependencies are not needed to move, they are saved in qvMgr of DQBFPrefix
+        res->addExistVar(eVar);
+    }
+
     clearParser();
     return res;
 }

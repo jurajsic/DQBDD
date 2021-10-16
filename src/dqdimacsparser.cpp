@@ -44,6 +44,9 @@ void DQDIMACSParser::parse(std::string fileName) {
     bool prefixFinished = false;
     unsigned long expectedNumOfClauses = 0;
     unsigned long maximumVariable = 0;
+    std::string lastToken = "";
+    std::vector<GateLiteral> clauses;
+
     auto varStringToUnsignedLongWithMaximumVariableCheck = [&maximumVariable](std::string varString)->unsigned long {
         unsigned long varID = std::stoul(varString);
         if (varID > maximumVariable) {
@@ -51,8 +54,15 @@ void DQDIMACSParser::parse(std::string fileName) {
         }
         return varID;
     };
-    std::string lastToken = "";
-    std::vector<GateLiteral> clauses;
+
+    auto getLiteralFromStr = [&varStringToUnsignedLongWithMaximumVariableCheck](std::string dqdimacsLiteral) {
+        bool isNegated = (dqdimacsLiteral[0] == '-');
+        if (isNegated) {
+            dqdimacsLiteral = dqdimacsLiteral.substr(1);
+        }
+        unsigned long i = varStringToUnsignedLongWithMaximumVariableCheck(dqdimacsLiteral);
+        return GateLiteral(!isNegated, i);
+    };
 
     while(std::getline(inputFile, line)) {
         if (line == "") { // TODO whitespaces maybe also can be on empty line???
@@ -112,20 +122,6 @@ void DQDIMACSParser::parse(std::string fileName) {
             addExistVar(existVarID, dependenciesID);
         } else { // parse clause (disjunction of literals)
             prefixFinished = true;
-            auto getLiteralFromStr = [&](std::string tok) {
-                long i = std::stol(tok);
-                if (i < 0) {
-                    if (-i > maximumVariable) {
-                        std::cerr << "WARNING: Variable with ID " << -i << " was found during parsing clauses in (DQ)DIMACS file, which is larger than the allowed maximum from problem line" << std::endl;
-                    }
-                    return GateLiteral(false, -i);
-                } else {
-                    if (i > maximumVariable) {
-                        std::cerr << "WARNING: Variable with ID " << i << " was found during parsing clauses in (DQ)DIMACS file, which is larger than the allowed maximum from problem line" << std::endl;
-                    }
-                    return GateLiteral(true, i);
-                }
-            };
             std::vector<GateLiteral> literals;
             literals.push_back(getLiteralFromStr(token));
             while (streamline >> token) {

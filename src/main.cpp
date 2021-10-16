@@ -26,6 +26,7 @@
 #include "hqspreinterface.hpp"
 #include "dqdimacsparser.hpp"
 #include "prenexcleansedqcirparser.hpp"
+#include "gateparser.hpp"
 
 enum ReturnCode {
     SAT = 10,
@@ -54,8 +55,32 @@ std::string getLowercaseFileType(std::string path) {
     }
 }
 
+// class TestParser : public dqbdd::GateParser {
+// public:
+//     TestParser(Cudd &mgr, dqbdd::QuantifiedVariablesManager &qvmgr) : GateParser(mgr, qvmgr) {}
+//     bool parse(std::string fileName) override {
+//         GateParser::addGate(3, dqbdd::GateType::AND, std::vector<dqbdd::GateLiteral>{dqbdd::GateLiteral{true, 0},dqbdd::GateLiteral{false, 1},dqbdd::GateLiteral{false, 2}});
+//         GateParser::addGate(5, dqbdd::GateType::OR, std::vector<dqbdd::GateLiteral>{});//dqbdd::GateLiteral{true, 0},dqbdd::GateLiteral{false, 4},dqbdd::GateLiteral{false, 2}});
+//         GateParser::addGate(7, dqbdd::GateType::XOR, std::vector<dqbdd::GateLiteral>{dqbdd::GateLiteral{true, 2},dqbdd::GateLiteral{false, 6}});
+//         GateParser::addGate(8, dqbdd::GateType::MUX, std::vector<dqbdd::GateLiteral>{dqbdd::GateLiteral{true, 3},dqbdd::GateLiteral{false, 5},dqbdd::GateLiteral{false, 7}});
+//         finishedParsing(true, 8);
+//     }
+// };
+
 int main(int argc, char **argv)
 {
+    // Cudd tMgr;
+    // dqbdd::QuantifiedVariablesManager tQvMgr;
+    // TestParser tParser(tMgr, tQvMgr);
+    // tParser.parse("");
+    // auto tQT = tParser.getQuantifierTree();
+    // std::cout << *tQT << std::endl;
+    // delete tQT;
+    // //tParser.transformToNNF();
+    // //tParser.printPrenexDQCIR(std::cout);
+    // //tParser.printPrenexCleansedDQCIR(std::cout);
+    // return 0;
+
     // argument parsing
     cxxopts::Options optionsParser("DQBDD", "A DQBF solver using BDDs.");
     optionsParser.add_options()
@@ -129,18 +154,16 @@ int main(int argc, char **argv)
     }
 
     dqbdd::QuantifiedVariablesManager qvMgr(options);
-    dqbdd::Formula *f = nullptr;
-    bool preprocessorSolved = false;
 
     if (result->count("hqspre-dqcir-output")) {
-        dqbdd::HQSPreInterface hqspreparser(mgr, qvMgr);
+        dqbdd::HQSPreInterface hqspreParser(mgr, qvMgr);
         std::cout << "Starting HQSpre" << std::endl;
-        hqspreparser.parse(fileName);
+        hqspreParser.parse(fileName);
         std::cout << "Turning into DQCIR format" << std::endl;
         auto outputFileName = fileName.substr(0, fileName.size()-9) + ".dqcir";
         std::ofstream outputFile(outputFileName);
         if (outputFile.is_open()) {
-            hqspreparser.turnIntoDQCIR(outputFile);
+            hqspreParser.printPrenexDQCIR(outputFile);
             outputFile.close();
         } else {
             std::cerr << "Could not open output file" << std::endl;
@@ -150,83 +173,97 @@ int main(int argc, char **argv)
         return 0;
     }
 
+    dqbdd::Formula *f = nullptr;
+
     try {
         std::unique_ptr<dqbdd::Parser> parser;
         std::cout << "Parsing" << std::endl;
-        if (fileType == 0) {
-            if (preprocess) {
-                parser = std::make_unique<dqbdd::HQSPreInterface>(mgr, qvMgr);
-                std::cout << "Starting HQSpre" << std::endl;
+        if (preprocess) {
+            if (fileType != 0) {
+                std::cerr << "Trying to preprocess non (DQ)DIMACS file" << std::endl;
+                return -1;
             } else {
-                parser = std::make_unique<dqbdd::DQDIMACSParser>(mgr,qvMgr);
+                std::unique_ptr<dqbdd::HQSPreInterface> hqspreParser(new dqbdd::HQSPreInterface(mgr, qvMgr));
+                std::cout << "Starting HQSpre" << std::endl;
+                hqspreParser->parse(fileName);
+                if (hqspreParser->getPreprocessorResult() != dqbdd::HQSPreResult::UNKNOWN) {
+                    std::cout << "Solved by preprocessor" << std::endl;
+                    if (hqspreParser->getPreprocessorResult() == dqbdd::HQSPreResult::SAT) {
+                        std::cout << "SAT" << std::endl;
+                        return ReturnCode::SATPRE;
+                    } else {
+                        std::cout << "UNSAT" << std::endl;
+                        return ReturnCode::UNSATPRE;
+                    }
+                } else {
+                    parser = std::move(hqspreParser);
+                }
             }
-        } else if (fileType == 1) {
-            parser = std::make_unique<dqbdd::PrenexCleansedQCIRParser>(mgr,qvMgr);
         } else {
-            std::cerr << "Unknown filetype (this should not happen)" << std::endl;
-            return -1;
-        }
-        preprocessorSolved = parser->parse(fileName);
-        std::cout << "Parsing finished" << std::endl;
-        if (!localise) {
-            if (!preprocessorSolved) {
-                std::cout << "Creating BDD formula" << std::endl;
+            if (fileType == 0) {
+                parser = std::make_unique<dqbdd::DQDIMACSParser>(mgr,qvMgr);
+            } else if (fileType == 1) {
+                parser = std::make_unique<dqbdd::PrenexDQCIRParser>(mgr,qvMgr);
+            } else {
+                std::cerr << "Unknown filetype (this should not happen)" << std::endl;
+                return -1;
             }
+            parser->parse(fileName);
+        }
+        std::cout << "Parsing finished" << std::endl;
+
+        if (!localise) {
+            std::cout << "Creating BDD formula" << std::endl;
             f = parser->getFormula();
         } else {
-            if (!preprocessorSolved) {
-                std::cout << "Creating quantifier tree" << std::endl;
-            }
+            std::cout << "Creating quantifier tree" << std::endl;
+
             auto qtroot = parser->getQuantifierTree();
-            if (!preprocessorSolved) {
-                std::cout << "Quantifier tree created with " 
-                          << qtroot->getUnivVars().size() << " universal and "
-                          << qtroot->getExistVars().size() << " existential variables quantified in it." << std::endl
-                          //<< *qtroot << std::endl
-                          << "Pushing quantifiers inside" << std::endl;
-                //std::cout << qtroot->getUnivVars() << std::endl
-                //          << qtroot->getExistVars() << std::endl;
-                qtroot->localise( dqbdd::VariableSet{ } );
-                std::cout << "Quantifiers pushed inside" << std::endl
-                          //<< *qtroot << std::endl
-                          << "Creating BDD formula" << std::endl;
-            }
+
+            std::cout << "Quantifier tree created with " 
+                        << qtroot->getUnivVars().size() << " universal and "
+                        << qtroot->getExistVars().size() << " existential variables quantified in it." << std::endl
+                        //<< *qtroot << std::endl
+                        << "Pushing quantifiers inside" << std::endl;
+            //std::cout << qtroot->getUnivVars() << std::endl
+            //          << qtroot->getExistVars() << std::endl;
+
+            qtroot->localise( dqbdd::VariableSet{ } );
+
+            std::cout << "Quantifiers pushed inside" << std::endl
+                        //<< *qtroot << std::endl
+                        << "Creating BDD formula" << std::endl;
+            
             f = qtroot->changeToFormula(mgr);
             //std::cout << *f <<std::endl;
         }
     } catch(const std::exception &e) {
-        std::cerr << e.what() << std::endl;
+        std::cerr << "ERROR: " << e.what() << std::endl;
         return -1; 
     }
 
-    
-    ReturnCode rc;
-
-    if (!preprocessorSolved) {
-        f->removeUnusedVars();
-        std::cout << "BDD formula created" << std::endl;
-        f->printStats();
-        //std::cout << "Universal variables: " << f->getUnivVars() << std::endl;
-        //std::cout << "Existential variables: " << f->getExistVars() << std::endl;
-        std::cout << "Eliminating variables in the created formula" << std::endl;
-        try {
-            f->eliminatePossibleVars();
-        } catch(const std::exception &e) {
-            std::cerr << e.what() << std::endl;
-            delete f;
-            return -1;
-        }
-    } else {
-        std::cout << "Solved by preprocessor" << std::endl;
+    f->removeUnusedVars();
+    std::cout << "BDD formula created" << std::endl;
+    f->printStats();
+    //std::cout << "Universal variables: " << f->getUnivVars() << std::endl;
+    //std::cout << "Existential variables: " << f->getExistVars() << std::endl;
+    std::cout << "Eliminating variables in the created formula" << std::endl;
+    try {
+        f->eliminatePossibleVars();
+    } catch(const std::exception &e) {
+        std::cerr << e.what() << std::endl;
+        delete f;
+        return -1;
     }
 
+    ReturnCode rc;
     
     if (f->getMatrix().IsOne()) {
         std::cout << "SAT" << std::endl;
-        rc = preprocessorSolved ? ReturnCode::SATPRE : ReturnCode::SAT;
+        rc = ReturnCode::SAT;
     } else if (f->getMatrix().IsZero()) {
         std::cout << "UNSAT" << std::endl;
-        rc = preprocessorSolved ? ReturnCode::UNSATPRE : ReturnCode::UNSAT;
+        rc = ReturnCode::UNSAT;
     } else { // this should not be reachable
         std::cout << "UNKNOWN" << std::endl;
         rc = ReturnCode::UNKNOWN;
