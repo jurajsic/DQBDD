@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+### New
+- added parsing of non-cleansed prenex (D)QCIR format
+- added two new options '--dqcir-output' and '--dqcir-output-cleansed' for printing parsed and possibly preprocessed input into given output file in non-cleansed or cleansed prenex DQCIR format (the option '--hqspre-dqcir-output' was removed, as '--dqcir-output-cleansed' with preprocessing turned on replaces it)
+
 ## [1.2] - 09-04-2021
 ### Fixes
 - added checks in DQDIMACS parser for errors and fixed parsing of free variables

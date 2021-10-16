@@ -26,8 +26,7 @@
 
 #include "hqspreinterface.hpp"
 #include "dqdimacsparser.hpp"
-#include "prenexcleansedqcirparser.hpp"
-#include "gateparser.hpp"
+#include "prenexdqcirparser.hpp"
 
 enum ReturnCode {
     SAT = 10,

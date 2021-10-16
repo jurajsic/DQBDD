@@ -17,8 +17,8 @@
  * along with DQBDD. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef DQBDD_PRENEXCLEANSEDQCIRPARSER_HPP
-#define DQBDD_PRENEXCLEANSEDQCIRPARSER_HPP
+#ifndef DQBDD_PRENEXDQCIRPARSER_HPP
+#define DQBDD_PRENEXDQCIRPARSER_HPP
 
 #include <unordered_map>
 #include <string>
@@ -27,8 +27,6 @@
 #include "dqbddformula.hpp"
 #include "quantifiertree.hpp"
 #include "gateparser.hpp"
-
-// TODO rename file
 
 namespace dqbdd {
 

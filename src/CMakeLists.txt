@@ -15,8 +15,8 @@ add_executable(dqbdd
                 dqbddvariable.hpp
                 dqdimacsparser.cpp
                 dqdimacsparser.hpp
-                prenexcleansedqcirparser.cpp
-                prenexcleansedqcirparser.hpp
+                prenexdqcirparser.cpp
+                prenexdqcirparser.hpp
                 gateparser.cpp
                 gateparser.hpp
                 )

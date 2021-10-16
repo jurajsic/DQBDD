@@ -24,7 +24,7 @@
 // for warnings
 #include <iostream>
 
-#include "prenexcleansedqcirparser.hpp"
+#include "prenexdqcirparser.hpp"
 #include "dqbddexceptions.hpp"
 
 namespace dqbdd {
