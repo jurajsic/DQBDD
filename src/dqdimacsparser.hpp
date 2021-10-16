@@ -20,24 +20,24 @@
 #ifndef DQBDD_DQDIMACSPARSER_HPP
 #define DQBDD_DQDIMACSPARSER_HPP
 
-#include "parser.hpp"
+#include "gateparser.hpp"
 
 namespace dqbdd {
 
 /**
  * @brief Simple parser of formulas in (DQ)DIMACS format
  */
-class DQDIMACSParser : public Parser {
-    Cudd &mgr;
-    QuantifiedVariablesManipulator DQBFPrefix;
+class DQDIMACSParser : public GateParser {
+    //Cudd &mgr;
+    //QuantifiedVariablesManipulator DQBFPrefix;
 
-    using Literal = std::pair<bool,Variable>;
-    std::vector<std::vector<Literal>> clauses;
+    //using Literal = std::pair<bool,Variable>;
+    //std::vector<std::vector<Literal>> clauses;
 public:
     DQDIMACSParser(Cudd &mgr, QuantifiedVariablesManager &qvmgr);
-    bool parse(std::string fileName) override;
-    Formula* getFormula() override;
-    QuantifierTreeNode* getQuantifierTree() override;
+    void parse(std::string fileName) override;
+    //Formula* getFormula() override;
+    //QuantifierTreeNode* getQuantifierTree() override;
 };
 
 } // namespace dqbdd

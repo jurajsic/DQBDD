@@ -26,7 +26,9 @@
 
 #include "dqbddformula.hpp"
 #include "quantifiertree.hpp"
-#include "parser.hpp"
+#include "gateparser.hpp"
+
+// TODO rename file
 
 namespace dqbdd {
 
@@ -38,29 +40,29 @@ namespace dqbdd {
  * can be used in QCIR. It represents existential variable v with dependency set Dv = {v1, ..., vn}. It is 
  * assumed that v1, ..., vn were already defined as universal variables.
  */
-class PrenexCleansedQCIRParser : public Parser {
-    Cudd &mgr;
-    QuantifiedVariablesManipulator DQBFPrefix;
+class PrenexDQCIRParser : public GateParser {
+    // Cudd &mgr;
+    // QuantifiedVariablesManipulator DQBFPrefix;
 
-    // bool says if it is negated or not (true is not, false it is), unsigned long is the gate/var number
-    using Literal = std::pair<bool, unsigned long>;
-    // bool - true=and, false=or; vector of Literals = operands
-    using OperationAndOperands = std::pair<bool, std::vector<Literal>>;
+    // // bool says if it is negated or not (true is not, false it is), unsigned long is the gate/var number
+    // using Literal = std::pair<bool, unsigned long>;
+    // // bool - true=and, false=or; vector of Literals = operands
+    // using OperationAndOperands = std::pair<bool, std::vector<Literal>>;
 
-    Literal outputGate;
-    std::unordered_map<unsigned long, OperationAndOperands> gates;
+    // Literal outputGate;
+    // std::unordered_map<unsigned long, OperationAndOperands> gates;
 
-    Literal getLiteralFromString(std::string LiteralStr);
+    // Literal getLiteralFromString(std::string LiteralStr);
 
-    BDD getBDDFromGate(unsigned long gate);
-    QuantifierTreeNode* getQTFromGate(unsigned long gate);
+    // BDD getBDDFromGate(unsigned long gate);
+    // QuantifierTreeNode* getQTFromGate(unsigned long gate);
 
 public:
-    PrenexCleansedQCIRParser(Cudd &mgr, QuantifiedVariablesManager &qvmgr);
+    PrenexDQCIRParser(Cudd &mgr, QuantifiedVariablesManager &qvmgr);
     // returns true if resulting formula is trivial (equal to TRUE or FALSE) - can also mean that preprocessor solved
-    bool parse(std::string fileName) override;
-    Formula* getFormula() override;
-    QuantifierTreeNode* getQuantifierTree() override;
+    void parse(std::string fileName) override;
+    // Formula* getFormula() override;
+    // QuantifierTreeNode* getQuantifierTree() override;
 };
 
 } // namespace dqbdd

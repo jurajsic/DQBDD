@@ -21,118 +21,17 @@
 #include <fstream>
 #include <algorithm>
 
+// for warnings
+#include <iostream>
+
 #include "prenexcleansedqcirparser.hpp"
 #include "dqbddexceptions.hpp"
 
 namespace dqbdd {
 
-PrenexCleansedQCIRParser::PrenexCleansedQCIRParser(Cudd &mgr, QuantifiedVariablesManager &qvmgr) : mgr(mgr), DQBFPrefix(qvmgr) {}
+PrenexDQCIRParser::PrenexDQCIRParser(Cudd &mgr, QuantifiedVariablesManager &qvmgr) : GateParser(mgr, qvmgr) {}
 
-PrenexCleansedQCIRParser::Literal PrenexCleansedQCIRParser::getLiteralFromString(std::string LiteralStr) {
-    long litNum = std::stol(LiteralStr);
-    if (litNum < 0) {
-        return Literal(false, -litNum);
-    } else {
-        return Literal(true, litNum);
-    }
-}
-
-BDD PrenexCleansedQCIRParser::getBDDFromGate(unsigned long gate) {
-    if (gates.count(gate) > 0) {
-        OperationAndOperands &ops = gates[gate];
-        if (ops.first) { // for conjunction...
-            BDD ret = mgr.bddOne();
-            for (Literal &operand : ops.second) {
-                if (operand.first) {
-                    ret &= getBDDFromGate(operand.second);
-                } else {
-                    ret &= !getBDDFromGate(operand.second);
-                }
-            }
-            return ret;
-        } else { //...for disjunction
-            BDD ret = mgr.bddZero();
-            for (Literal &operand : ops.second) {
-                if (operand.first) {
-                    ret |= getBDDFromGate(operand.second);
-                } else {
-                    ret |= !getBDDFromGate(operand.second);
-                }
-            }
-            return ret;
-        }
-    } else {
-        Variable ret = Variable(gate, mgr);
-        if (!DQBFPrefix.isVarHereQuantified(ret)) {
-            DQBFPrefix.addExistVar(ret);
-        }
-        return ret;
-    }
-}
-
-QuantifierTreeNode* PrenexCleansedQCIRParser::getQTFromGate(unsigned long gate) {
-    if (gates.count(gate) > 0) {
-        OperationAndOperands &ops = gates[gate];
-        if (ops.first) { // for conjunction...
-            if (ops.second.size() == 0) { // for no operands 'and' gate represents constant true
-                auto trueTree = new QuantifierTreeFormula(mgr, DQBFPrefix);
-                trueTree->setMatrix(mgr.bddOne());
-                return trueTree;
-            } else if (ops.second.size() == 1) { 
-                // for one operand, we just return the (negation of the) tree of the operand
-                auto operandTree = getQTFromGate(ops.second[0].second);
-                if (!ops.second[0].first) {
-                    operandTree->negate();
-                }
-                return operandTree;
-            } else { // for more operands, we create new tree
-                std::list<QuantifierTreeNode*> operands;
-                for (Literal &operand : ops.second) {
-                    auto operandTree = getQTFromGate(operand.second);
-                    if (!operand.first) {
-                        operandTree->negate();
-                    }
-                    operands.push_back(operandTree);
-                }
-                return (new QuantifierTree(true, operands, *DQBFPrefix.getManager()));
-            }
-        } else { //...for disjunction
-            if (ops.second.size() == 0) { // for no operands 'or' gate represents constant true
-                auto trueTree = new QuantifierTreeFormula(mgr, DQBFPrefix);
-                trueTree->setMatrix(mgr.bddZero());
-                return trueTree;
-            } else if (ops.second.size() == 1) { 
-                // for one operand, we just return the (negation of the) tree of the operand
-                auto operandTree = getQTFromGate(ops.second[0].second);
-                if (!ops.second[0].first) {
-                    operandTree->negate();
-                }
-                return operandTree;
-            } else { // for more operands, we create new tree
-                std::list<QuantifierTreeNode*> operands;
-                for (Literal &operand : ops.second) {
-                    auto operandTree = getQTFromGate(operand.second);
-                    if (!operand.first) {
-                        operandTree->negate();
-                    }
-                    operands.push_back(operandTree);
-                }
-                return (new QuantifierTree(false, operands, *DQBFPrefix.getManager()));
-            }
-        }
-    } else {
-        Variable normalVar = Variable(gate, mgr);
-        if (!DQBFPrefix.isVarHereQuantified(normalVar)) {
-            DQBFPrefix.addExistVar(normalVar);
-        }
-        QuantifierTreeFormula *varFormula = new QuantifierTreeFormula(mgr, *DQBFPrefix.getManager());
-        varFormula->setMatrix(normalVar);
-        return varFormula;
-    }
-}
-
-bool PrenexCleansedQCIRParser::parse(std::string fileName) {
-    std::string line;
+void PrenexDQCIRParser::parse(std::string fileName) {
     std::ifstream inputFile(fileName);
 
     if (!inputFile.is_open()) {
@@ -141,10 +40,47 @@ bool PrenexCleansedQCIRParser::parse(std::string fileName) {
         throw dqbddException(errorMes);
     }
 
+    std::string line;
     bool prefixFinished = false;
+    GateLiteral outputGate;
+    bool firstLineParsed = false;
+    bool isCleansed = false;
+    unsigned long maximumAllowedGateID;
+
+    unsigned long maxGateID = 0;
+    std::unordered_map<std::string, unsigned long> gateStringToID;
+    auto getIDFromGateString = [&isCleansed, &maximumAllowedGateID, &gateStringToID, &maxGateID](std::string gateString)->unsigned long {
+        if (isCleansed) { // for cleansed (D)QCIR we just return the number on the input
+            unsigned long id = std::stoul(gateString);
+            if (id > maximumAllowedGateID) {
+                std::cerr << "WARNING: Variable or gate " << id << " was found during parsing (D)QCIR file, which is larger than the allowed maximum from the first line" << std::endl;
+            }
+            return id;
+        } else if (gateStringToID.count(gateString) > 0) {
+            return gateStringToID[gateString];
+        } else {
+            ++maxGateID;
+            gateStringToID[gateString] = maxGateID;
+            return maxGateID;
+        }
+    };
+
+    auto getLiteralFromString = [&getIDFromGateString](std::string LiteralStr)->GateLiteral {
+        if (LiteralStr[0] == '-') {
+            return GateLiteral(false, getIDFromGateString(LiteralStr.substr(1))); 
+        } else {
+            return GateLiteral(true, getIDFromGateString(LiteralStr));
+        }
+        // long litNum = std::stol(LiteralStr);
+        // if (litNum < 0) {
+        //     return GateLiteral(false, -litNum);
+        // } else {
+        //     return GateLiteral(true, litNum);
+        // }
+    };
 
     while(std::getline(inputFile, line)) {
-        if (line == "" || line[0] == '#') {
+        if (firstLineParsed && (line[0] == '#' || line == "")) {
             continue;
         }
 
@@ -153,107 +89,83 @@ bool PrenexCleansedQCIRParser::parse(std::string fileName) {
         std::string token;
         streamLine >> token;
 
-        if (!prefixFinished) {
-            // processing quantifier prefix
+        if (!firstLineParsed) {
+            if (token != "#QCIR-14") {
+                throw dqbddException("First line of (D)QCIR file should start with '#QCIR-14'");
+            } else {
+                if (streamLine >> token) {
+                    maximumAllowedGateID = std::stoul(token);
+                    isCleansed = true;
+                }
+            }
+            firstLineParsed = true;
+            continue;
+        } else if (!prefixFinished) {  // processing quantifier prefix
+            std::transform(token.begin(), token.end(), token.begin(), [](unsigned char c){ return std::tolower(c); });
             if (token == "exists") {
                 while (streamLine >> token) {
-                    Variable existVar(std::stoul(token), mgr);
-                    if (DQBFPrefix.isVarUniv(existVar)) {
-                        throw dqbddException("Cannot have the same variable as both universal and existential.");
-                    }
-                    DQBFPrefix.addExistVar(existVar, DQBFPrefix.getUnivVars());
+                    addExistVar(getIDFromGateString(token), true);
+                }
+            } else if (token == "free") {
+                while (streamLine >> token) {
+                    addExistVar(getIDFromGateString(token), false);
                 }
             } else if (token == "forall") {
                 while (streamLine >> token) {
-                    Variable univVar(std::stoul(token), mgr);
-                    if (DQBFPrefix.isVarExist(univVar)) {
-                        throw dqbddException("Cannot have the same variable as both universal and existential.");
-                    }
-                    DQBFPrefix.addUnivVar(univVar);
+                    addUnivVar(getIDFromGateString(token));
                 }
             } else if (token == "depend") {
                 streamLine >> token;
-                Variable existVar(std::stoul(token), mgr);
-                if (DQBFPrefix.isVarUniv(existVar)) {
-                    throw dqbddException("Cannot have the same variable as both universal and existential.");
-                }
-                DQBFPrefix.addExistVar(existVar);
+                unsigned long existVarID = getIDFromGateString(token);
+                std::vector<unsigned long> dependenciesID;
                 while (streamLine >> token) {
-                    Variable univVar(std::stoul(token), mgr);
-                    if (!DQBFPrefix.isVarUniv(univVar)) {
-                        throw dqbddException("Not able to add existential variable which has non universal variable in dependency list.");
+                    if (token != "0") {
+                        dependenciesID.push_back(getIDFromGateString(token));
                     }
-                    DQBFPrefix.addDependency(existVar, univVar);
                 }
+                addExistVar(existVarID, dependenciesID);
             } else if (token == "output") {
                 streamLine >> token;
                 outputGate = getLiteralFromString(token);
                 prefixFinished = true;
             } else {
-                throw dqbddException("Unexpected token found in the quantifier prefix of the input file (maybe forgotten output gate?).");
+                throw dqbddException("Unexpected token found in the quantifier prefix of the input (D)QCIR file.");
             }
         } else {
             // processing gates
-            unsigned long inputGate = std::stoul(token);
+            unsigned long inputGateID = getIDFromGateString(token);
+            GateType inputGateType;
+            std::vector<GateLiteral> operands;
             
             streamLine >> token;
             if (token != "=") {
-                throw dqbddException("Unexpected token in input file");
+                throw dqbddException("Unexpected token found in the gates part of the input (D)QCIR file");
             }
             
-            OperationAndOperands ops;
-            
             streamLine >> token;
+            std::transform(token.begin(), token.end(), token.begin(), [](unsigned char c){ return std::tolower(c); });
+
             if (token == "and") {
-                ops.first = true;
+                inputGateType = GateType::AND;
             } else if (token == "or") {
-                ops.first = false;
+                inputGateType = GateType::OR;
+            } else if (token == "ite") {
+                inputGateType = GateType::MUX;
+            } else if (token == "xor") {
+                inputGateType = GateType::XOR;
             } else {
-                throw dqbddException("Only operations 'and' and 'or' are allowed in cleansed QCIR");
+                throw dqbddException("Unexpected token in the gates part of the input (D)QCIR file");
             }
             
             while (streamLine >> token) {
-                ops.second.push_back(getLiteralFromString(token));
+                operands.push_back(getLiteralFromString(token));
             }
 
-            if (gates.count(inputGate) > 0) {
-                throw dqbddException("There cannot be two definitions of the same gate");
-            }
-            gates[inputGate] = ops;
+            addGate(inputGateID, inputGateType, operands);
         }
     }
 
-    return false;
-}
-
-Formula* PrenexCleansedQCIRParser::getFormula() {
-    BDD matrix;
-    if (outputGate.first) {
-        matrix = getBDDFromGate(outputGate.second); 
-    } else {
-        matrix = !getBDDFromGate(outputGate.second);
-    }
-
-    Formula *DQBFformula = new Formula(mgr, DQBFPrefix);
-    DQBFPrefix.clear();
-    DQBFformula->setMatrix(matrix);
-    return DQBFformula;
-}
-
-QuantifierTreeNode* PrenexCleansedQCIRParser::getQuantifierTree() {
-    auto outputGateTree = getQTFromGate(outputGate.second);
-    if (!outputGate.first) {
-        outputGateTree->negate();
-    }
-    for (Variable uVar : DQBFPrefix.getUnivVars()) {
-        outputGateTree->addUnivVar(uVar);
-    }
-
-    for (Variable eVar : DQBFPrefix.getExistVars()) {
-        outputGateTree->addExistVar(eVar);
-    }
-    DQBFPrefix.clear();
-    return outputGateTree;
+    finishedParsing(outputGate.first, outputGate.second);
 }
 
 } // namespace dqbdd

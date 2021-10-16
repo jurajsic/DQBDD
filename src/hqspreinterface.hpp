@@ -20,24 +20,32 @@
 #ifndef DQBDD_HQSPRE_INTERFACE_HPP
 #define DQBDD_HQSPRE_INTERFACE_HPP
 
-#include <memory>
-#include <ostream>
+// #include <memory>
+// #include <ostream>
 
-#include "parser.hpp"
+#include "gateparser.hpp"
 
 namespace dqbdd {
+
+enum class HQSPreResult {
+    UNKNOWN,
+    SAT,
+    UNSAT,
+};
 
 /**
  * @brief Parser which uses HQSpre preprocessor to also preprocess the parsed formula
  */
-class HQSPreInterface : public Parser {
+class HQSPreInterface : public GateParser {
 private:
     // using pimpl idiom to hide the implementation of HQSPre
-    class HQSPreFormulaWrapper;
-    std::unique_ptr<HQSPreFormulaWrapper> formulaPtr;
+    // class HQSPreFormulaWrapper;
+    // std::unique_ptr<HQSPreFormulaWrapper> formulaPtr;
 
-    Cudd &mgr;
-    QuantifiedVariablesManipulator DQBFPrefix;
+    // Cudd &mgr;
+    // QuantifiedVariablesManipulator DQBFPrefix;
+
+    HQSPreResult result = HQSPreResult::UNKNOWN;
 public:
     HQSPreInterface(Cudd &mgr, QuantifiedVariablesManager &qvmgr);
     /**
@@ -46,12 +54,15 @@ public:
      * @param fileName name of the file to parse
      * @return true if formula was solved by preprocessor
      */
-    bool parse(std::string fileName) override;
-    Formula* getFormula() override;
-    QuantifierTreeNode* getQuantifierTree() override;
-    ~HQSPreInterface();
+    // TODO change bool to void and add some member to check if solved by preprocessor
+    void parse(std::string fileName) override;
 
-    void turnIntoDQCIR(std::ostream &output);
+    HQSPreResult getPreprocessorResult();
+    // Formula* getFormula() override;
+    // QuantifierTreeNode* getQuantifierTree() override;
+    // ~HQSPreInterface();
+
+    // void turnIntoDQCIR(std::ostream &output);
 };
 
 } // namespace dqbdd

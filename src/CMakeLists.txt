@@ -17,6 +17,8 @@ add_executable(dqbdd
                 dqdimacsparser.hpp
                 prenexcleansedqcirparser.cpp
                 prenexcleansedqcirparser.hpp
+                gateparser.cpp
+                gateparser.hpp
                 )
 target_link_libraries(dqbdd PUBLIC cudd
                             PUBLIC hqspre
