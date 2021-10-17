@@ -71,12 +71,6 @@ void PrenexDQCIRParser::parse(std::string fileName) {
         } else {
             return GateLiteral(true, getIDFromGateString(LiteralStr));
         }
-        // long litNum = std::stol(LiteralStr);
-        // if (litNum < 0) {
-        //     return GateLiteral(false, -litNum);
-        // } else {
-        //     return GateLiteral(true, litNum);
-        // }
     };
 
     while(std::getline(inputFile, line)) {

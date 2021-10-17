@@ -261,9 +261,7 @@ void HQSPreInterface::parse(std::string fileName) {
     std::vector<GateLiteral> clauseGateIDs;
     for (hqspre::ClauseID c_nr = 0; c_nr <= formula.maxClauseIndex(); c_nr++) {
         if (!formula.clauseDeleted(c_nr)) {
-
-            //outputSS << gateVarId << " = or(";
-
+            
             const auto& clause = formula.getClause(c_nr);
 
             std::vector<GateLiteral> clauseLiterals;

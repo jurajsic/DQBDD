@@ -25,19 +25,15 @@
 namespace dqbdd {
 
 /**
- * @brief Simple parser of formulas in (DQ)DIMACS format
+ * @brief Parser of formulas in (DQ)DIMACS format
  */
 class DQDIMACSParser : public GateParser {
-    //Cudd &mgr;
-    //QuantifiedVariablesManipulator DQBFPrefix;
-
-    //using Literal = std::pair<bool,Variable>;
-    //std::vector<std::vector<Literal>> clauses;
 public:
     DQDIMACSParser(Cudd &mgr, QuantifiedVariablesManager &qvmgr);
+    /**
+     * @brief Parses DQBF from file in (DQ)DIMACS format
+     */
     void parse(std::string fileName) override;
-    //Formula* getFormula() override;
-    //QuantifierTreeNode* getQuantifierTree() override;
 };
 
 } // namespace dqbdd

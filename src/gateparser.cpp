@@ -154,11 +154,11 @@ void GateParser::addGate(unsigned long gateID, GateType type, const std::vector<
     }
 }
 
-void GateParser::finishedParsing(bool outputGateNegation, unsigned long outputGateID) {
+void GateParser::finishedParsing(bool isOutputGatePositive, unsigned long outputGateID) {
     if (gateIDToGate.count(outputGateID) == 0) {
         throw dqbddException("Trying to finish parsing with an output gate ID that does not denote any gate");
     }
-    outputGateLiteral = std::make_pair(outputGateNegation, outputGateID);
+    outputGateLiteral = std::make_pair(isOutputGatePositive, outputGateID);
     isFormulaParsed = true;
 }
 
@@ -223,7 +223,6 @@ Formula* GateParser::getFormula() {
 
                 case GateType::VAR:
                 {
-                    // TODO check if i'm adding variables to DQBFprefix during addGate
                     result = Variable(processedGateID, mgr);
                     break;
                 }

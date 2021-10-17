@@ -20,9 +20,6 @@
 #ifndef DQBDD_HQSPRE_INTERFACE_HPP
 #define DQBDD_HQSPRE_INTERFACE_HPP
 
-// #include <memory>
-// #include <ostream>
-
 #include "gateparser.hpp"
 
 namespace dqbdd {
@@ -34,35 +31,21 @@ enum class HQSPreResult {
 };
 
 /**
- * @brief Parser which uses HQSpre preprocessor to also preprocess the parsed formula
+ * @brief Parser of formulas in (DQ)DIMACS format that also uses HQSpre preprocessor
  */
 class HQSPreInterface : public GateParser {
 private:
-    // using pimpl idiom to hide the implementation of HQSPre
-    // class HQSPreFormulaWrapper;
-    // std::unique_ptr<HQSPreFormulaWrapper> formulaPtr;
-
-    // Cudd &mgr;
-    // QuantifiedVariablesManipulator DQBFPrefix;
-
     HQSPreResult result = HQSPreResult::UNKNOWN;
 public:
     HQSPreInterface(Cudd &mgr, QuantifiedVariablesManager &qvmgr);
     /**
      * @brief Parses a file in DQDIMACS format and runs HQSpre preprocessor
-     * 
-     * @param fileName name of the file to parse
-     * @return true if formula was solved by preprocessor
      */
-    // TODO change bool to void and add some member to check if solved by preprocessor
     void parse(std::string fileName) override;
-
+    /**
+     * @brief Agter parsing, returns the result of HQSpre preprocessing
+     */
     HQSPreResult getPreprocessorResult();
-    // Formula* getFormula() override;
-    // QuantifierTreeNode* getQuantifierTree() override;
-    // ~HQSPreInterface();
-
-    // void turnIntoDQCIR(std::ostream &output);
 };
 
 } // namespace dqbdd

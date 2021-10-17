@@ -37,7 +37,7 @@ enum class GateType {
     VAR,
 };
 
-// bool represents if the gate is negated (if false, then it is negated), num is gate id
+// bool represents if the gate is negated (if false, then it is negated), unsigned long is gate id
 using GateLiteral = std::pair<bool, unsigned long>;
 
 struct Gate {
@@ -46,6 +46,10 @@ struct Gate {
     std::vector<GateLiteral> operands;
 };
 
+/**
+ * @brief Base class of DQBF parser with gates
+ * Derived parsers must implement the method parse
+ */
 class GateParser : public Parser {
 private:
     Cudd &mgr;
@@ -54,7 +58,7 @@ private:
     GateLiteral outputGateLiteral;
     std::unordered_map<unsigned long, Gate> gateIDToGate;
 
-    // ordered list of gates ID based on when they were added to the parser
+    // ordered list of gates ID based on when they were added to the parser (used for printing to DQCIR)
     std::list<unsigned long> gateInputOrder;
 
     unsigned long maxGateID = 0;
@@ -62,66 +66,134 @@ private:
     // true if parse(fileName) was called and we have not transformed formula either with getForumla() or getQuantifierTree()
     bool isFormulaParsed = false;
 
-    // TODO description
+    /**
+     * @brief Adds new gate with given type and operands and saves it at given position of gateIDToGate
+     * 
+     * @param position The position in gateIDToGate before which the newly added gate will be saved
+     * @return the ID of the newly added gate 
+     */
     unsigned long addNewGateAtPositionWithoutChecks(GateType type, const std::vector<GateLiteral> &operands, const std::list<unsigned long>::iterator &position);
 
-    // TODO description
+    /**
+     * @brief Replaces MUX and XOR gates with combination of AND and OR gates 
+     */
     void removeMUXAndXORGates();
 
-    // TODO describe - fucks up order of gateIDToGate, can only be used if we are not plannign to print after
+    /**
+     * @brief Transforms the gates into negation normal form (contains only AND and OR gates and negation is only before VAR gates) 
+     * Important: The order of gateInputOrder will be wrong after calling this function, can be therefore used only if we are 
+     * "using up" the parser (i.e. in the getQuantifierTree() method)
+     */
     void transformToNNF();
+    // helping map for transformToNNF(), maps gate IDs to their negated gates' ID
     std::unordered_map<unsigned long, unsigned long> gateIDToNegatedGateID;
-    // TODO describe - fucks up order of gateIDToGate, can only be used if we are not plannign to print after
+    // helping function for transformToNNF(), creates or gets already created negated gate ID of given gate ID (gateInputOrder is wrong after this)
     unsigned long getNegatedGateID(unsigned long gateIDToNegate);
-    // TODO describe - fucks up order of gateIDToGate, can only be used if we are not plannign to print after
+    /* helping function for transformToNNF(), recursively pushes the negations in the given gate literal 
+     * (calling this on outputGate will transform the gates into negation normal form, assuming there are no MUX and XOR gates)
+     */
     void pushNegation(GateLiteral &gateLiteralToPushNegation);
 
-    // TODO description
+    // used for printing gates into DQCIR, this function prints the prefix and the gates (only header is missing)
     void printPrefixAndGates(std::ostream &output);
 
 protected:
-    // TODO describe that existVarID is also the ID of the corresponding var gate; variable can be added at most once
+    /**
+     * @brief Adds existential variable to prefix
+     * Adds existential variable with ID existVarID to the DQBF prefix and a VAR gate with the same ID. Adding VAR gate 
+     * for this variable after calling this function will result in thrown exception! Also, adding another variable with
+     * the same ID will throw an exception (even if we add it as an existential again). 
+     * If dependsOnAllDefinedUnivVars is true, this existential variable will depend on all already added universal variables,
+     * otherwise it has an empty dependency set.
+     */
     void addExistVar(unsigned long existVarID, bool dependsOnAllDefinedUnivVars = false);
+    /**
+     * @brief Adds existential variable to prefix with given dependency set
+     * Adds existential variable with ID existVarID to the DQBF prefix and a VAR gate with the same ID. Adding VAR gate 
+     * for this variable after calling this function will result in thrown exception! Also, adding another variable with
+     * the same ID will throw an exception (even if we add it as an existential again). 
+     * Newly added existential variable will depend on all universal variables with IDs from dependencySetVarIDs. The
+     * variables from the dependency set must have been already added as universal variables with addUnivVar.
+     */
     void addExistVar(unsigned long existVarID, const std::vector<unsigned long> &dependencySetVarIDs);
+    /**
+     * @brief Adds universal variable to prefix
+     * Adds universal variable with ID univVarID to the DQBF prefix and a VAR gate with the same ID. Adding VAR gate 
+     * for this variable after calling this function will result in thrown exception! Also, adding another variable with
+     * the same ID will throw an exception (even if we add it as an universal again).
+     */
     void addUnivVar(unsigned long univVarID);
 
-    // TODO description
+    /**
+     * @brief Adds new gate with given ID and type and without operands
+     */
     void addGate(unsigned long gateID, GateType type);
-    // TODO description - operands should be already added gates, or they should be var (implicitly existential without dependencies, if they are not in DQBFprefix)
+    /**
+     * @brief Adds new gate with given ID, type and operands
+     * The operands should be gate literals with gates which were already added into this parser (except for VAR gates).
+     * If an operand is a VAR gate, then it will be added as a new existential variable without dependencies.
+     */
     void addGate(unsigned long gateID, GateType type, const std::vector<GateLiteral> &operands);
-    // TODO describe (adding a new gate with automatic ID which is returned)
+    /**
+     * @brief Adds a new gate with a given type and without operands
+     * 
+     * @return the ID of the newly added gate 
+     */
     unsigned long addGate(GateType type);
+    /**
+     * @brief Adds new gate with given type and operands
+     * The operands should be gate literals with gates which were already added into this parser (except for VAR gates).
+     * If an operand is a VAR gate, then it will be added as a new existential variable without dependencies.
+     * 
+     * @return the ID of the newly added gate 
+     */
     unsigned long addGate(GateType type, const std::vector<GateLiteral> &operands);
     // TODO description (change name of outputGateNegation, because if it is true, then the output is not negated)
-    void finishedParsing(bool outputGateNegation, unsigned long outputGateID);
+    /**
+     * @brief Method which should be called after parsing is finished with the output gate
+     * 
+     * @param isOutputGatePositive if false, the output from output gate is negated
+     */
+    void finishedParsing(bool isOutputGatePositive, unsigned long outputGateID);
 
 public:
-    // TODO description
     GateParser(Cudd &mgr, QuantifiedVariablesManager &qvmgr);
 
-    // TODO explain that this function should parse formula from some file by adding gates using addGate and at the end finishedParsing should be called with outputGate
+    /**
+     * @brief Parses DQBF formula from file
+     * Derived class should implement this method where it should add existential and universal variables to DQBF prefix
+     * using addExistVar and addUnivVar methods. It should also add gates using any of the addGate methods. Finally,
+     * after parsing is finished, the method finishedParsing should be called by which the output gate can be defined.
+     */
     virtual void parse(std::string fileName) override = 0;
     /**
      * @brief Get DQBF from formula saved as gates in this parser
      * 
      * Can be only used after parsing a formula saved in some file with parse(fileName) and by using
-     * this method, the parsed formula is deleted from this parser
+     * this method, the parsed formula is deleted from this parser.
      */
     Formula* getFormula() override;
     /**
      * @brief Get DQBF as a quantifier tree from formula saved as gates in this parser
      * 
      * Can be only used after parsing a formula saved in some file with parse(fileName) and by using
-     * this method, the parsed formula is deleted from this parser
+     * this method, the parsed formula is deleted from this parser.
      */
     QuantifierTreeNode* getQuantifierTree() override;
 
-    // TODO description
+    /**
+     * @brief Prints the DQBF saved in this parser as prenex DQCIR format
+     */
     void printPrenexDQCIR(std::ostream &output);
-    // TODO description - important: removes MUX and XOR gates!
+    /**
+     * @brief Prints the DQBF saved in this parser as prenex cleansed DQCIR format
+     * Important: MUX and XOR gates will be replaced with combination of AND and XOR gates.
+     */
     void printPrenexCleansedDQCIR(std::ostream &output);
 
-    // TODO description
+    /**
+     * @brief Clears this parser, making it possible to use it for parsing again
+     */
     void clearParser();
 };
 

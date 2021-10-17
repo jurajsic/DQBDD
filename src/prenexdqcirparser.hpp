@@ -31,36 +31,20 @@
 namespace dqbdd {
 
 /**
- * @brief Parser of formulas in prenex cleansed (D)QCIR format
+ * @brief Parser of formulas in prenex (D)QCIR format
  * 
- * Prenex cleansed QCIR format is defined at qbflib website, we define prenex cleansed DQCIR format as QCIR 
+ * Prenex QCIR format is defined at http://www.qbflib.org/qcir.pdf, we define prenex DQCIR format as QCIR 
  * where quantifier of type depend(v, v1, ..., vn) can be used in any place that exists or forall quantifier 
  * can be used in QCIR. It represents existential variable v with dependency set Dv = {v1, ..., vn}. It is 
- * assumed that v1, ..., vn were already defined as universal variables.
+ * assumed that v1, ..., vn were already defined as universal variables (i.e. with forall quantifier).
  */
 class PrenexDQCIRParser : public GateParser {
-    // Cudd &mgr;
-    // QuantifiedVariablesManipulator DQBFPrefix;
-
-    // // bool says if it is negated or not (true is not, false it is), unsigned long is the gate/var number
-    // using Literal = std::pair<bool, unsigned long>;
-    // // bool - true=and, false=or; vector of Literals = operands
-    // using OperationAndOperands = std::pair<bool, std::vector<Literal>>;
-
-    // Literal outputGate;
-    // std::unordered_map<unsigned long, OperationAndOperands> gates;
-
-    // Literal getLiteralFromString(std::string LiteralStr);
-
-    // BDD getBDDFromGate(unsigned long gate);
-    // QuantifierTreeNode* getQTFromGate(unsigned long gate);
-
 public:
     PrenexDQCIRParser(Cudd &mgr, QuantifiedVariablesManager &qvmgr);
-    // returns true if resulting formula is trivial (equal to TRUE or FALSE) - can also mean that preprocessor solved
+    /**
+     * @brief Parses DQBF from file in prenex DQCIR format
+     */
     void parse(std::string fileName) override;
-    // Formula* getFormula() override;
-    // QuantifierTreeNode* getQuantifierTree() override;
 };
 
 } // namespace dqbdd
