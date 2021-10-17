@@ -171,13 +171,16 @@ public:
      * 
      * Can be only used after parsing a formula saved in some file with parse(fileName) and by using
      * this method, the parsed formula is deleted from this parser.
+     * 
+     * @return pointer to resulting formula, needs to be later deleted
      */
     Formula* getFormula() override;
     /**
      * @brief Get DQBF as a quantifier tree from formula saved as gates in this parser
-     * 
      * Can be only used after parsing a formula saved in some file with parse(fileName) and by using
-     * this method, the parsed formula is deleted from this parser.
+     * this method, the parsed formula is deleted from this parser. The result should be also later deleted!
+     * 
+     * @return pointer to resulting quantifier tree, needs to be later deleted
      */
     QuantifierTreeNode* getQuantifierTree() override;
 
