@@ -26,14 +26,14 @@ namespace dqbdd {
 
 QuantifierTreeNode::QuantifierTreeNode(QuantifiedVariablesManager &qvmgr) : QuantifiedVariablesManipulator(qvmgr) {}
 
-void QuantifierTreeNode::pushExistVar(Variable var) {
+void QuantifierTreeNode::pushExistVar(const Variable &var) {
     // only put var in this node if it is used in this node
     if (getSupportSet().contains(var)) {
         addExistVar(var);
     }
 }
 
-void QuantifierTreeNode::pushUnivVar(Variable var) {
+void QuantifierTreeNode::pushUnivVar(const Variable &var) {
     /* We do not need to rename universal variables,
      * because we assume all existential variables
      * depending on it in this subtree are not in 
@@ -593,12 +593,12 @@ QuantifierTreeFormula* QuantifierTree::changeToFormula(Cudd &mgr) {
     return f;
 }
 
-void QuantifierTree::negate() {
-    isConj = !isConj;
-    for (QuantifierTreeNode *child : children) {
-        child->negate();
-    }
-}
+// void QuantifierTree::negate() {
+//     isConj = !isConj;
+//     for (QuantifierTreeNode *child : children) {
+//         child->negate();
+//     }
+// }
 
 void QuantifierTree::addChild(QuantifierTreeNode *child, bool collapseChildren) {
 
@@ -676,9 +676,9 @@ QuantifierTreeFormula* QuantifierTreeFormula::changeToFormula(Cudd &) {
     return this;
 }
 
-void QuantifierTreeFormula::negate() {
-    setMatrix(!getMatrix());
-}
+// void QuantifierTreeFormula::negate() {
+//     setMatrix(!getMatrix());
+// }
 
 // computes supportSet and uVarsSupportSet
 void QuantifierTreeFormula::computeSupportSets() {

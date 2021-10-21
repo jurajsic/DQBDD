@@ -38,6 +38,9 @@ protected:
     // the set of universal variables in support set or in dependecy set of ex. var in support set
     VariableSet uVarsSupportSet = {};
 
+    // TODO pouzit k sharovaniu subtrees
+    unsigned numOfParents = 0;
+
 public:
     QuantifierTreeNode(QuantifiedVariablesManager &qvmgr);
     virtual ~QuantifierTreeNode() = default;
@@ -50,15 +53,15 @@ public:
      */
     virtual void localise(const VariableSet &uVarsOutsideThisSubtree) = 0;
     // pushes the existential variable var into this node
-    void pushExistVar(Variable var);
+    void pushExistVar(const Variable &var);
     // pushes the universal variable var into this node
-    void pushUnivVar(Variable var);
+    void pushUnivVar(const Variable &var);
     /**
      * @brief Changes this instance of node into a formula
      */
     virtual QuantifierTreeFormula* changeToFormula(Cudd &mgr) = 0;
     // negates this node
-    virtual void negate() = 0;
+    // virtual void negate() = 0;
 
     virtual VariableSet const &getUVarsSupportSet();
 };
@@ -74,11 +77,20 @@ public:
     QuantifierTreeFormula(const Cudd &mgr, QuantifiedVariablesManipulator &qvManipulator);
     void localise(const VariableSet&) override;
     QuantifierTreeFormula* changeToFormula(Cudd &) override;
-    void negate() override;
+    // void negate() override;
 
     VariableSet const &getSupportSet() override;
     VariableSet const &getUVarsSupportSet() override;
     //void addToUVarsOutsideThisSubtree(const VariableSet &varsToAdd) override;
+};
+
+// TODO dat ako deti tree, aby sme mohli lahko menit z tree na formula ked su sharovane
+struct QuantifierTreeConnection {
+    QuantifierTreeNode *child;
+
+    void changeChildToQuantifierTreeFormula(Cudd &mgr) {
+        child = child->changeToFormula(mgr);
+    }
 };
 
 /**
@@ -213,7 +225,7 @@ public:
      * @return Pointer to the resulting instance of Formula, needs to be deleted after it was used
      */
     QuantifierTreeFormula* changeToFormula(Cudd &mgr) override;
-    void negate() override;
+    // void negate() override;
 };
 
 } // namespace dqbdd
