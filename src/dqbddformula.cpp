@@ -166,6 +166,10 @@ void Formula::eliminateExistVars(VariableSet existVarsToEliminate) {
 }
 
 VariableSet Formula::getPossibleExistVarsToEliminate() {
+    if (getExistVars().empty()) {
+        return VariableSet();
+    }
+
     // the set of univ vars on which exist vars that are possible to eliminate need to depend on
     VariableSet univVarsNeededToDependOn;
 
@@ -453,6 +457,10 @@ void Formula::printStats() {
     std::cout << "The BDD has " << matrix.nodeCount() 
                 << " nodes and there are " << getUnivVars().size() << " universal and "
                 << getExistVars().size() << " existential variables quantified in the formula." << std::endl;
+}
+
+const Cudd& Formula::getMgr() {
+    return mgr;
 }
 
 } // namespace dqbdd

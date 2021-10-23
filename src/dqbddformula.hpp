@@ -52,6 +52,8 @@ private:
 protected:
     bool needsToRecomputeSupportSet() const;
 
+    const Cudd& getMgr();
+
 public:
     Formula() = delete;
     Formula(const Cudd &mgr, QuantifiedVariablesManager &qvmgr);

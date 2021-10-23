@@ -254,89 +254,125 @@ QuantifierTreeNode* GateParser::getQuantifierTree() {
 
     transformToNNF();
 
-    std::function<QuantifierTreeNode*(const GateLiteral&)> gateLitToTree;
+    std::unordered_map<unsigned long, QuantifierTreeConnection*> gateIDtoQuantifierTreeConnection;
+    // for VAR gates, we want to save both non-negated and negated versions, other gates should not have negation in front
+    std::unordered_map<unsigned long, QuantifierTreeConnection*> gateIDtoNegatedQuantifierTreeConnection;
+
+    std::function<QuantifierTreeConnection*(const GateLiteral&)> gateLitToTree;
     // isRoot is ugly, but needed to copy variables from DQBFPrefix to the root of tree
-    gateLitToTree = [&](const GateLiteral &processedGateLit)->QuantifierTreeNode* {
-        QuantifierTreeNode* result;
+    gateLitToTree = [&](const GateLiteral &processedGateLit)->QuantifierTreeConnection* {
+        bool isProcessedGatePositive = processedGateLit.first;
         auto &processedGateID = processedGateLit.second;
         auto &processedGate = gateIDToGate[processedGateID];
-        switch (processedGate.type)
-        {
-            case GateType::AND:
+
+        if (isProcessedGatePositive && (gateIDtoQuantifierTreeConnection.count(processedGateID) > 0)) { // if gate is not negated and we already processed it before...
+            return gateIDtoQuantifierTreeConnection[processedGateID];
+        } else if (!isProcessedGatePositive && processedGate.type == GateType::VAR 
+                    && gateIDtoNegatedQuantifierTreeConnection.count(processedGateID) > 0) { // ...or if gate is negated var we already processed before....
+            return gateIDtoNegatedQuantifierTreeConnection[processedGateID];
+        } else { //... otherwise, we have to compute it
+            QuantifierTreeConnection* result;
+            switch (processedGate.type)
             {
-                if (!processedGateLit.first) {
-                    throw dqbddException(std::string("During transformation of AND gate ") + std::to_string(processedGateID) + std::string(" to quantifier tree, there was a negation before it"));
-                }
-                std::list<QuantifierTreeNode*> treeOperands;
-                for (const auto &operandGateLiteral : processedGate.operands) {
-                    treeOperands.push_back(gateLitToTree(operandGateLiteral));
+                case GateType::AND:
+                {
+                    if (!processedGateLit.first) {
+                        throw dqbddException(std::string("During transformation of AND gate ") + std::to_string(processedGateID) + std::string(" to quantifier tree, there was a negation before it"));
+                    }
+                    std::list<QuantifierTreeConnection*> treeOperands;
+                    for (const auto &operandGateLiteral : processedGate.operands) {
+                        treeOperands.push_back(gateLitToTree(operandGateLiteral));
+                    }
+
+                    if (treeOperands.size() == 0) { // if AND gate does not have operands, it represents the constant true
+                        QuantifierTreeFormula *DQBFtrue = new QuantifierTreeFormula(mgr, *DQBFPrefix.getManager());
+                        DQBFtrue->setMatrix(mgr.bddOne());
+                        result = new QuantifierTreeConnection(DQBFtrue);
+                    } else if (treeOperands.size() == 1) { // for one operand we just return the tree of this operand
+                        result = *treeOperands.begin();
+                    } else {
+                        result = new QuantifierTreeConnection(new QuantifierTree(true, treeOperands, *DQBFPrefix.getManager()));
+                    }
+                    break;
                 }
 
-                if (treeOperands.size() == 0) { // if AND gate does not have operands, it represents the constant true
-                    QuantifierTreeFormula *DQBFtrue = new QuantifierTreeFormula(mgr, *DQBFPrefix.getManager());
-                    DQBFtrue->setMatrix(mgr.bddOne());
-                    result = DQBFtrue;
-                } else if (treeOperands.size() == 1) { // for one operand we just return the tree of this operand
-                    result = *treeOperands.begin();
-                } else {
-                    result = new QuantifierTree(true, treeOperands, *DQBFPrefix.getManager());
+                case GateType::OR:
+                {
+                    if (!processedGateLit.first) {
+                        throw dqbddException(std::string("During transformation of OR gate ") + std::to_string(processedGateID) + std::string(" to quantifier tree, there was a negation before it"));
+                    }
+                    std::list<QuantifierTreeConnection*> treeOperands;
+                    for (const auto &operandGateLiteral : processedGate.operands) {
+                        treeOperands.push_back(gateLitToTree(operandGateLiteral));
+                    }
+
+                    if (treeOperands.size() == 0) { // if OR gate does not have operands, it represents the constant false
+                        QuantifierTreeFormula *DQBFfalse = new QuantifierTreeFormula(mgr, *DQBFPrefix.getManager());
+                        DQBFfalse->setMatrix(mgr.bddZero());
+                        result = new QuantifierTreeConnection(DQBFfalse);
+                    } else if (treeOperands.size() == 1) { // for one operand we just return the tree of this operand
+                        result = *treeOperands.begin();
+                    } else {
+                        result = new QuantifierTreeConnection(new QuantifierTree(false, treeOperands, *DQBFPrefix.getManager()));
+                    }
+                    break;
                 }
-                break;
+
+                case GateType::VAR:
+                {
+                    QuantifierTreeFormula *varFormula = new QuantifierTreeFormula(mgr, *DQBFPrefix.getManager());
+                    Variable resultingVar = Variable(processedGateID, mgr);
+                    varFormula->setMatrix((processedGateLit.first ? resultingVar : !resultingVar));
+                    result = new QuantifierTreeConnection(varFormula);
+                    break;
+                }
+
+                default:
+                {
+                    // this should not happen
+                    throw dqbddException("An unsupported gate was encountered during transformation to quantifier tree");
+                    break;
+                }
             }
 
-            case GateType::OR:
-            {
-                if (!processedGateLit.first) {
-                    throw dqbddException(std::string("During transformation of OR gate ") + std::to_string(processedGateID) + std::string(" to quantifier tree, there was a negation before it"));
-                }
-                std::list<QuantifierTreeNode*> treeOperands;
-                for (const auto &operandGateLiteral : processedGate.operands) {
-                    treeOperands.push_back(gateLitToTree(operandGateLiteral));
-                }
-
-                if (treeOperands.size() == 0) { // if OR gate does not have operands, it represents the constant false
-                    QuantifierTreeFormula *DQBFfalse = new QuantifierTreeFormula(mgr, *DQBFPrefix.getManager());
-                    DQBFfalse->setMatrix(mgr.bddZero());
-                    result = DQBFfalse;
-                } else if (treeOperands.size() == 1) { // for one operand we just return the tree of this operand
-                    result = *treeOperands.begin();
-                } else {
-                    result = new QuantifierTree(false, treeOperands, *DQBFPrefix.getManager());
-                }
-                break;
+            if (isProcessedGatePositive) {
+                gateIDtoQuantifierTreeConnection[processedGateID] = result;
+            } else {
+                gateIDtoNegatedQuantifierTreeConnection[processedGateID] = result;
             }
 
-            case GateType::VAR:
-            {
-                QuantifierTreeFormula *varFormula = new QuantifierTreeFormula(mgr, *DQBFPrefix.getManager());
-                Variable resultingVar = Variable(processedGateID, mgr);
-                varFormula->setMatrix((processedGateLit.first ? resultingVar : !resultingVar));
-                result = varFormula;
-                break;
-            }
-
-            default:
-            {
-                // this should not happen
-                throw dqbddException("An unsupported gate was encountered during transformation to quantifier tree");
-                break;
-            }
+            return result;
         }
-        return result;
     };
 
-    auto res = gateLitToTree(outputGateLiteral);
+    QuantifierTreeConnection *rootConnection = gateLitToTree(outputGateLiteral);
+    QuantifierTreeNode *root = rootConnection->child;
 
     // we move variables from DQBFPrefix to root of quantifier tree (as is done in constructor that takes quantifier manipulator)
     for (Variable uVar : DQBFPrefix.getUnivVars()) {
-        res->addUnivVar(uVar);
+        root->addUnivVar(uVar);
     }
     for (Variable eVar : DQBFPrefix.getExistVars()) { // dependencies are not needed to move, they are saved in qvMgr of DQBFPrefix
-        res->addExistVar(eVar);
+        root->addExistVar(eVar);
     }
 
     clearParser();
-    return res;
+
+    // some trees might not be children of the final tree (a collapsion for the same operation might have happened), we need to delete unused trees
+    for (const auto &pair : gateIDtoQuantifierTreeConnection) {
+        QuantifierTreeConnection *connection = pair.second;
+        if (connection != rootConnection && connection->child->getNumOfParents() == 0) {
+            delete connection->child;
+            delete connection;
+        }
+    }
+
+    // we do not need to delete from gateIDtoNegatedQuantifierTreeConnection, as all of them should be created from VAR gates that cannot collapse
+    
+    // we need to delete also root connection, as we do not need it and it cannot be used as a child
+    delete rootConnection;
+
+    return root;
 }
 
 void GateParser::printPrenexDQCIR(std::ostream &output) {

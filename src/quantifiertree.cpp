@@ -61,51 +61,71 @@ VariableSet const& QuantifierTreeNode::getUVarsSupportSet() {
     return uVarsSupportSet;
 }
 
+void QuantifierTreeNode::decreaseNumOfParents() {
+    --numOfParents;
+}
+
+void QuantifierTreeNode::increaseNumOfParents() {
+    ++numOfParents;
+}
+
+unsigned QuantifierTreeNode::getNumOfParents() {
+    return numOfParents;
+}
+
 /*******************************************/
 /*******************************************/
 /************ QUANTIFIER TREE **************/
 /*******************************************/
 /*******************************************/ 
 
-QuantifierTree::QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> children, QuantifiedVariablesManager &qvMgr, bool collapseChildren) : QuantifiedVariablesManipulator(qvMgr), QuantifierTreeNode(qvMgr), isConj(isConj) {
+QuantifierTree::QuantifierTree(bool isConj, std::list<QuantifierTreeConnection*> childrenConnections, QuantifiedVariablesManager &qvMgr, bool collapseChildren, bool changeNumOfParents) : QuantifiedVariablesManipulator(qvMgr), QuantifierTreeNode(qvMgr), isConj(isConj) {
     supportSet = {};
     uVarsSupportSet = {};
-    if (children.size() < 2) {
-        throw dqbddException((std::string("You cannot create a quantifier tree with ") + std::to_string(children.size()) + std::string(" operands")).c_str());
+    if (childrenConnections.size() < 2) {
+        throw dqbddException((std::string("You cannot create a quantifier tree with ") + std::to_string(childrenConnections.size()) + std::string(" operands")).c_str());
     }
-    for (QuantifierTreeNode *child : children) {
-        addChild(child, collapseChildren);
+    for (QuantifierTreeConnection *childConnection : childrenConnections) {
+        addChild(childConnection, collapseChildren, changeNumOfParents);
     }
 }
 
-QuantifierTree::QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> children, QuantifiedVariablesManipulator &qvManipulator, bool collapseChildren) : QuantifiedVariablesManipulator(qvManipulator), QuantifierTreeNode(*qvManipulator.getManager()), isConj(isConj) {
+QuantifierTree::QuantifierTree(bool isConj, std::list<QuantifierTreeConnection*> childrenConnections, QuantifiedVariablesManipulator &qvManipulator, bool collapseChildren) : QuantifiedVariablesManipulator(qvManipulator), QuantifierTreeNode(*qvManipulator.getManager()), isConj(isConj) {
     supportSet = {};
     uVarsSupportSet = {};
-    if (children.size() < 2) {
-        throw dqbddException((std::string("You cannot create a quantifier tree with ") + std::to_string(children.size()) + std::string(" operands")).c_str());
+    if (childrenConnections.size() < 2) {
+        throw dqbddException((std::string("You cannot create a quantifier tree with ") + std::to_string(childrenConnections.size()) + std::string(" operands")).c_str());
     }
-    for (QuantifierTreeNode *child : children) {
-        addChild(child, collapseChildren);
+    for (QuantifierTreeConnection *childConnection : childrenConnections) {
+        addChild(childConnection, collapseChildren);
     }
 }
 
 QuantifierTree::~QuantifierTree() {
-    for (QuantifierTreeNode *child : children) {
-        delete child;
+    for (QuantifierTreeConnection *childConnection : childrenConnections) {
+        deleteChildConnection(childConnection);
     }
 }
 
-bool QuantifierTree::removeFromOrderedListOtherOrderedListUsingChildrenOrder(std::list<QuantifierTreeNode*> &listToRemoveFrom, std::list<QuantifierTreeNode*> &listOfItemsToRemove) {
+void QuantifierTree::deleteChildConnection(QuantifierTreeConnection *childConnection) {
+    childConnection->child->decreaseNumOfParents();
+    if (childConnection->child->getNumOfParents() == 0) {
+        delete childConnection->child;
+        delete childConnection;
+    }
+}
+
+bool QuantifierTree::removeFromOrderedListOtherOrderedListUsingChildrenOrder(std::list<QuantifierTreeConnection*> &listToRemoveFrom, std::list<QuantifierTreeConnection*> &listOfItemsToRemove) {
     //std::cout << "Deleting from list of size " << listToRemoveFrom.size() << " the list of size " << listOfItemsToRemove.size() << " using children order of size " << children.size() << std::endl;
     
-    auto childrenCopy = children;
-    auto orderIter = childrenCopy.begin();
+    auto childrenConnectionsCopy = childrenConnections;
+    auto orderIter = childrenConnectionsCopy.begin();
     auto listToRemoveFromIter = listToRemoveFrom.begin();
     auto listOfItemsToRemoveIter = listOfItemsToRemove.begin();
 
     bool somethingWasDeleted = false;
 
-    while (orderIter != childrenCopy.end() && listToRemoveFromIter != listToRemoveFrom.end() && listOfItemsToRemoveIter != listOfItemsToRemove.end()) {
+    while (orderIter != childrenConnectionsCopy.end() && listToRemoveFromIter != listToRemoveFrom.end() && listOfItemsToRemoveIter != listOfItemsToRemove.end()) {
         if (*orderIter == *listToRemoveFromIter && *listToRemoveFromIter == *listOfItemsToRemoveIter) {
             auto iterToDelete = listToRemoveFromIter;
             ++listToRemoveFromIter;
@@ -127,25 +147,26 @@ bool QuantifierTree::removeFromOrderedListOtherOrderedListUsingChildrenOrder(std
 }
 
 void QuantifierTree::addExistVarsToChildrenToCombineMapping(const VariableSet &eVarsToAdd) {
-    for (QuantifierTreeNode *child : children) {
-        const VariableSet &childSupportSet = child->getSupportSet();
+    for (QuantifierTreeConnection *childConnection : childrenConnections) {
+        //QuantifierTreeNode *child = childConnection->child;
+        const VariableSet &childSupportSet = childConnection->child->getSupportSet();
         for (const Variable &eVar : eVarsToAdd) {
             if (childSupportSet.contains(eVar)) {
                 // we add only those children which contain eVar
-                childrenToCombineMapping[eVar].push_back(child);
+                childrenToCombineMapping[eVar].push_back(childConnection);
             }
         }
     }
 }
 
 void QuantifierTree::addUnivVarsToChildrenToCombineMapping(const VariableSet &uVarsToAdd) {
-    for (QuantifierTreeNode *child : children) {
-        const VariableSet &childUVarsSupportSet = child->getUVarsSupportSet();
+    for (QuantifierTreeConnection *childConnection : childrenConnections) {
+        const VariableSet &childUVarsSupportSet = childConnection->child->getUVarsSupportSet();
         for (const Variable &uVar : uVarsToAdd) {
             if (childUVarsSupportSet.contains(uVar)) {
                 // we add only those children which either contain uVar,
                 // or contain some eVar that depends on uVar
-                childrenToCombineMapping[uVar].push_back(child);
+                childrenToCombineMapping[uVar].push_back(childConnection);
             }
         }
     }
@@ -177,10 +198,10 @@ void QuantifierTree::pushVarsWithCombining() {
             // for conjunction, we can just push all pushable univ vars to each child
             for (const Variable &univVarToPush : pushableUnivVars) {
                 // push it into every child, pushUnivVar() will take care of deciding whether to keep it there or not
-                for (QuantifierTreeNode *child : this->children) {
+                for (QuantifierTreeConnection *childConnection : this->childrenConnections) {
                     //std::cout << "Pushing " << univVarToPush << " to child " << *child << std::endl;
                     //std::cout << child->getSupportSet() << std::endl;
-                    child->pushUnivVar(univVarToPush);
+                    childConnection->child->pushUnivVar(univVarToPush);
                 }
                 this->removeUnivVar(univVarToPush);
             }
@@ -204,19 +225,18 @@ void QuantifierTree::pushVarsWithCombining() {
 
         // get variable that has minimal number of occurences in children
         auto varToPushAndItsChildren = std::min_element(childrenToCombineMapping.begin(), childrenToCombineMapping.end(), 
-                    [](const std::pair<Variable, std::list<QuantifierTreeNode*>> &a, 
-                        const std::pair<Variable, std::list<QuantifierTreeNode*>> &b) { 
+                    [](const std::pair<Variable, std::list<QuantifierTreeConnection*>> &a, 
+                        const std::pair<Variable, std::list<QuantifierTreeConnection*>> &b) { 
                         return (a.second.size() < b.second.size());
                     }
                     );
         Variable varToPush = varToPushAndItsChildren->first;
         //std::cout << "Pushing the " << (isVarUniv(varToPush) ? "universal" : "existential") << " variable " << varToPush << " to a new combined child." << std::endl;
-        std::list<QuantifierTreeNode*> childrenToCombine = varToPushAndItsChildren->second;
+        std::list<QuantifierTreeConnection*> childrenToCombine = varToPushAndItsChildren->second;
         //std::cout << "The size of children to combine right after getting it: " << childrenToCombine.size() << std::endl;
 
-        // if we hit the variable that is in all children (meaning 
-        // that all other variables are in all children too) we stop
-        if (childrenToCombine.size() == children.size()) {
+        // if we hit the variable that is in all children (meaning that all other variables are in all children too) we stop
+        if (childrenToCombine.size() == childrenConnections.size()) {
             break;
         }
 
@@ -237,10 +257,10 @@ void QuantifierTree::pushVarsWithCombining() {
         // if varToPush is needed to be pushed to only one child, there is no need to create new child
         if (childrenToCombine.size() == 1) {
             if (isVarUniv(varToPush)) {
-                (*childrenToCombine.begin())->pushUnivVar(varToPush);
+                (*childrenToCombine.begin())->child->pushUnivVar(varToPush);
                 removeUnivVar(varToPush);
             } else if (isVarExist(varToPush)) {
-                (*childrenToCombine.begin())->pushExistVar(varToPush);
+                (*childrenToCombine.begin())->child->pushExistVar(varToPush);
                 removeExistVar(varToPush);
                 // for exist var, we need to push (or prepare to push) univ vars which became pushable
                 pushOrPrepareToPushUnivVars();
@@ -270,9 +290,9 @@ void QuantifierTree::pushVarsWithCombining() {
         //std::cout << ".....found" << std::endl;
 
         // create a new child to which varToPush is pushed
-        removeFromOrderedListOtherOrderedListUsingChildrenOrder(children, childrenToCombine);
+        removeFromOrderedListOtherOrderedListUsingChildrenOrder(childrenConnections, childrenToCombine);
         //std::cout << "The size of children to combine right before creating new child: " << childrenToCombine.size() << std::endl;
-        QuantifierTree *newChild = new QuantifierTree(isConj, childrenToCombine, *qvMgr, false);
+        QuantifierTree *newChild = new QuantifierTree(isConj, childrenToCombine, *qvMgr, false, false);
         // as nothing is possible to be pushed further in the new child, we can set this to false
         newChild->needsToLocalise = false;
         if (isVarExist(varToPush)) {
@@ -284,14 +304,16 @@ void QuantifierTree::pushVarsWithCombining() {
         } else {
             throw dqbddException("Found variable which is neither universal or existential, this should not happen");
         }
-        children.push_back(newChild);
+        QuantifierTreeConnection *newChildConnection = new QuantifierTreeConnection(newChild);
+        childrenConnections.push_back(newChildConnection);
+        newChild->increaseNumOfParents();
 
         
         //std::cout << "...combined tree created" << std::endl;
 
         // add the new child to each var in varsWithChangedChildren
         for (const Variable &varWithChangedChildren : varsWithChangedChildren) {
-            childrenToCombineMapping[varWithChangedChildren].push_back(newChild);
+            childrenToCombineMapping[varWithChangedChildren].push_back(newChildConnection);
         }
 
         childrenToCombineMapping.erase(varToPush);
@@ -303,24 +325,24 @@ void QuantifierTree::pushVarsWithCombining() {
     }
 }
 
-VariableSet &QuantifierTree::getUVarsOutsideChildSubtree(QuantifierTreeNode* child, std::list<QuantifierTreeNode*> childAndSiblings, const VariableSet &uVarsOutsideThisSubtree) {
-    if (uVarsOutsideChildSubtree.find(child) == uVarsOutsideChildSubtree.end()) { // if uVars outside child was not computed yet
+VariableSet &QuantifierTree::getUVarsOutsideChildSubtree(QuantifierTreeConnection* childConnection, const std::list<QuantifierTreeConnection*> &childAndSiblingsConnections, const VariableSet &uVarsOutsideThisSubtree) {
+    if (uVarsOutsideChildSubtree.find(childConnection) == uVarsOutsideChildSubtree.end()) { // if uVars outside child was not computed yet
         
         // the uVars outside child should be those that are already outside this subtree (reduced only to uVars actually occuring in the child)
-        const VariableSet &uVarsInChildSupportSet = child->getUVarsSupportSet();
-        uVarsOutsideChildSubtree[child] = uVarsOutsideThisSubtree.intersect(uVarsInChildSupportSet);
+        const VariableSet &uVarsInChildSupportSet = childConnection->child->getUVarsSupportSet();
+        uVarsOutsideChildSubtree[childConnection] = uVarsOutsideThisSubtree.intersect(uVarsInChildSupportSet);
         
         // and furthermore, it should be also those, that are in (original) siblings of child (again reduced to uVars actually occuring in the child)
-        for (auto childOrSibling : childAndSiblings) {
-            if (childOrSibling != child) {
-                VariableSet uVarsToAdd = childOrSibling->getUVarsSupportSet().intersect(uVarsInChildSupportSet);
-                uVarsOutsideChildSubtree[child].insert(uVarsToAdd.begin(), uVarsToAdd.end());
+        for (QuantifierTreeConnection *childOrSiblingConnection : childAndSiblingsConnections) {
+            if (childOrSiblingConnection != childConnection) {
+                VariableSet uVarsToAdd = childOrSiblingConnection->child->getUVarsSupportSet().intersect(uVarsInChildSupportSet);
+                uVarsOutsideChildSubtree[childConnection].insert(uVarsToAdd.begin(), uVarsToAdd.end());
             }
         }
 
     }
 
-    return uVarsOutsideChildSubtree[child];
+    return uVarsOutsideChildSubtree[childConnection];
 }
 
 void QuantifierTree::pushExistVarsSeparately(const VariableSet &uVarsOutsideThisSubtree) {
@@ -343,7 +365,7 @@ void QuantifierTree::pushExistVarsSeparately(const VariableSet &uVarsOutsideThis
         bool wasThereOneProblem = false;
 
         // first check the condition
-        for (QuantifierTreeNode *child : childrenToCombineMapping[existVarToPush]) {
+        for (QuantifierTreeConnection *childConnection : childrenToCombineMapping[existVarToPush]) {
             /* uVarsToCheck
              *   - the set of universal variables occuring outside the subtree rooted in child intersected with the 
              *     actual universal variables occuring in this subtree (either directly or in the dependency set of some
@@ -352,7 +374,7 @@ void QuantifierTree::pushExistVarsSeparately(const VariableSet &uVarsOutsideThis
              * 
              * also we can call getUVarsOutsideChildSubtree with children, because this function should be called before combining
              */
-            VariableSet uVarsToCheck = getUVarsOutsideChildSubtree(child, children, uVarsOutsideThisSubtree).minus(getExistVarDependencies(existVarToPush));
+            const VariableSet &uVarsToCheck = getUVarsOutsideChildSubtree(childConnection, childrenConnections, uVarsOutsideThisSubtree).minus(getExistVarDependencies(existVarToPush));
 
             /* check if uVarsToCheck is empty
                 *     - if it violates condition (1), then it is true and it either sets wasThereOneProblem
@@ -378,13 +400,13 @@ void QuantifierTree::pushExistVarsSeparately(const VariableSet &uVarsOutsideThis
         // if it can be pushed, push it
         if (canBePushed) {
             //std::cout << "Pushing " << existVarToPush << " using the weird rule." << std::endl;
-            for (QuantifierTreeNode *child : childrenToCombineMapping[existVarToPush]) {
+            for (QuantifierTreeConnection *childConnection : childrenToCombineMapping[existVarToPush]) {
                 /* There is no need to rename them, because universal vars on which this exist var 
                 * depends will either stay as ancestor/same level or will be pushed into some sibling 
                 * and then the dependency will be removed. Also, pushExistVar() takes care whether
                 * to actually push it inside or not.       
                 */
-                child->pushExistVar(existVarToPush);
+                childConnection->child->pushExistVar(existVarToPush);
             }
             removeExistVar(existVarToPush);
             childrenToCombineMapping.erase(existVarToPush);
@@ -447,6 +469,17 @@ void QuantifierTree::localise(const VariableSet &uVarsOutsideThisSubtree) {
         //          << "   u support set: " << getUVarsSupportSet() << std::endl
         //          << "   u outside:     " << uVarsOutsideThisSubtree << std::endl;
 
+    // replace all children that have multiple parents with a new copy, so that this quantifier tree is their only parent (so we can push quantifiers without conflicts)
+    for (auto childrenConnectionsIter = childrenConnections.begin(); childrenConnectionsIter != childrenConnections.end(); ++childrenConnectionsIter) {
+        QuantifierTreeNode *currentChild = (*childrenConnectionsIter)->child;
+        if (currentChild->getNumOfParents() > 2) {
+            QuantifierTreeNode *newChild = currentChild->getCopy();
+            (*childrenConnectionsIter) = new QuantifierTreeConnection(newChild);
+            newChild->increaseNumOfParents();
+            currentChild->decreaseNumOfParents();
+        }
+    }
+
     if (needsToLocalise) {
         // for each exist var y compute the children that contain y
         // and save them in childrenToCombineMapping[y]
@@ -459,9 +492,9 @@ void QuantifierTree::localise(const VariableSet &uVarsOutsideThisSubtree) {
     }
 
     // for disjunction, localisation will be called only on original children (and we need a copy here, before pushVarsWithCombining() changes children)
-    std::list<QuantifierTreeNode*> childrenToCallLocaliseOn;
+    std::list<QuantifierTreeConnection*> childrenToCallLocaliseOn;
     if (!isConj) {
-        childrenToCallLocaliseOn = children;
+        childrenToCallLocaliseOn = childrenConnections;
     }
 
     if (needsToLocalise) {
@@ -473,19 +506,20 @@ void QuantifierTree::localise(const VariableSet &uVarsOutsideThisSubtree) {
     // will not occur (as quantifiers should be already maximally pushed for them), however, it will
     // compute uVarsOutside them in such a way, to exclude univ vars which are just non-renamed 'copies'
     if (isConj) {
-        childrenToCallLocaliseOn = children;
+        childrenToCallLocaliseOn = childrenConnections;
     }
 
     // recursively call localise for each (original) child - step 3)
-    for (QuantifierTreeNode *child : childrenToCallLocaliseOn) {
+    for (QuantifierTreeConnection *childConnection : childrenToCallLocaliseOn) {
+        QuantifierTreeNode *child = childConnection->child;
         // if child does not have any quantifier to push, we can skip localisation, possibly saving on computing uVarsOutsideChildSubtree (for conjunction)
         if (child->getUnivVars().empty() && child->getExistVars().empty()) {
             // to save on memory, we can delete uVarsOutsideChildSubtree[child] because we do not use it further (here only important for disjunction)
-            uVarsOutsideChildSubtree.erase(child);
+            uVarsOutsideChildSubtree.erase(childConnection);
             continue;
         }
 
-        VariableSet &uVarsOutsideThisChildSubtree = getUVarsOutsideChildSubtree(child, childrenToCallLocaliseOn, uVarsOutsideThisSubtree);
+        VariableSet &uVarsOutsideThisChildSubtree = getUVarsOutsideChildSubtree(childConnection, childrenToCallLocaliseOn, uVarsOutsideThisSubtree);
         
         /* This part is important probably only for conjunction: 
          * To not pass along non-renamed copies of univ vars, we remove those universal quantifiers, which are quantified 
@@ -497,7 +531,7 @@ void QuantifierTree::localise(const VariableSet &uVarsOutsideThisSubtree) {
         child->localise(uVarsOutsideThisChildSubtree.minus(child->getUnivVars()));
         
         // to save on memory, we can delete uVarsOutsideChildSubtree[child] because we do not use it further
-        uVarsOutsideChildSubtree.erase(child);
+        uVarsOutsideChildSubtree.erase(childConnection);
     }
 }
 
@@ -509,15 +543,15 @@ QuantifierTreeFormula* QuantifierTree::changeToFormula(Cudd &mgr) {
         matrix = mgr.bddZero();
     }
 
-    auto childIter = children.begin();
-    while (childIter != children.end()) {
-        // get the formula from child
-        QuantifierTreeFormula *childFormula = (*childIter)->changeToFormula(mgr);
+    auto childConnectionIter = childrenConnections.begin();
+    while (childConnectionIter != childrenConnections.end()) {
+        QuantifierTreeConnection *childConnection = *childConnectionIter;
 
         // remove the child from the list of children
-        auto childToRemoveIter = childIter;
-        ++childIter;
-        children.erase(childToRemoveIter);
+        childConnectionIter = childrenConnections.erase(childConnectionIter);
+
+        // get the formula from child
+        QuantifierTreeFormula *childFormula = childConnection->changeChildToQuantifierTreeFormula(mgr);
 
         switch (qvMgr->options.treeElimChoice)
         {
@@ -544,17 +578,17 @@ QuantifierTreeFormula* QuantifierTree::changeToFormula(Cudd &mgr) {
         }
         }
         
-        // check if we can stop (the resulting formula after adding the child formula is simple)
+        // check if we can stop (i.e. the resulting formula after adding the child formula is simple)
         if (isConj) {
             matrix &= childFormula->getMatrix();
             if (matrix.IsZero()) {
-                delete childFormula;
+                deleteChildConnection(childConnection);
                 break;
             }
         } else {
             matrix |= childFormula->getMatrix();
             if (matrix.IsOne()) {
-                delete childFormula;
+                deleteChildConnection(childConnection);
                 break;
             }
         }
@@ -567,15 +601,16 @@ QuantifierTreeFormula* QuantifierTree::changeToFormula(Cudd &mgr) {
             addUnivVar(uVar);
         }
 
-        delete childFormula;
+        /* here we assume that if child had any quantifiers in prefix, then this tree was its only parent,
+         * therefore, deleteChildConnection will actually delete the child and its prefix
+         */
+        deleteChildConnection(childConnection);
     }
     
     // delete leftover children
-    while (childIter != children.end()) {
-        auto childToRemoveIter = childIter;
-        ++childIter;
-        delete (*childToRemoveIter);
-        children.erase(childToRemoveIter);
+    while (childConnectionIter != childrenConnections.end()) {
+        deleteChildConnection(*childConnectionIter);
+        childConnectionIter = childrenConnections.erase(childConnectionIter);
     }
 
     QuantifierTreeFormula* f = new QuantifierTreeFormula(mgr, *qvMgr);
@@ -593,14 +628,8 @@ QuantifierTreeFormula* QuantifierTree::changeToFormula(Cudd &mgr) {
     return f;
 }
 
-// void QuantifierTree::negate() {
-//     isConj = !isConj;
-//     for (QuantifierTreeNode *child : children) {
-//         child->negate();
-//     }
-// }
-
-void QuantifierTree::addChild(QuantifierTreeNode *child, bool collapseChildren) {
+void QuantifierTree::addChild(QuantifierTreeConnection *childConnection, bool collapseChildren, bool changeNumOfParents) {
+    QuantifierTreeNode *child = childConnection->child;
 
     // add variables of the child to the support sets here
     supportSet.insert(child->getSupportSet().begin(),
@@ -617,16 +646,22 @@ void QuantifierTree::addChild(QuantifierTreeNode *child, bool collapseChildren) 
             && treeChild->getExistVars().empty() && treeChild->getUnivVars().empty()) {
 
         // ...then we collapse children, i.e. set its children as current children, not itself...
-        for (auto childOfChild : treeChild->children) {
-            children.push_back(childOfChild);
+        for (QuantifierTreeConnection *childOfChildConnection : treeChild->childrenConnections) {
+            childrenConnections.push_back(childOfChildConnection);
+            if (changeNumOfParents) {
+                childOfChildConnection->child->increaseNumOfParents();
+            }
         }
 
         // ...and finally delete it
-        treeChild->children.clear();
-        delete child;
+        //treeChild->children.clear();
+        //delete child;
     } else {
         // otherwise just add this child to children
-        children.push_back(child);
+        childrenConnections.push_back(childConnection);
+        if (changeNumOfParents) {
+            child->increaseNumOfParents();
+        }
     }
 }
 
@@ -638,10 +673,10 @@ std::ostream& QuantifierTree::print(std::ostream& out) const {
         op = '|';
     }
 
-    auto size = children.size();
+    auto size = childrenConnections.size();
     out << std::string("(");
-    for (QuantifierTreeNode *child : children) {
-        out << *child;
+    for (QuantifierTreeConnection *childConnection : childrenConnections) {
+        out << *(childConnection->child);
         // print the last element without operator
         if (size != 1) {
             out << std::string(" ") << op << std::string(" ");
@@ -650,6 +685,15 @@ std::ostream& QuantifierTree::print(std::ostream& out) const {
     }
     out << std::string(")");
     return out;
+}
+
+QuantifierTreeNode* QuantifierTree::getCopy() {
+    if (!(getUnivVars().empty() && getExistVars().empty())) {
+        throw dqbddException("Trying to copy quantifier tree with some variables in prefix");
+    }
+
+    QuantifierTree *newTree = new QuantifierTree(isConj, childrenConnections, (*qvMgr), false);
+    return newTree;
 }
 
 /*********************************************************/
@@ -675,10 +719,6 @@ void QuantifierTreeFormula::localise(const VariableSet&) {
 QuantifierTreeFormula* QuantifierTreeFormula::changeToFormula(Cudd &) {
     return this;
 }
-
-// void QuantifierTreeFormula::negate() {
-//     setMatrix(!getMatrix());
-// }
 
 // computes supportSet and uVarsSupportSet
 void QuantifierTreeFormula::computeSupportSets() {
@@ -706,6 +746,16 @@ VariableSet const& QuantifierTreeFormula::getSupportSet() {
 VariableSet const& QuantifierTreeFormula::getUVarsSupportSet() {
     computeSupportSets();
     return uVarsSupportSet;
+}
+
+QuantifierTreeNode* QuantifierTreeFormula::getCopy() {
+    if (!(getUnivVars().empty() && getExistVars().empty())) {
+        throw dqbddException("Trying to copy quantifier tree formula with some variables in prefix");
+    }
+
+    QuantifierTreeFormula *newFormula = new QuantifierTreeFormula(getMgr(), (*qvMgr));
+    newFormula->setMatrix(getMatrix());
+    return newFormula;
 }
 
 } // namespace dqbdd
