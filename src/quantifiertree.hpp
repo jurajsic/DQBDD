@@ -34,10 +34,6 @@ class QuantifierTreeFormula;
  * @brief Base class for nodes in quantifier trees
  */
 class QuantifierTreeNode : virtual public QuantifiedVariablesManipulator {
-private:
-    // number of quantifier trees that have this node as child
-    unsigned numOfParents = 0;
-
 protected:
     // the set of universal variables in support set or in dependecy set of ex. var in support set
     VariableSet uVarsSupportSet = {};
@@ -64,10 +60,6 @@ public:
 
     virtual VariableSet const &getUVarsSupportSet();
 
-    void decreaseNumOfParents();
-    void increaseNumOfParents();
-    unsigned getNumOfParents();
-
     virtual QuantifierTreeNode* getCopy() = 0;
 };
 
@@ -91,7 +83,11 @@ public:
 /**
  * @brief A connection for quantifier tree to its child
  */
-struct QuantifierTreeConnection {
+class QuantifierTreeConnection {
+private:
+    // number of quantifier trees that have this connection as child
+    unsigned numOfParents = 0;
+public:
     QuantifierTreeNode *child;
 
     QuantifierTreeConnection(QuantifierTreeNode *child);
@@ -102,6 +98,11 @@ struct QuantifierTreeConnection {
      * @return the new child
      */
     QuantifierTreeFormula* changeChildToQuantifierTreeFormula(Cudd &mgr);
+
+
+    void decreaseNumOfParents();
+    void increaseNumOfParents();
+    unsigned getNumOfParents();
 };
 
 /**

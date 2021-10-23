@@ -61,15 +61,23 @@ VariableSet const& QuantifierTreeNode::getUVarsSupportSet() {
     return uVarsSupportSet;
 }
 
-void QuantifierTreeNode::decreaseNumOfParents() {
+/*******************************************/
+/*******************************************/
+/******* QUANTIFIER TREE CONNECTION ********/
+/*******************************************/
+/*******************************************/ 
+
+QuantifierTreeConnection::QuantifierTreeConnection(QuantifierTreeNode *child) : child(child) {}
+
+void QuantifierTreeConnection::decreaseNumOfParents() {
     --numOfParents;
 }
 
-void QuantifierTreeNode::increaseNumOfParents() {
+void QuantifierTreeConnection::increaseNumOfParents() {
     ++numOfParents;
 }
 
-unsigned QuantifierTreeNode::getNumOfParents() {
+unsigned QuantifierTreeConnection::getNumOfParents() {
     return numOfParents;
 }
 
@@ -79,7 +87,6 @@ unsigned QuantifierTreeNode::getNumOfParents() {
 /*******************************************/
 /*******************************************/ 
 
-QuantifierTreeConnection::QuantifierTreeConnection(QuantifierTreeNode *child) : child(child) {}
 
 QuantifierTreeFormula* QuantifierTreeConnection::changeChildToQuantifierTreeFormula(Cudd &mgr) {
     QuantifierTreeFormula* childFormula = child->changeToFormula(mgr);
@@ -116,8 +123,8 @@ QuantifierTree::~QuantifierTree() {
 }
 
 void QuantifierTree::deleteChildConnection(QuantifierTreeConnection *childConnection) {
-    childConnection->child->decreaseNumOfParents();
-    if (childConnection->child->getNumOfParents() == 0) {
+    childConnection->decreaseNumOfParents();
+    if (childConnection->getNumOfParents() == 0) {
         delete childConnection->child;
         delete childConnection;
     }
@@ -314,7 +321,7 @@ void QuantifierTree::pushVarsWithCombining() {
         }
         QuantifierTreeConnection *newChildConnection = new QuantifierTreeConnection(newChild);
         childrenConnections.push_back(newChildConnection);
-        newChild->increaseNumOfParents();
+        newChildConnection->increaseNumOfParents();
 
         
         //std::cout << "...combined tree created" << std::endl;
@@ -479,12 +486,13 @@ void QuantifierTree::localise(const VariableSet &uVarsOutsideThisSubtree) {
 
     // replace all children that have multiple parents with a new copy, so that this quantifier tree is their only parent (so we can push quantifiers without conflicts)
     for (auto childrenConnectionsIter = childrenConnections.begin(); childrenConnectionsIter != childrenConnections.end(); ++childrenConnectionsIter) {
+        QuantifierTreeConnection *currentChildConnection = *childrenConnectionsIter;
         QuantifierTreeNode *currentChild = (*childrenConnectionsIter)->child;
-        if (currentChild->getNumOfParents() > 1) {
-            QuantifierTreeNode *newChild = currentChild->getCopy();
-            (*childrenConnectionsIter) = new QuantifierTreeConnection(newChild);
-            newChild->increaseNumOfParents();
-            currentChild->decreaseNumOfParents();
+        if (currentChildConnection->getNumOfParents() > 1) {
+            QuantifierTreeConnection *newChildConnection = new QuantifierTreeConnection(currentChildConnection->child->getCopy());
+            (*childrenConnectionsIter) = newChildConnection;
+            currentChildConnection->decreaseNumOfParents();
+            newChildConnection->increaseNumOfParents();
         }
     }
 
@@ -657,7 +665,7 @@ void QuantifierTree::addChild(QuantifierTreeConnection *childConnection, bool co
         for (QuantifierTreeConnection *childOfChildConnection : treeChild->childrenConnections) {
             childrenConnections.push_back(childOfChildConnection);
             if (changeNumOfParents) {
-                childOfChildConnection->child->increaseNumOfParents();
+                childOfChildConnection->increaseNumOfParents();
             }
         }
 
@@ -668,7 +676,7 @@ void QuantifierTree::addChild(QuantifierTreeConnection *childConnection, bool co
         // otherwise just add this child to children
         childrenConnections.push_back(childConnection);
         if (changeNumOfParents) {
-            child->increaseNumOfParents();
+            childConnection->increaseNumOfParents();
         }
     }
 }
