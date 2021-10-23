@@ -34,12 +34,13 @@ class QuantifierTreeFormula;
  * @brief Base class for nodes in quantifier trees
  */
 class QuantifierTreeNode : virtual public QuantifiedVariablesManipulator {
-protected://TODO maybe both can be private
+private:
+    // number of quantifier trees that have this node as child
+    unsigned numOfParents = 0;
+
+protected:
     // the set of universal variables in support set or in dependecy set of ex. var in support set
     VariableSet uVarsSupportSet = {};
-
-    // TODO pouzit k sharovaniu subtrees
-    unsigned numOfParents = 0;
 
 public:
     QuantifierTreeNode(QuantifiedVariablesManager &qvmgr);
@@ -60,8 +61,6 @@ public:
      * @brief Changes this instance of node into a formula
      */
     virtual QuantifierTreeFormula* changeToFormula(Cudd &mgr) = 0;
-    // negates this node
-    // virtual void negate() = 0;
 
     virtual VariableSet const &getUVarsSupportSet();
 
@@ -89,17 +88,20 @@ public:
     VariableSet const &getUVarsSupportSet() override;
 };
 
-// TODO dat ako deti tree, aby sme mohli lahko menit z tree na formula ked su sharovane
+/**
+ * @brief A connection for quantifier tree to its child
+ */
 struct QuantifierTreeConnection {
     QuantifierTreeNode *child;
 
-    QuantifierTreeConnection(QuantifierTreeNode *child) : child(child) {}
+    QuantifierTreeConnection(QuantifierTreeNode *child);
 
-    QuantifierTreeFormula* changeChildToQuantifierTreeFormula(Cudd &mgr) {
-        QuantifierTreeFormula* childFormula = child->changeToFormula(mgr);
-        child = childFormula;
-        return childFormula;
-    }
+    /**
+     * @brief Changes child to quantifier tree formula
+     * 
+     * @return the new child
+     */
+    QuantifierTreeFormula* changeChildToQuantifierTreeFormula(Cudd &mgr);
 };
 
 /**
@@ -122,26 +124,18 @@ private:
     /**
      * @brief Adds another child to the list of children (assuming *this is a root)
      * 
-     * If child has the same operator as this quantifier tree and does not contain a quantifier prefix,
-     * the children of this child are added instead, while child is deleted.
-     * 
-     * @param child - the root of subtree of the child to add
-     */
-
-    /**
-     * @brief Adds another child to the list of children (assuming *this is a root)
-     * 
      * @param child - the connection with the root of subtree of the child to add
      * @param collapseChildren - if true and the child has the same operator as this quantifier 
      * tree and does not contain a quantifier prefix, then the children of the child are added instead
+     * @param changeNumOfParents if true, the newly added child will update its numOfParents (increments it by 1)
      */
     void addChild(QuantifierTreeConnection *childConnection, bool collapseChildren = true, bool changeNumOfParents = true);
 
-    // TODO describe
+    // decrements the number of parents for a child and possibly deletes the child and its childConnection (but only if this was the last parent)
     void deleteChildConnection(QuantifierTreeConnection *childConnection);
 
     /**
-     * @brief Removes from one ordered list another where both are assumed to be ordered by the ordering in of children list
+     * @brief Removes from one ordered list another where both are assumed to be ordered by the ordering of childrenConnections list
      * 
      * @return true if something was removed
      */
@@ -159,7 +153,6 @@ private:
      * Function pushVarsWithCombining is then used to create new children and pushing variables.
      */
     std::unordered_map<Variable, std::list<QuantifierTreeConnection*>> childrenToCombineMapping;
-    //void initialiseChildrenToCombineMapping(const VariableSet &varsToCombine);
     /**
      * Adds each exist var y from eVarsToAdd to childrenToCombineMapping, i.e.
      * childrenToCombineMapping[y] will contain all children which contain y. Later,
@@ -206,20 +199,12 @@ private:
 
     std::ostream& print(std::ostream& out) const override;
 
-    /**
-     * @brief Construct a new Quantifier Tree inside a tree
-     * 
-     * We assume that children used to be children of parent, siblings are the remaining children of parent,
-     * after creating this tree, it should be added to parent as a child.
-     */
-    //QuantifierTree(bool isConj, std::list<QuantifierTreeNode*> children, QuantifiedVariablesManager &qvMgr, 
-    //                    const std::list<QuantifierTreeNode*> &siblings, QuantifierTree *parent);
-
 public:
     /**
      * @brief Construct a new Quantifier Tree object
      * 
      * @param collapseChildren - should we collapse children (i.e. the children of children with the same operation are moved into this node)
+     * @param changeNumOfParents - should we update the numOfParents of the newly added children (i.e. increment by 1)
      */
     QuantifierTree(bool isConj, std::list<QuantifierTreeConnection*> childrenConnections, QuantifiedVariablesManager &qvMgr, bool collapseChildren = true, bool changeNumOfParents = true);
     /**
