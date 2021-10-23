@@ -30,11 +30,11 @@
 namespace dqbdd {
 
 enum class GateType {
-    AND,
-    OR,
-    MUX,
-    XOR,
-    VAR,
+    AND, // can have multiple operands, zero operands represent true
+    OR,  // can have multiple operands, zero operands represent false
+    MUX, // = ITE, must have 3 operands, MUX(A,B,C) = (A AND B) OR (!A AND C) 
+    XOR, // must have 2 operands, A XOR B = (A AND !B) OR (!A AND B)
+    VAR, // must have no operands, represents variable
 };
 
 // bool represents if the gate is negated (if false, then it is negated), unsigned long is gate id
@@ -94,8 +94,22 @@ private:
      */
     void pushNegation(GateLiteral &gateLiteralToPushNegation);
 
-    // used for printing gates into DQCIR, this function prints the prefix and the gates (only header is missing)
-    void printPrefixAndGates(std::ostream &output);
+    /**
+     * @brief Collapses multiple AND and OR gates into one
+     * The method finds all AND (OR) gates that have AND (OR) gates as operands and collapses them into one,
+     * i.e. if we have AND(AND(x1, OR(x2, OR(x1, x3)), AND(x3, x4)), AND(x5)), it collapses it to 
+     * AND(x1, OR(x2, x1, x3), x3, x4, x5). It collapses constant values (i.e. AND(x1, AND()) turns to
+     * AND(x1) as AND() represents true so it has no impact).
+     * 
+     * It is assumed that gates are in NNF
+     */
+    void collapseGates();
+
+    // prints prefix of DQCIR (without output gate)
+    void printPrefix(std::ostream &output);
+
+    // prints gates for DQCIR (with output gate of prefix)
+    void printGates(std::ostream &output);
 
 protected:
     /**
@@ -148,7 +162,6 @@ protected:
      * @return the ID of the newly added gate 
      */
     unsigned long addGate(GateType type, const std::vector<GateLiteral> &operands);
-    // TODO description (change name of outputGateNegation, because if it is true, then the output is not negated)
     /**
      * @brief Method which should be called after parsing is finished with the output gate
      * 

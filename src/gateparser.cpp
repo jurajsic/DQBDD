@@ -253,6 +253,7 @@ QuantifierTreeNode* GateParser::getQuantifierTree() {
     }
 
     transformToNNF();
+    collapseGates();
 
     std::unordered_map<unsigned long, QuantifierTreeConnection*> gateIDtoQuantifierTreeConnection;
     // for VAR gates, we want to save both non-negated and negated versions, other gates should not have negation in front
@@ -357,19 +358,8 @@ QuantifierTreeNode* GateParser::getQuantifierTree() {
     }
 
     clearParser();
-
-    // some trees might not be children of the final tree (a collapsion for the same operation might have happened), we need to delete unused trees
-    for (const auto &pair : gateIDtoQuantifierTreeConnection) {
-        QuantifierTreeConnection *connection = pair.second;
-        if (connection != rootConnection && connection->child->getNumOfParents() == 0) {
-            delete connection->child;
-            delete connection;
-        }
-    }
-
-    // we do not need to delete from gateIDtoNegatedQuantifierTreeConnection, as all of them should be created from VAR gates that cannot collapse
     
-    // we need to delete also root connection, as we do not need it and it cannot be used as a child
+    // we need to delete root connection, as we do not need it and it cannot be used as a child
     delete rootConnection;
 
     return root;
@@ -379,20 +369,21 @@ void GateParser::printPrenexDQCIR(std::ostream &output) {
     // HEADER
     output << "#QCIR-G14" << std::endl;
 
-    printPrefixAndGates(output);
+    printPrefix(output);
+    printGates(output);
 }
 
 void GateParser::printPrenexCleansedDQCIR(std::ostream &output) {
     removeMUXAndXORGates();
-    
+
     // HEADER
     output << "#QCIR-G14 " << maxGateID << std::endl;
 
-    printPrefixAndGates(output);
+    printPrefix(output);
+    printGates(output);
 }
 
-void GateParser::printPrefixAndGates(std::ostream &output) { 
-    // QUANTIFIER PREFIX
+void GateParser::printPrefix(std::ostream &output) {
     // first universal variables
     if (!DQBFPrefix.getUnivVars().empty()) {
         output << "forall(";
@@ -413,8 +404,9 @@ void GateParser::printPrefixAndGates(std::ostream &output) {
         }
         output << std::string(")") << std::endl;
     }
+}
 
-    // GATES
+void GateParser::printGates(std::ostream &output) {
     // helping function for printing GateLiteral
     auto getGateLiteralString = [&](const GateLiteral &literal)->std::string {
         std::string result = std::to_string(literal.second);
@@ -453,7 +445,7 @@ void GateParser::printPrefixAndGates(std::ostream &output) {
 
             case GateType::VAR:
             {
-                // we do not print var gates
+                // we do not print VAR gates
                 break;
             }
 
@@ -568,6 +560,31 @@ unsigned long GateParser::getNegatedGateID(unsigned long gateIDToNegate) {
         }
         return gateIDToNegatedGateID[gateIDToNegate];
     }
+}
+
+void GateParser::collapseGates() {
+    // we assume that gates are in NNF, i.e. only AND, OR, and VAR gates + negation only before VAR gates
+
+    std::function<void(unsigned long)> collapseGateRecursively;
+    collapseGateRecursively = [&](unsigned long gateIDToCollapse) {
+        Gate &gateToCollapse = gateIDToGate[gateIDToCollapse];
+        std::vector<GateLiteral> newOperands;
+        for (GateLiteral &gateToCollapseOperand : gateToCollapse.operands) {
+            collapseGateRecursively(gateToCollapseOperand.second);
+            const Gate &operandGate = gateIDToGate[gateToCollapseOperand.second];
+            if (gateToCollapse.type == operandGate.type // both are AND or both are OR
+                //&& !gateToCollapse.operands.empty() // and operand does not represent constant value true/false
+               ) {  
+                // we collapse here, we add to new operands the operands of operandGate
+                newOperands.insert(newOperands.end(), operandGate.operands.begin(), operandGate.operands.end());
+            } else { // we cannot collapse here
+                newOperands.push_back(gateToCollapseOperand);
+            }
+        }
+        gateToCollapse.operands = newOperands;
+    };
+
+    collapseGateRecursively(outputGateLiteral.second);
 }
 
 } // namespace dqbdd
