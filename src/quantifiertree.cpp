@@ -487,7 +487,6 @@ void QuantifierTree::localise(const VariableSet &uVarsOutsideThisSubtree) {
     // replace all children that have multiple parents with a new copy, so that this quantifier tree is their only parent (so we can push quantifiers without conflicts)
     for (auto childrenConnectionsIter = childrenConnections.begin(); childrenConnectionsIter != childrenConnections.end(); ++childrenConnectionsIter) {
         QuantifierTreeConnection *currentChildConnection = *childrenConnectionsIter;
-        QuantifierTreeNode *currentChild = (*childrenConnectionsIter)->child;
         if (currentChildConnection->getNumOfParents() > 1) {
             QuantifierTreeConnection *newChildConnection = new QuantifierTreeConnection(currentChildConnection->child->getCopy());
             (*childrenConnectionsIter) = newChildConnection;
