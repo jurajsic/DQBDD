@@ -19,6 +19,7 @@
 
 #include <functional>
 #include <vector>
+#include <unordered_set>
 
 #include "gateparser.hpp"
 #include "dqbddexceptions.hpp"
@@ -407,68 +408,87 @@ void GateParser::printPrefix(std::ostream &output) {
 }
 
 void GateParser::printGates(std::ostream &output) {
-    // helping function for printing GateLiteral
+    // helper function for printing GateLiteral
     auto getGateLiteralString = [&](const GateLiteral &literal)->std::string {
         std::string result = std::to_string(literal.second);
         return (literal.first ? result : (std::string("-") + result));
     };
     // define output gate
     output << "output(" << getGateLiteralString(outputGateLiteral) << ")" << std::endl;
-    // we print gates in the order they were added (later added gates depend on earlier ones, we need to therefore print earlier sooner)
-    for (unsigned long processedGateID : gateInputOrder) {
-        const Gate &processedGate = gateIDToGate[processedGateID];
-        switch (processedGate.type)
-        {
-            case GateType::AND:
-            {
-                output << processedGateID << " = and(";
-                break;
+
+    // wasGateIDAlreadyPrinted[gateID] will be true, if we already printed gate to dqcir
+    std::unordered_set<unsigned long> alreadyPrintedGateIDs;
+
+    // printGatesRecursivelly(gateID, output) will prints the gate with ID gateID and all gates on which it depends (bottom up)
+    std::function<void(unsigned long)> printGatesRecursivelly;
+    printGatesRecursivelly = [&](unsigned long gateIDToPrint) {
+        if (alreadyPrintedGateIDs.count(gateIDToPrint) > 0) { // if we already printed this gate, we do not do it again
+            return;
+        } else {
+            const Gate &gateToPrint = gateIDToGate[gateIDToPrint];
+            // print gates of operands
+            for (const GateLiteral &gateToPrintOperand : gateToPrint.operands) {
+                printGatesRecursivelly(gateToPrintOperand.second);
             }
 
-            case GateType::OR:
+            // print the gate
+            switch (gateToPrint.type)
             {
-                output << processedGateID << " = or(";
-                break;
-            }
+                case GateType::AND:
+                {
+                    output << gateIDToPrint << " = and(";
+                    break;
+                }
 
-            case GateType::MUX:
-            {
-                output << processedGateID << " = ite(";
-                break;
-            }
+                case GateType::OR:
+                {
+                    output << gateIDToPrint << " = or(";
+                    break;
+                }
 
-            case GateType::XOR:
-            {
-                output << processedGateID << " = xor(";
-                break;
-            }
+                case GateType::MUX:
+                {
+                    output << gateIDToPrint << " = ite(";
+                    break;
+                }
 
-            case GateType::VAR:
-            {
-                // we do not print VAR gates
-                break;
-            }
+                case GateType::XOR:
+                {
+                    output << gateIDToPrint << " = xor(";
+                    break;
+                }
 
-            default:
-            {
-                // this should not happen
-                throw dqbddException("An unsupported gate was encountered during printing DQCIR");
-                break;
-            }
-        }
+                case GateType::VAR:
+                {
+                    // we do not print VAR gates
+                    break;
+                }
 
-        // print the operands
-        if (processedGate.type != GateType::VAR) {
-            for (auto operandIter = processedGate.operands.begin(); operandIter != processedGate.operands.end(); ++operandIter) {
-                if (operandIter == processedGate.operands.begin()) {
-                    output << getGateLiteralString(*operandIter);
-                } else {
-                    output << ", " << getGateLiteralString(*operandIter);
+                default:
+                {
+                    // this should not happen
+                    throw dqbddException("An unsupported gate was encountered during printing DQCIR");
+                    break;
                 }
             }
-            output << ")" << std::endl;
+
+            // print the operands
+            if (gateToPrint.type != GateType::VAR) {
+                for (auto operandIter = gateToPrint.operands.begin(); operandIter != gateToPrint.operands.end(); ++operandIter) {
+                    if (operandIter == gateToPrint.operands.begin()) {
+                        output << getGateLiteralString(*operandIter);
+                    } else {
+                        output << ", " << getGateLiteralString(*operandIter);
+                    }
+                }
+                output << ")" << std::endl;
+            }
+
+            alreadyPrintedGateIDs.insert(gateIDToPrint);
         }
-    }
+    };
+
+    printGatesRecursivelly(outputGateLiteral.second);
 }
 
 

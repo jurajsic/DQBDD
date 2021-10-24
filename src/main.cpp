@@ -62,6 +62,12 @@ void checkAndPrintDQCIR(dqbdd::GateParser &parser, const std::unique_ptr<cxxopts
         std::ofstream outputFile(outputFileName);
         if (outputFile.is_open()) {
             parser.printPrenexDQCIR(outputFile);
+            // parser.transformToNNF();
+            // outputFile << "After NNF" << std::endl;
+            // parser.printGates(outputFile);
+            // parser.collapseGates();
+            // outputFile << "After collapsing gates" << std::endl;
+            // parser.printGates(outputFile);
             outputFile.close();
         } else {
             throw std::runtime_error("Could not open output DQCIR file");
