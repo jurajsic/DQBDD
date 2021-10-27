@@ -534,17 +534,31 @@ void GateParser::removeMUXAndXORGates() {
 
 void GateParser::transformToNNF() {
     removeMUXAndXORGates();
-    pushNegation(outputGateLiteral);
-}
 
-void GateParser::pushNegation(GateLiteral &gateLiteralToPushNegation) {
-    if ((!gateLiteralToPushNegation.first) && gateIDToGate[gateLiteralToPushNegation.second].type != GateType::VAR) {
-        gateLiteralToPushNegation = std::make_pair(true, getNegatedGateID(gateLiteralToPushNegation.second));
-    }
+    // the set of gate IDs that are in NNF
+    std::unordered_set<unsigned long> gateIDsThatAreInNNF;
+    // this function will push the negation (if there is) of the gate literal into its gate and transforms the gate into NNF
+    std::function<void(GateLiteral&)> tranformGateLiteralToNNF;
+    tranformGateLiteralToNNF = [&](GateLiteral &GateLiteralToTranformToNNF) {
+        // the gate which will need to be changed to NNF
+        unsigned long gateIDToTranformToNNF = GateLiteralToTranformToNNF.second;
 
-    for (GateLiteral &operand : gateIDToGate[gateLiteralToPushNegation.second].operands) {
-        pushNegation(operand);
-    }
+        // if the literal is negated, we push the negation into the gate of the literal (except for VAR gates)
+        if ((!GateLiteralToTranformToNNF.first) && gateIDToGate[gateIDToTranformToNNF].type != GateType::VAR) {
+            gateIDToTranformToNNF = getNegatedGateID(gateIDToTranformToNNF);
+            GateLiteralToTranformToNNF = std::make_pair(true, gateIDToTranformToNNF);
+        }
+
+        // if gateIDToTranformToNNF is not in NNF, we transform to NNF its operands (thus making the gate in NNF too)
+        if (gateIDsThatAreInNNF.count(gateIDToTranformToNNF) == 0) {
+            for (GateLiteral &operand : gateIDToGate[gateIDToTranformToNNF].operands) {
+                tranformGateLiteralToNNF(operand);
+            }
+            gateIDsThatAreInNNF.insert(gateIDToTranformToNNF);
+        }
+    };
+
+    tranformGateLiteralToNNF(outputGateLiteral);
 }
 
 unsigned long GateParser::getNegatedGateID(unsigned long gateIDToNegate) {
@@ -556,21 +570,22 @@ unsigned long GateParser::getNegatedGateID(unsigned long gateIDToNegate) {
         for (const GateLiteral &originalOperand : gateToNegate.operands) {
             negatedOperands.push_back(std::make_pair(!originalOperand.first, originalOperand.second));
         }
+        unsigned long negatedGateID;
         switch(gateToNegate.type) {
             case GateType::AND:
             {
-                gateIDToNegatedGateID[gateIDToNegate] = addNewGateAtPositionWithoutChecks(GateType::OR, negatedOperands, gateInputOrder.end());
+                negatedGateID = addNewGateAtPositionWithoutChecks(GateType::OR, negatedOperands, gateInputOrder.end());
                 break;
             }
             case GateType::OR:
             {
-                gateIDToNegatedGateID[gateIDToNegate] = addNewGateAtPositionWithoutChecks(GateType::AND, negatedOperands, gateInputOrder.end());
+                negatedGateID = addNewGateAtPositionWithoutChecks(GateType::AND, negatedOperands, gateInputOrder.end());
                 break;
             }
             case GateType::VAR:
             {
                 // we do not need to negate var gate
-                gateIDToNegatedGateID[gateIDToNegate] = gateIDToNegate;
+                negatedGateID = gateIDToNegate;
                 break;
             }
             default:
@@ -578,30 +593,38 @@ unsigned long GateParser::getNegatedGateID(unsigned long gateIDToNegate) {
                 throw dqbddException("We can negate only AND and OR gates");
             }
         }
-        return gateIDToNegatedGateID[gateIDToNegate];
+        gateIDToNegatedGateID[gateIDToNegate] = negatedGateID;
+        gateIDToNegatedGateID[negatedGateID] = gateIDToNegate;
+        return negatedGateID;
     }
 }
 
 void GateParser::collapseGates() {
     // we assume that gates are in NNF, i.e. only AND, OR, and VAR gates + negation only before VAR gates
 
+    std::unordered_set<unsigned long> collapsedGateIDs;
     std::function<void(unsigned long)> collapseGateRecursively;
     collapseGateRecursively = [&](unsigned long gateIDToCollapse) {
-        Gate &gateToCollapse = gateIDToGate[gateIDToCollapse];
-        std::vector<GateLiteral> newOperands;
-        for (GateLiteral &gateToCollapseOperand : gateToCollapse.operands) {
-            collapseGateRecursively(gateToCollapseOperand.second);
-            const Gate &operandGate = gateIDToGate[gateToCollapseOperand.second];
-            if (gateToCollapse.type == operandGate.type // both are AND or both are OR
-                //&& !gateToCollapse.operands.empty() // and operand does not represent constant value true/false
-               ) {  
-                // we collapse here, we add to new operands the operands of operandGate
-                newOperands.insert(newOperands.end(), operandGate.operands.begin(), operandGate.operands.end());
-            } else { // we cannot collapse here
-                newOperands.push_back(gateToCollapseOperand);
+        if (collapsedGateIDs.count(gateIDToCollapse) > 0) {
+            return;
+        } else {
+            Gate &gateToCollapse = gateIDToGate[gateIDToCollapse];
+            std::vector<GateLiteral> newOperands;
+            for (GateLiteral &gateToCollapseOperand : gateToCollapse.operands) {
+                collapseGateRecursively(gateToCollapseOperand.second);
+                const Gate &operandGate = gateIDToGate[gateToCollapseOperand.second];
+                if (gateToCollapse.type == operandGate.type // both are AND or both are OR
+                    //&& !gateToCollapse.operands.empty() // and operand does not represent constant value true/false
+                ) {  
+                    // we collapse here, we add to new operands the operands of operandGate
+                    newOperands.insert(newOperands.end(), operandGate.operands.begin(), operandGate.operands.end());
+                } else { // we cannot collapse here
+                    newOperands.push_back(gateToCollapseOperand);
+                }
             }
+            gateToCollapse.operands = newOperands;
+            collapsedGateIDs.insert(gateIDToCollapse);
         }
-        gateToCollapse.operands = newOperands;
     };
 
     collapseGateRecursively(outputGateLiteral.second);

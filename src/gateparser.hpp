@@ -89,10 +89,6 @@ private:
     std::unordered_map<unsigned long, unsigned long> gateIDToNegatedGateID;
     // helping function for transformToNNF(), creates or gets already created negated gate ID of given gate ID (gateInputOrder is wrong after this)
     unsigned long getNegatedGateID(unsigned long gateIDToNegate);
-    /* helping function for transformToNNF(), recursively pushes the negations in the given gate literal 
-     * (calling this on outputGate will transform the gates into negation normal form, assuming there are no MUX and XOR gates)
-     */
-    void pushNegation(GateLiteral &gateLiteralToPushNegation);
 
     /**
      * @brief Collapses multiple AND and OR gates into one
