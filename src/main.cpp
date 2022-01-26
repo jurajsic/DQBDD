@@ -33,7 +33,9 @@ enum ReturnCode {
     UNSAT = 20,
     SATPRE = 10, // solved by HQSpre
     UNSATPRE = 20, // solved by HQSpre
-    UNKNOWN = 0
+    UNKNOWN = 0,
+    ERROR = -1,
+    NOSOLVINGSUCCESS = 0, // finished succesfully without solving (print help message, print DQCIR, etc.)
 };
 
 std::string getLowercaseFileType(std::string path) {
@@ -118,24 +120,24 @@ int main(int argc, char **argv)
     try {
         result.reset(new cxxopts::ParseResult(optionsParser.parse(argc, argv)));
     } catch (const cxxopts::OptionParseException& e) {
-        std::cerr << "Parsing error: " << e.what() << std::endl;
-        return -1;
+        std::cerr << "ERROR: " << e.what() << ", try 'dqbdd --help' for more info" << std::endl;
+        return ReturnCode::ERROR;
     }
 
 
     if (result->count("help")) {
         std::cout << optionsParser.help() << std::endl;
-        return 0;
+        return ReturnCode::NOSOLVINGSUCCESS;
     }
 
     if (result->count("version")) {
         std::cout << "DQBDD 1.2" << std::endl;
-        return 0;
+        return ReturnCode::NOSOLVINGSUCCESS;
     }
     
     if (!result->count("file")) {
-        std::cerr << "No file specified, try 'DQBDD --help' for more info" << std::endl;
-        return -1;
+        std::cerr << "ERROR: No file specified, try 'dqbdd --help' for more info" << std::endl;
+        return ReturnCode::ERROR;
     }
 
     std::string fileName = (*result)["file"].as<std::string>();
@@ -182,11 +184,11 @@ int main(int argc, char **argv)
             hqspreParser.printPrenexDQCIR(outputFile);
             outputFile.close();
         } else {
-            std::cerr << "Could not open output file" << std::endl;
-            return -1;
+            std::cerr << "ERROR: Could not open output file" << std::endl;
+            return ReturnCode::ERROR;
         }
         std::cout << "Input file was successfully preprocessed and tranformed into DQCIR file: " << outputFileName << std::endl;
-        return 0;
+        return ReturnCode::NOSOLVINGSUCCESS;
     }
 
     dqbdd::Formula *f = nullptr;
@@ -217,8 +219,8 @@ int main(int argc, char **argv)
             } else if (fileType == 1) {
                 parser = std::make_unique<dqbdd::PrenexDQCIRParser>(mgr,qvMgr);
             } else {
-                std::cerr << "Unknown filetype (this should not happen)" << std::endl;
-                return -1;
+                std::cerr << "ERROR: Unknown filetype (this should not happen)" << std::endl;
+                return ReturnCode::ERROR;
             }
             parser->parse(fileName);
         }
@@ -226,7 +228,7 @@ int main(int argc, char **argv)
 
         if (result->count("dqcir-output") || result->count("dqcir-output-cleansed")) {
             checkAndPrintDQCIR(*parser, result);
-            return 0;
+            return ReturnCode::NOSOLVINGSUCCESS;
         }
 
         if (!localise) {
@@ -256,7 +258,7 @@ int main(int argc, char **argv)
         }
     } catch(const std::exception &e) {
         std::cerr << "ERROR: " << e.what() << std::endl;
-        return -1; 
+        return ReturnCode::ERROR; 
     }
 
     f->removeUnusedVars();
@@ -268,9 +270,9 @@ int main(int argc, char **argv)
     try {
         f->eliminatePossibleVars();
     } catch(const std::exception &e) {
-        std::cerr << e.what() << std::endl;
+        std::cerr << "ERROR: " << e.what() << std::endl;
         delete f;
-        return -1;
+        return ReturnCode::ERROR;
     }
 
     ReturnCode rc;
