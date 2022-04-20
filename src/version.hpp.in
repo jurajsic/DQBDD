@@ -1,0 +1,2 @@
+#define dqbdd_VERSION_MAJOR @dqbdd_VERSION_MAJOR@
+#define dqbdd_VERSION_MINOR @dqbdd_VERSION_MINOR@

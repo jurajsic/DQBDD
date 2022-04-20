@@ -1,6 +1,6 @@
 # DQBDD
 
-DQBDD is a dependency quantified Boolean formula (DQBF) solver that uses binary decision diagrams (BDDs) as an underlying representation of formulas. It is written in C++ and it reads DQBFs encoded in DQDIMACS or prenex cleansed DQCIR format for which it checks their satisfiability using quantifier elimination. For an explanation of the techniques used in DQBDD, see [this paper](https://doi.org/10.1007/978-3-030-80223-3_36) and my [master's thesis](https://is.muni.cz/th/prexv/).
+DQBDD is a dependency quantified Boolean formula (DQBF) solver that uses binary decision diagrams (BDDs) as an underlying representation of formulas. It is written in C++ and it reads DQBFs encoded in DQDIMACS or prenex DQCIR format for which it checks their satisfiability using quantifier elimination. For an explanation of the techniques used in DQBDD, see [this paper](https://doi.org/10.1007/978-3-030-80223-3_36) and my [master's thesis](https://is.muni.cz/th/prexv/).
 
 ## Installation
 
@@ -24,7 +24,7 @@ There is no need to install any dependency, all of them are in `libs/` and are c
 
 ## Input Formats
 
-DQBDD accepts two input formats: [DQDIMACS](https://doi.org/10.29007/1s5k) and prenex cleansed DQCIR.
+DQBDD accepts two input formats: [DQDIMACS](https://doi.org/10.29007/1s5k) and prenex DQCIR.
 
 ### DQDIMACS
 
@@ -43,11 +43,11 @@ d 6 1 4 0
 ```
 This represents DQBF `∀x1 ∀x2 ∀x4 ∃x3(x1, x2) ∃x5(x1, x2, x4) ∃x6(x1, x4).(¬x1 ∨ x6 ∨ ¬x3 ∨ x5) ∧ (¬x2 ∨ ¬x4 ∨ x5)`
 
-### Prenex Cleansed DQCIR
+### Prenex DQCIR
 
-Prenex cleansed DQCIR is an extension of [prenex cleansed QCIR](http://www.qbflib.org/qcir.pdf) format. This format is used for DQBFs in prenex form, however, it does not need to be in CNF. It adds quantifiers of type `depend(v, v1, ..., vn)` which represents existential variable `v` with the dependency set `v1, ..., vn`. It is assumed that `v1, ..., vn` were already defined as `forall` variables and that `v` was not yet defined. The quantifier `exists` can still be used and it represents existential variables with the dependency set equal to the set of universal variables which were already defined with `forall` quantifier.
+Prenex DQCIR is an extension of [prenex QCIR](http://www.qbflib.org/qcir.pdf) format. This format is used for DQBFs in prenex form, however, it does not need to be in CNF. It adds quantifiers of type `depend(v, v1, ..., vn)` which represents existential variable `v` with the dependency set `v1, ..., vn`. It is assumed that `v1, ..., vn` were already defined as `forall` variables and that `v` was not yet defined. The quantifier `exists` can still be used and it represents existential variables with the dependency set equal to the set of universal variables which were already defined with `forall` quantifier.
 
-Example of prenex cleansed DQCIR format:
+Example of prenex (cleansed) DQCIR format:
 ```
 #QCIR-G14 10
 forall(1, 2)
@@ -65,47 +65,52 @@ This represents DQBF `∀x1 ∀x2 ∀x4 ∃x3(x1, x2) ∃x5(x1, x2, x4) ∃x6(x1
 
 ## Usage
 
-    DQBDD [OPTION...] <input file>
+    dqbdd [OPTION...] <input file>
 
 `<input file>` should be a path to formula in DQDIMACS or DQCIR format. For the list of options run `DQBDD --help`. If the formula is satisfiable, the return value is 10, otherwise it is 20.
 
 ## Examples
 
 ```
-DQBDD file.dqdimacs
+dqbdd file.dqdimacs
 ```
 solves the formula in `file.dqdimacs` with the default settings.
 
 ```
-DQBDD --preprocess 0 --dyn-reordering 0 file.dqdimacs
+dqbdd --preprocess 0 --dyn-reordering 0 file.dqdimacs
 ```
 solves the formula in `file.dqdimacs` without running the preprocessor HQSpre first (the default for DQDIMACS files is `preprocess 1`, i.e. preprocessing is enabled) and without using dynamic reordering of variables in BDDs as implemented in CUDD (dynamic reordering is enabled by default, DQBDD uses [Rudell's sifting algorithm](https://ieeexplore.ieee.org/document/580029)).
 
 ```
-DQBDD --localise 0 --uvar-choice 1 file.dqdimacs
+dqbdd --localise 0 --uvar-choice 1 file.dqdimacs
 ```
 solves the formula in `file.dqdimacs` without localising quantifiers (or creating quantifier tree, the default behaviour is `--localise 1`) where the next universal variable for universal expansion is always the one that has the minimal number of dependent existential variables (`--uvar-choice 1`). The other options of `--uvar-choice` are:
 - 0 - the order of universal variables to expand is set at beginning from the smallest to the largest number of dependencies (this is the default),
 - 2 - the next variable is chosen by the number of variables in BDDs representing the two conjucts of universal expansion.
 
 ```
-DQBDD --localise 1 --elimination-choice 2 file.dqdimacs
+dqbdd --localise 1 --elimination-choice 2 file.dqdimacs
 ```
 solves the formula in `file.dqdimacs` with localising quantifiers (this is the default behaviour) where it eliminates all universal and possible existential variables while creating the final BDD from the quantifier tree (`--elimination-choice 2`). The other options of `--elimination-choice` are:
 - 0 - does not eliminate any quantifiers,
 - 1 - eliminates only universal variables which do not have any dependencies and all possible existential variables (this is the default).
 
 ```
-DQBDD file.dqcir
+dqbdd file.dqcir
 ```
 solves the formula in DQCIR format with the default settings. The default settings are the same as for DQDIMACS format except for preprocessing. As HQSpre can only accept files in DQDIMACS format, there is no preprocessing for DQCIR files.
 
 ```
-DQBDD --hqspre-dqcir-output file.dqdimacs
+dqbdd --dqcir-output outfile.dqcir infile.dqdimacs
 ```
-does not solve the formula, but runs HQSpre preprocessor and saves the result of HQSpre with gate extraction to `file.dqcir`. This is basically the same output that DQBDD takes when it processes DQDIMACS file with preprocessing.
+does not solve the formula, but transforms it into DQCIR format. If preprocessing is turned on (by default it is), it runs HQSpre preprocessor and saves the result of HQSpre with gate extraction to `file.dqcir`. This is basically the same formula that DQBDD takes when it processes DQDIMACS file with preprocessing.
+
+```
+dqbdd --dqcir-output-cleansed outfile.dqcir file.dqdimacs
+```
+same as previous example, but the result is formula in cleansed format (XOR and MUX gates are replaced with a combination of AND and OR gates).
 
 ## Licence
 
 - **[LGPL v3](https://www.gnu.org/licenses/lgpl-3.0.en.html)**
-- Copyright 2020, 2021 Juraj Síč
+- Copyright 2020-2022 Juraj Síč

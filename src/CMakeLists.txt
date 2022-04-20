@@ -20,9 +20,11 @@ add_executable(dqbdd
                 gateparser.cpp
                 gateparser.hpp
                 )
+
 target_link_libraries(dqbdd PUBLIC cudd
                             PUBLIC hqspre
                             PUBLIC cxxopts)
+
 
 # if we want, we can link dqbdd statically to standard library (except on mac, where it is not possible)
 if (STATIC AND NOT APPLE)
@@ -32,3 +34,5 @@ endif()
 
 
 target_compile_options(dqbdd PRIVATE -Wall -Wextra -Wpedantic)
+
+target_include_directories(dqbdd PUBLIC "${CMAKE_CURRENT_BINARY_DIR}")

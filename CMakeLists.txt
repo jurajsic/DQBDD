@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(dqbdd VERSION 1.2 LANGUAGES C CXX)
+project(dqbdd VERSION 1.3 LANGUAGES C CXX)
 
 # Enforce C++14
 set(CMAKE_CXX_STANDARD 14)
@@ -23,6 +23,8 @@ if (STATIC AND NOT APPLE)
     endif()
     message("-- Enabled static linking.")
 endif()
+
+configure_file(src/version.hpp.in src/version.hpp)
 
 ########################################################################################
 ################################### Stuff for HQSpre ###################################

@@ -1,7 +1,7 @@
 /*
  * This file is part of DQBDD.
  *
- * Copyright 2020, 2021 Juraj Síč
+ * Copyright 2020-2022 Juraj Síč
  *
  * DQBDD is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -27,6 +27,7 @@
 #include "hqspreinterface.hpp"
 #include "dqdimacsparser.hpp"
 #include "prenexdqcirparser.hpp"
+#include "version.hpp"
 
 enum ReturnCode {
     SAT = 10,
@@ -131,7 +132,7 @@ int main(int argc, char **argv)
     }
 
     if (result->count("version")) {
-        std::cout << "DQBDD 1.2" << std::endl;
+        std::cout << "DQBDD " << dqbdd_VERSION_MAJOR << "." << dqbdd_VERSION_MINOR << std::endl;
         return ReturnCode::NOSOLVINGSUCCESS;
     }
     
