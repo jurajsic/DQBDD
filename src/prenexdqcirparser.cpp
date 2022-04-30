@@ -84,8 +84,8 @@ void PrenexDQCIRParser::parse(std::string fileName) {
         streamLine >> token;
 
         if (!firstLineParsed) {
-            if (token != "#QCIR-14") {
-                throw dqbddException("First line of (D)QCIR file should start with '#QCIR-14'");
+            if (token != "#QCIR-G14") {
+                std::cerr << "WARNING: First line of (D)QCIR file should start with '#QCIR-G14'" << std::endl;
             } else {
                 if (streamLine >> token) {
                     maximumAllowedGateID = std::stoul(token);
