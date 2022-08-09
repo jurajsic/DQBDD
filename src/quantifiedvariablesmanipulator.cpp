@@ -20,10 +20,21 @@
 #include "quantifiedvariablesmanipulator.hpp"
 #include "dqbddexceptions.hpp"
 
+#include <iostream>
+
 namespace dqbdd {
 
 bool VariableSet::contains(Variable const &var) const {
     return (this->count(var) != 0);
+}
+
+bool VariableSet::isSubsetOf(const VariableSet &vs) const {
+    for (auto iter = this->begin(); iter != this->end(); ++iter) {
+        if (!vs.contains(*iter)) {
+            return false;
+        }
+    }
+    return true;
 }
 
 VariableSet VariableSet::intersect(const VariableSet &vs) const {
@@ -156,6 +167,62 @@ unsigned QuantifiedVariablesManager::getNumberOfUnivVars() {
 
 unsigned QuantifiedVariablesManager::getNumberOfExistVars() {
     return numberOfExistVars;
+}
+
+void QuantifiedVariablesManager::reorderVars(Cudd &mgr) {
+    VariableSet univVars;
+    std::vector<Variable> sortedUnivVars;
+    for (auto &uVarWithDependencies : univVarsDependencies) {
+        Variable univVar = uVarWithDependencies.first;
+        univVars.insert(univVar);
+        sortedUnivVars.push_back(univVar);
+    }
+    VariableSet existVars;
+    for (auto &eVarWithDependencies : existVarsDependencies) {
+        existVars.insert(eVarWithDependencies.first);
+    }
+
+    std::sort(sortedUnivVars.begin(), sortedUnivVars.end(),
+                    [&](const Variable &a, const Variable &b) {
+                        auto aDependenciesSize = getUnivVarDependencies(a).size();
+                        auto bDependenciesSize = getUnivVarDependencies(b).size();
+                        return (aDependenciesSize < bDependenciesSize
+                                || (aDependenciesSize == bDependenciesSize && a.getId() < b.getId()));
+                    }
+                );
+    
+    VariableSet removedUnivVars;
+    int i = univVars.size() + existVars.size();
+    // the new ordering of variables
+    std::vector<int> orderOfElimination(i);
+    // on the lowest level are existential variables that depend on everything (they will be eliminated first)
+    for (auto it = existVars.begin(); it != existVars.end(); ) {
+        if (existVarsDependencies[*it].size() == univVars.size()) {
+            --i; orderOfElimination[i] = it->getId();
+            it = existVars.erase(it);
+        } else {
+            ++it;
+        }
+    }
+    for (const Variable &univVar : sortedUnivVars) {
+        removedUnivVars.insert(univVar);
+        --i; orderOfElimination[i] = univVar.getId();
+        univVars.erase(univVar);
+        for (auto it = existVars.begin(); it != existVars.end(); ) {
+            if (existVarsDependencies[*it].minus(removedUnivVars).size() == univVars.size()) {
+                --i; orderOfElimination[i] = it->getId();
+                it = existVars.erase(it);
+            } else {
+                ++it;
+            }
+        }
+    }
+
+    // for (auto a : orderOfElimination) {
+    //     std::cout << a << ' ';
+    // } std:: cout << std::endl;
+    
+    mgr.ShuffleHeap(orderOfElimination.data());
 }
 
 /********************************************/

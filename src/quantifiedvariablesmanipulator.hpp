@@ -34,6 +34,10 @@ public:
 
     bool contains(Variable const &var) const;
     /**
+     * @brief checks if this set is subset of vs
+     */
+    bool isSubsetOf(const VariableSet &vs) const;
+    /**
      * @brief returns the intersection of this set with vs
      */
     VariableSet intersect(const VariableSet &vs) const;
@@ -104,6 +108,11 @@ public:
     unsigned getNumberOfExistVars();
     //VariableSet getAllUnivVars();
     //VariableSet getAllExistVars();
+
+    /**
+     * @brief Reorders the variables in the BDD manager so that they are easier to eliminate
+     */
+    void reorderVars(Cudd &mgr);
 };
 
 /**
