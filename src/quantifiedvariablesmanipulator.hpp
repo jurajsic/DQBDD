@@ -147,6 +147,8 @@ protected:
     // the set of variables occuring in the matrix (NOT those that occur in this manipulator)
     VariableSet supportSet;
 
+    void printPrefix(std::ostream &out) const;
+
 public:
     QuantifiedVariablesManipulator() = delete;
     QuantifiedVariablesManipulator(QuantifiedVariablesManager &qvMgr);

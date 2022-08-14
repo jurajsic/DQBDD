@@ -22,6 +22,7 @@
 
 #include <list>
 #include <ostream>
+#include <unordered_set>
 
 #include "dqbddvariable.hpp"
 #include "dqbddformula.hpp"
@@ -29,11 +30,14 @@
 namespace dqbdd {
 
 class QuantifierTreeFormula;
+class QuantifierTreeConnection;
 
 /**
  * @brief Base class for nodes in quantifier trees
  */
 class QuantifierTreeNode : virtual public QuantifiedVariablesManipulator {
+private:
+    virtual void printDotRepresentation(std::ostream &out, const std::unordered_map<QuantifierTreeConnection*, int> &connectionToId, int thisId) const = 0;
 protected:
     // the set of universal variables in support set or in dependecy set of ex. var in support set
     VariableSet uVarsSupportSet = {};
@@ -58,6 +62,10 @@ public:
      */
     virtual QuantifierTreeFormula* changeToFormula(Cudd &mgr) = 0;
 
+    void printToDot(std::ostream &out) const;
+
+    virtual std::unordered_set<QuantifierTreeConnection*> getAllConnections() const = 0;
+
     virtual VariableSet const &getUVarsSupportSet();
 
     virtual QuantifierTreeNode* getCopy() = 0;
@@ -69,12 +77,14 @@ public:
 class QuantifierTreeFormula : public QuantifierTreeNode, public Formula {
 private:
     void computeSupportSets();
+    void printDotRepresentation(std::ostream &out, const std::unordered_map<QuantifierTreeConnection*, int> &connectionToId, int thisId) const override;
 public:
     QuantifierTreeFormula(const Cudd &mgr, QuantifiedVariablesManager &qvmgr);
     QuantifierTreeFormula(const Cudd &mgr, QuantifiedVariablesManipulator &qvManipulator);
     void localise(const VariableSet&) override;
     QuantifierTreeFormula* changeToFormula(Cudd &) override;
     QuantifierTreeNode* getCopy() override;
+    std::unordered_set<QuantifierTreeConnection*> getAllConnections() const override;
 
     VariableSet const &getSupportSet() override;
     VariableSet const &getUVarsSupportSet() override;
@@ -200,6 +210,7 @@ private:
 
     std::ostream& print(std::ostream& out) const override;
 
+    void printDotRepresentation(std::ostream &out, const std::unordered_map<QuantifierTreeConnection*, int> &connectionToId, int thisId) const override;
 public:
     /**
      * @brief Construct a new Quantifier Tree object
@@ -233,6 +244,7 @@ public:
     QuantifierTreeFormula* changeToFormula(Cudd &mgr) override;
     
     QuantifierTreeNode* getCopy() override;
+    std::unordered_set<QuantifierTreeConnection*> getAllConnections() const override;
 };
 
 } // namespace dqbdd

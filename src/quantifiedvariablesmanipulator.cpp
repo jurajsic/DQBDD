@@ -395,19 +395,18 @@ std::ostream& QuantifiedVariablesManipulator::print(std::ostream& out) const {
     return out;
 }
 
-std::ostream& operator<<(std::ostream& out, const QuantifiedVariablesManipulator& qvm)
-{
+void QuantifiedVariablesManipulator::printPrefix(std::ostream &out) const {
     // print all univ variables
-    for (const Variable &uVar : qvm.getUnivVars()) {
+    for (const Variable &uVar : getUnivVars()) {
         out << std::string("∀") << uVar << std::string(" ");       
     }
 
     //print all exist variables
-    for (const Variable &eVar : qvm.getExistVars()) {
+    for (const Variable &eVar : getExistVars()) {
         out << std::string("∃") << eVar << std::string("{");
         // print the set of dependencies of exist variable
-        auto size = qvm.getExistVarDependencies(eVar).size();
-        for (const Variable &uVar : qvm.getExistVarDependencies(eVar)) {
+        auto size = getExistVarDependencies(eVar).size();
+        for (const Variable &uVar : getExistVarDependencies(eVar)) {
             out << uVar;
             // the last dependency does not have ',' after it
             if (size != 1) {
@@ -417,7 +416,12 @@ std::ostream& operator<<(std::ostream& out, const QuantifiedVariablesManipulator
         }
         out << std::string("} ");
     }
-    
+}
+
+std::ostream& operator<<(std::ostream& out, const QuantifiedVariablesManipulator& qvm)
+{
+    // print the prefix
+    qvm.printPrefix(out);
     // print the inner formula
     return qvm.print(out);
 }

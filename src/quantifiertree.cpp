@@ -61,6 +61,23 @@ VariableSet const& QuantifierTreeNode::getUVarsSupportSet() {
     return uVarsSupportSet;
 }
 
+void QuantifierTreeNode::printToDot(std::ostream &out) const {
+    auto allConnections = getAllConnections();
+    std::unordered_map<QuantifierTreeConnection*, int> connectionToId;
+    int i = 0;
+    for (auto connection : allConnections) {
+        connectionToId[connection] = i;
+        ++i;
+    }
+    out << "digraph G {" << std::endl;
+    for (auto connection : allConnections) {
+        connection->child->printDotRepresentation(out, connectionToId, connectionToId.at(connection));
+    }
+    printDotRepresentation(out, connectionToId, i);
+    out << "start [shape=none, label=\"\"];" << std::endl;
+    out << "start -> " << i << ";" << std::endl << "}" << std::endl;
+}
+
 /*******************************************/
 /*******************************************/
 /******* QUANTIFIER TREE CONNECTION ********/
@@ -711,6 +728,27 @@ QuantifierTreeNode* QuantifierTree::getCopy() {
     return newTree;
 }
 
+std::unordered_set<QuantifierTreeConnection*> QuantifierTree::getAllConnections() const {
+    std::unordered_set<QuantifierTreeConnection*> connections;
+    for (const auto child : childrenConnections) {
+        for (const auto childConn : child->child->getAllConnections()) {
+            connections.insert(childConn);
+        }
+        connections.insert(child);
+    }
+    return connections;
+}
+
+void QuantifierTree::printDotRepresentation(std::ostream &out, const std::unordered_map<QuantifierTreeConnection*, int> &connectionToId, int thisId) const {
+    out << thisId << " [shape=circle,label=\"" << (isConj ? "∧" : "∨") << "\",xlabel=\"";
+    printPrefix(out);
+    out << "\"];" << std::endl << thisId << " -> {";
+    for (auto childConnection : childrenConnections) {
+        out << connectionToId.at(childConnection) << " ";
+    }
+    out << "};" << std::endl;
+}
+
 /*********************************************************/
 /*********************************************************/
 /************     QUANTIFIERTREEFORMULA     **************/
@@ -771,6 +809,14 @@ QuantifierTreeNode* QuantifierTreeFormula::getCopy() {
     QuantifierTreeFormula *newFormula = new QuantifierTreeFormula(getMgr(), (*qvMgr));
     newFormula->setMatrix(getMatrix());
     return newFormula;
+}
+
+std::unordered_set<QuantifierTreeConnection*> QuantifierTreeFormula::getAllConnections() const {
+    return std::unordered_set<QuantifierTreeConnection*>{};
+}
+
+void QuantifierTreeFormula::printDotRepresentation(std::ostream &out, const std::unordered_map<QuantifierTreeConnection*, int> &connectionToId, int thisId) const {
+    out << thisId << " [shape=none,label=\"" << *this << "\"];" << std::endl;
 }
 
 } // namespace dqbdd
