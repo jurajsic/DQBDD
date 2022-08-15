@@ -19,8 +19,8 @@
 
 #include <vector>
 #include <sstream>
-#include <easylogging++.hpp>
 
+#include <easylogging++.hpp>
 #include <formula.hpp>
 
 #include "hqspreinterface.hpp"

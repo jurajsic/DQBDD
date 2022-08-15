@@ -21,8 +21,7 @@
 #include <fstream>
 #include <algorithm>
 
-// for warnings
-#include <iostream>
+#include <easylogging++.hpp>
 
 #include "prenexdqcirparser.hpp"
 #include "dqbddexceptions.hpp"
@@ -53,7 +52,7 @@ void PrenexDQCIRParser::parse(std::string fileName) {
         if (isCleansed) { // for cleansed (D)QCIR we just return the number on the input
             unsigned long id = std::stoul(gateString);
             if (id > maximumAllowedGateID) {
-                std::cerr << "WARNING: Variable or gate " << id << " was found during parsing (D)QCIR file, which is larger than the allowed maximum from the first line" << std::endl;
+                LOG(WARNING) << "Variable or gate " << id << " was found during parsing (D)QCIR file, which is larger than the allowed maximum from the first line";
             }
             return id;
         } else if (gateStringToID.count(gateString) > 0) {
@@ -85,7 +84,7 @@ void PrenexDQCIRParser::parse(std::string fileName) {
 
         if (!firstLineParsed) {
             if (token != "#QCIR-G14") {
-                std::cerr << "WARNING: First line of (D)QCIR file should start with '#QCIR-G14'" << std::endl;
+                 LOG(WARNING) << "First line of (D)QCIR file should start with '#QCIR-G14'";
             } else {
                 if (streamLine >> token) {
                     maximumAllowedGateID = std::stoul(token);

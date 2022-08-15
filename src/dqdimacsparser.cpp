@@ -20,7 +20,6 @@
 #include <sstream>
 #include <fstream>
 
-// for warnings
 #include <easylogging++.hpp>
 
 #include "dqdimacsparser.hpp"
@@ -103,7 +102,7 @@ void DQDIMACSParser::parse(std::string fileName) {
             }
         } else if (token == "e") {
             if (lastToken == "e") {
-                LOG(WARNING) << "Multiple 'e' lines in input after each other.";
+                LOG(WARNING) << "Multiple 'e' lines in input after each other";
             }
             while (streamline >> token) {
                 if (token != "0") {

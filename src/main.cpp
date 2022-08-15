@@ -102,31 +102,6 @@ void checkAndPrintDQCIR(dqbdd::GateParser &parser, const std::unique_ptr<cxxopts
 
 int main(int argc, char **argv)
 {
-    // Cudd asdf;
-    // dqbdd::Variable a = dqbdd::Variable(1,asdf);
-    // dqbdd::Variable b = dqbdd::Variable(2,asdf);
-    // dqbdd::Variable c = dqbdd::Variable(3,asdf);
-    // BDD testing =  a & b | c;
-    // int perm1[] = {1,2,3};
-    // int perm2[] = {3,2,1};
-    // int perm3[] = {1,3,2};
-    // std::cout << "default perm" << std::endl << std::endl;
-    // //asdf.DumpDot({testing});
-    // std::cout << testing;
-    // std::cout << "perm1:" << std::endl << std::endl;
-    // asdf.ShuffleHeap(perm1);
-    // std::cout << testing;
-    // //asdf.DumpDot({testing});
-    // std::cout << "perm2:" << std::endl << std::endl;
-    // asdf.ShuffleHeap(perm2);
-    // std::cout << testing;
-    // //    asdf.DumpDot({testing});
-    // std::cout << "perm3:" << std::endl << std::endl;
-    // asdf.ShuffleHeap(perm3);
-    // std::cout << testing;
-    // //    asdf.DumpDot({testing});
-    // return 0;
-    // argument parsing
     cxxopts::Options optionsParser("DQBDD", "A DQBF solver using BDDs.");
     optionsParser.add_options()
         ("h,help", "Print usage")
@@ -197,7 +172,7 @@ int main(int argc, char **argv)
         } else if (fileExt == "qcir" || fileExt == "dqcir") {
             fileType = 1;
         } else {
-            LOG(WARNING) << "WARNING: The filetype could not be determined, defaulting to (DQ)DIMACS";
+            LOG(WARNING) << "The filetype could not be determined, defaulting to (DQ)DIMACS";
             fileType = 0;
         }
     } else {
@@ -212,24 +187,6 @@ int main(int argc, char **argv)
     }
 
     dqbdd::QuantifiedVariablesManager qvMgr(options);
-
-    // if (result->count("hqspre-dqcir-output")) {
-    //     dqbdd::HQSPreInterface hqspreParser(mgr, qvMgr);
-    //     std::cout << "Starting HQSpre" << std::endl;
-    //     hqspreParser.parse(fileName);
-    //     std::cout << "Turning into DQCIR format" << std::endl;
-    //     auto outputFileName = fileName.substr(0, fileName.size()-9) + ".dqcir";
-    //     std::ofstream outputFile(outputFileName);
-    //     if (outputFile.is_open()) {
-    //         hqspreParser.printPrenexDQCIR(outputFile);
-    //         outputFile.close();
-    //     } else {
-    //         std::cerr << "ERROR: Could not open output file" << std::endl;
-    //         return ReturnCode::ERROR;
-    //     }
-    //     std::cout << "Input file was successfully preprocessed and tranformed into DQCIR file: " << outputFileName << std::endl;
-    //     return ReturnCode::NOSOLVINGSUCCESS;
-    // }
 
     dqbdd::Formula *f = nullptr;
 
