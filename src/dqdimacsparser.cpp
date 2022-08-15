@@ -21,7 +21,7 @@
 #include <fstream>
 
 // for warnings
-#include <iostream>
+#include <easylogging++.hpp>
 
 #include "dqdimacsparser.hpp"
 #include "dqbddexceptions.hpp"
@@ -50,7 +50,7 @@ void DQDIMACSParser::parse(std::string fileName) {
     auto varStringToUnsignedLongWithMaximumVariableCheck = [&maximumVariable](std::string varString)->unsigned long {
         unsigned long varID = std::stoul(varString);
         if (varID > maximumVariable) {
-            std::cerr << "WARNING: Variable with ID " << varID << " was found during parsing (DQ)DIMACS file, which is larger than the allowed maximum from problem line" << std::endl;
+            LOG(WARNING) << "Variable with ID " << varID << " was found during parsing (DQ)DIMACS file, which is larger than the allowed maximum from problem line";
         }
         return varID;
     };
@@ -81,7 +81,7 @@ void DQDIMACSParser::parse(std::string fileName) {
             }
             streamline >> token;
             if (token != "cnf") {
-                std::cerr << "WARNING: The problem line (i.e. the first line after comments) in input (DQ)DIMACS should have the form 'p cnf <num> <num>'" << std::endl;
+                LOG(WARNING) << "The problem line (i.e. the first line after comments) in input (DQ)DIMACS should have the form 'p cnf <num> <num>'";
             }
             streamline >> token;
             maximumVariable = std::stoul(token);
@@ -94,7 +94,7 @@ void DQDIMACSParser::parse(std::string fileName) {
             throw dqbddException("Prefix in input DQDIMACS file cannot be between the definition of clauses.");
         } else if (token == "a") {
             if (lastToken == "a") {
-                std::cerr << "WARNING: Multiple 'a' lines in input after each other." << std::endl;
+                LOG(WARNING) << "Multiple 'a' lines in input after each other";
             }
             while (streamline >> token) {
                 if (token != "0") {
@@ -103,7 +103,7 @@ void DQDIMACSParser::parse(std::string fileName) {
             }
         } else if (token == "e") {
             if (lastToken == "e") {
-                std::cerr << "WARNING: Multiple 'e' lines in input after each other." << std::endl;
+                LOG(WARNING) << "Multiple 'e' lines in input after each other.";
             }
             while (streamline >> token) {
                 if (token != "0") {
@@ -138,7 +138,7 @@ void DQDIMACSParser::parse(std::string fileName) {
     }
 
     if (expectedNumOfClauses != clauses.size()) {
-        std::cout << "WARNING: Expected number of clauses is different from the real number of clauses in input (DQ)DIMACS file." << std::endl;
+        LOG(WARNING) << "Expected number of clauses is different from the real number of clauses in input (DQ)DIMACS file";
     }
 
     // we add the conjunction of all clauses

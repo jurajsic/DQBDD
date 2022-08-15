@@ -17,8 +17,9 @@
  * along with DQBDD. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <iostream>
 #include <algorithm>
+
+#include <easylogging++.hpp>
 
 #include "dqbddexceptions.hpp"
 #include "dqbddformula.hpp"
@@ -66,12 +67,12 @@ void Formula::eliminateUnivVar(Variable uVarToEliminate, bool useAlreadyComputed
         return;
     }
     
-    std::cout << "Eliminating universal variable " 
-              << uVarToEliminate.getId()
+    VLOG(1) << "Eliminating universal variable " 
+              << uVarToEliminate.getId();
               //<< " where we have " << getExistVars().size() 
               //<< " existential and " << getUnivVars().size() << " universal variables"
-              << "....."
-              << std::flush;
+              //<< "....."
+              //<< std::flush;
 
     // find existential variables that should be duplicated
     //VariableSet eVarsToDuplicate;
@@ -133,7 +134,7 @@ void Formula::eliminateUnivVar(Variable uVarToEliminate, bool useAlreadyComputed
     setMatrix(f1 & f2);
     //std::cout << "BDD created" << std::endl;
 
-    std::cout << "done" << std::endl;
+    VLOG(1) << "Universal variable " << uVarToEliminate.getId() << " eliminated";
 }
 
 void Formula::eliminateExistVar(Variable existVarToEliminate) {
@@ -454,9 +455,9 @@ std::ostream& Formula::print(std::ostream& out) const {
 }
 
 void Formula::printStats() {
-    std::cout << "The BDD has " << matrix.nodeCount() 
+    LOG(INFO) << "The BDD has " << matrix.nodeCount() 
                 << " nodes and there are " << getUnivVars().size() << " universal and "
-                << getExistVars().size() << " existential variables quantified in the formula." << std::endl;
+                << getExistVars().size() << " existential variables quantified in the formula.";
 }
 
 const Cudd& Formula::getMgr() {

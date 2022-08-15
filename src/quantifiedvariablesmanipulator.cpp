@@ -20,8 +20,6 @@
 #include "quantifiedvariablesmanipulator.hpp"
 #include "dqbddexceptions.hpp"
 
-#include <iostream>
-
 namespace dqbdd {
 
 bool VariableSet::contains(Variable const &var) const {

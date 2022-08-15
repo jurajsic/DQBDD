@@ -19,14 +19,13 @@
 
 #include <vector>
 #include <sstream>
-
 #include <easylogging++.hpp>
+
 #include <formula.hpp>
 
 #include "hqspreinterface.hpp"
 #include "dqbddexceptions.hpp"
 
-INITIALIZE_EASYLOGGINGPP
 
 /**
  * Everything here is based on the way how preprocessing is done in HQS, especially
@@ -45,16 +44,17 @@ HQSPreResult HQSPreInterface::getPreprocessorResult() {
 void HQSPreInterface::parse(std::string fileName) {
     result = HQSPreResult::UNKNOWN;
 
+    // TODO create custom logger for HQSpre
     // Configure logging
-    el::Configurations defaultConf;
-    defaultConf.setToDefault();
-    defaultConf.setGlobally(el::ConfigurationType::Enabled, "true");
-    defaultConf.setGlobally(el::ConfigurationType::Format, "[HQSpre] %msg");
-    defaultConf.set(el::Level::Verbose, el::ConfigurationType::Format, "[HQSpre] %msg");
-    defaultConf.setGlobally(el::ConfigurationType::ToFile, "false");
-    defaultConf.setGlobally(el::ConfigurationType::ToStandardOutput, "true");
-    el::Loggers::reconfigureAllLoggers(defaultConf);
-    el::Loggers::setVerboseLevel(1);
+    const el::Configurations *defConf = el::Loggers::defaultConfigurations(); // keep default logger so after preprocessing we can restore it
+    el::Configurations hqspreConf; // configurations used for HQSpre
+    // we want it to have same stuff as defConf, except for log messages
+    for (auto conf : defConf->list()) { // we have to do this in a bit dirty way, we cannot use hqspreConf.setFromBase(defConf) as defConf is const
+        hqspreConf.set(conf);
+    }
+    hqspreConf.setGlobally(el::ConfigurationType::Format, "%datetime %level [HQSpre] %msg");
+    hqspreConf.set(el::Level::Verbose, el::ConfigurationType::Format, "%datetime %level-%vlevel [HQSpre] %msg");
+    el::Loggers::reconfigureLogger("default", hqspreConf);
 
     hqspre::Formula formula;
     formula.settings().consistency_check = false;
@@ -130,7 +130,9 @@ void HQSPreInterface::parse(std::string fileName) {
             VLOG(1) << "Start preprocessing without gate preservation";
         }
         formula.preprocess();
-        formula.printStatistics();
+        if (el::Loggers::verboseLevel() > 0) {
+            formula.printStatistics();
+        }
     } catch (hqspre::SATException&) {
         finishedParsing(true, addGate(GateType::AND));
         result = HQSPreResult::SAT;
@@ -183,9 +185,13 @@ void HQSPreInterface::parse(std::string fileName) {
         }
     }
     
+    // return back to previous configuration for logging
+    el::Loggers::reconfigureLogger("default", *defConf);
+
     VLOG(1) << "Preprocessing finished with formula with " << numOfExistVars << " existential vars, " << numOfUnivVars << " univ. vars, "
             << formula.getGates().size() << " gates, and " << formula.numClauses() << " clauses which potentionally encode the gates.";
- 
+
+
     /* We will save in isHqspreVarOutputNegated the info about whether output of hqspre gates are negated.
      * The default value is false, as the output of normal variables are not negated.
      */

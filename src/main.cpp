@@ -22,12 +22,15 @@
 #include <algorithm>
 #include <stdexcept>
 
+#include <easylogging++.hpp>
 #include <cxxopts.hpp>
 
 #include "hqspreinterface.hpp"
 #include "dqdimacsparser.hpp"
 #include "prenexdqcirparser.hpp"
 #include "version.hpp"
+
+INITIALIZE_EASYLOGGINGPP
 
 enum ReturnCode {
     SAT = 10,
@@ -60,7 +63,7 @@ std::string getLowercaseFileType(std::string path) {
 
 void checkAndPrintDQCIR(dqbdd::GateParser &parser, const std::unique_ptr<cxxopts::ParseResult> &result) {
     if (result->count("dqcir-output")) {
-        std::cout << "Turning into DQCIR format" << std::endl;
+        VLOG(1) << "Turning into DQCIR format";
         std::string outputFileName = (*result)["dqcir-output"].as<std::string>();
         std::ofstream outputFile(outputFileName);
         if (outputFile.is_open()) {
@@ -80,10 +83,10 @@ void checkAndPrintDQCIR(dqbdd::GateParser &parser, const std::unique_ptr<cxxopts
             throw std::runtime_error("Could not open output DQCIR file");
             return;
         }
-        std::cout << "Parsed and possibly preprocessed input file was succesfully written into DQCIR output file " << outputFileName << std::endl;
+        VLOG(1) << "Parsed and possibly preprocessed input file was succesfully written into DQCIR output file " << outputFileName;
     }
     if (result->count("dqcir-output-cleansed")) {
-        std::cout << "Turning into cleansed DQCIR format" << std::endl;
+        VLOG(1) << "Turning into cleansed DQCIR format";
         std::string outputFileName = (*result)["dqcir-output-cleansed"].as<std::string>();
         std::ofstream outputFile(outputFileName);
         if (outputFile.is_open()) {
@@ -93,17 +96,42 @@ void checkAndPrintDQCIR(dqbdd::GateParser &parser, const std::unique_ptr<cxxopts
             throw std::runtime_error("Could not open output DQCIR file");
             return;
         }
-        std::cout << "Parsed and possibly preprocessed input file was succesfully written into cleansed DQCIR output file " << outputFileName << std::endl;
+        VLOG(1) << "Parsed and possibly preprocessed input file was succesfully written into cleansed DQCIR output file " << outputFileName;
     }
 }
 
 int main(int argc, char **argv)
 {
+    // Cudd asdf;
+    // dqbdd::Variable a = dqbdd::Variable(1,asdf);
+    // dqbdd::Variable b = dqbdd::Variable(2,asdf);
+    // dqbdd::Variable c = dqbdd::Variable(3,asdf);
+    // BDD testing =  a & b | c;
+    // int perm1[] = {1,2,3};
+    // int perm2[] = {3,2,1};
+    // int perm3[] = {1,3,2};
+    // std::cout << "default perm" << std::endl << std::endl;
+    // //asdf.DumpDot({testing});
+    // std::cout << testing;
+    // std::cout << "perm1:" << std::endl << std::endl;
+    // asdf.ShuffleHeap(perm1);
+    // std::cout << testing;
+    // //asdf.DumpDot({testing});
+    // std::cout << "perm2:" << std::endl << std::endl;
+    // asdf.ShuffleHeap(perm2);
+    // std::cout << testing;
+    // //    asdf.DumpDot({testing});
+    // std::cout << "perm3:" << std::endl << std::endl;
+    // asdf.ShuffleHeap(perm3);
+    // std::cout << testing;
+    // //    asdf.DumpDot({testing});
+    // return 0;
     // argument parsing
     cxxopts::Options optionsParser("DQBDD", "A DQBF solver using BDDs.");
     optionsParser.add_options()
         ("h,help", "Print usage")
         ("v,version", "Print the version number")
+        ("verbosity", "Sets verbose level (0-9)", cxxopts::value<int>()->default_value("1"))
         ("l,localise", "Use quantifier tree with localisation of quantifiers", cxxopts::value<int>()->default_value("1"))
         ("p,preprocess", "Use preprocessing (only for (DQ)DIMACS files)", cxxopts::value<int>()->default_value("1"))
         ("e,elimination-choice", "Decide what to eliminate on each level of quantifier tree during transformation to formula", cxxopts::value<int>()->default_value("1"))
@@ -141,6 +169,17 @@ int main(int argc, char **argv)
         return ReturnCode::ERROR;
     }
 
+    // TODO create custom logger for DQBDD
+    // configure default configuration for logging
+    el::Configurations defConf;
+    defConf.setToDefault();
+    defConf.setGlobally(el::ConfigurationType::ToFile, std::string("false"));
+    defConf.setGlobally(el::ConfigurationType::Format, "%datetime %level [DQBDD] %msg");
+    defConf.set(el::Level::Verbose, el::ConfigurationType::Format, "%datetime %level-%vlevel [DQBDD] %msg");
+    el::Loggers::setDefaultConfigurations(defConf, true);
+    // set the verbosity level
+    el::Loggers::setVerboseLevel(static_cast<dqbdd::TreeElimChoice>((*result)["verbosity"].as<int>()));
+
     std::string fileName = (*result)["file"].as<std::string>();
     bool localise = (*result)["localise"].as<int>();
     bool preprocess = (*result)["preprocess"].as<int>();
@@ -158,7 +197,7 @@ int main(int argc, char **argv)
         } else if (fileExt == "qcir" || fileExt == "dqcir") {
             fileType = 1;
         } else {
-            std::cout << "The filetype could not be determined, defaulting to (DQ)DIMACS" << std::endl;
+            LOG(WARNING) << "WARNING: The filetype could not be determined, defaulting to (DQ)DIMACS";
             fileType = 0;
         }
     } else {
@@ -174,35 +213,35 @@ int main(int argc, char **argv)
 
     dqbdd::QuantifiedVariablesManager qvMgr(options);
 
-    if (result->count("hqspre-dqcir-output")) {
-        dqbdd::HQSPreInterface hqspreParser(mgr, qvMgr);
-        std::cout << "Starting HQSpre" << std::endl;
-        hqspreParser.parse(fileName);
-        std::cout << "Turning into DQCIR format" << std::endl;
-        auto outputFileName = fileName.substr(0, fileName.size()-9) + ".dqcir";
-        std::ofstream outputFile(outputFileName);
-        if (outputFile.is_open()) {
-            hqspreParser.printPrenexDQCIR(outputFile);
-            outputFile.close();
-        } else {
-            std::cerr << "ERROR: Could not open output file" << std::endl;
-            return ReturnCode::ERROR;
-        }
-        std::cout << "Input file was successfully preprocessed and tranformed into DQCIR file: " << outputFileName << std::endl;
-        return ReturnCode::NOSOLVINGSUCCESS;
-    }
+    // if (result->count("hqspre-dqcir-output")) {
+    //     dqbdd::HQSPreInterface hqspreParser(mgr, qvMgr);
+    //     std::cout << "Starting HQSpre" << std::endl;
+    //     hqspreParser.parse(fileName);
+    //     std::cout << "Turning into DQCIR format" << std::endl;
+    //     auto outputFileName = fileName.substr(0, fileName.size()-9) + ".dqcir";
+    //     std::ofstream outputFile(outputFileName);
+    //     if (outputFile.is_open()) {
+    //         hqspreParser.printPrenexDQCIR(outputFile);
+    //         outputFile.close();
+    //     } else {
+    //         std::cerr << "ERROR: Could not open output file" << std::endl;
+    //         return ReturnCode::ERROR;
+    //     }
+    //     std::cout << "Input file was successfully preprocessed and tranformed into DQCIR file: " << outputFileName << std::endl;
+    //     return ReturnCode::NOSOLVINGSUCCESS;
+    // }
 
     dqbdd::Formula *f = nullptr;
 
     try {
         std::unique_ptr<dqbdd::GateParser> parser;
-        std::cout << "Parsing" << std::endl;
+        VLOG(1) << "Parsing";
         if (preprocess && fileType == 0) {
             std::unique_ptr<dqbdd::HQSPreInterface> hqspreParser(new dqbdd::HQSPreInterface(mgr, qvMgr));
-            std::cout << "Starting HQSpre" << std::endl;
+            VLOG(1) << "Starting HQSpre";
             hqspreParser->parse(fileName);
             if (hqspreParser->getPreprocessorResult() != dqbdd::HQSPreResult::UNKNOWN) {
-                std::cout << "Solved by preprocessor" << std::endl;
+                VLOG(1) << "Solved by preprocessor";
                 checkAndPrintDQCIR(*hqspreParser, result);
                 if (hqspreParser->getPreprocessorResult() == dqbdd::HQSPreResult::SAT) {
                     std::cout << "SAT" << std::endl;
@@ -225,7 +264,7 @@ int main(int argc, char **argv)
             }
             parser->parse(fileName);
         }
-        std::cout << "Parsing finished" << std::endl;
+        VLOG(1) << "Parsing finished";
 
         if (result->count("dqcir-output") || result->count("dqcir-output-cleansed")) {
             checkAndPrintDQCIR(*parser, result);
@@ -233,26 +272,32 @@ int main(int argc, char **argv)
         }
 
         if (!localise) {
-            std::cout << "Creating BDD formula" << std::endl;
+            VLOG(1) << "Creating BDD formula";
             f = parser->getFormula();
         } else {
-            std::cout << "Creating quantifier tree" << std::endl;
+            VLOG(1) << "Creating quantifier tree";
 
             auto qtroot = parser->getQuantifierTree();
 
-            std::cout << "Quantifier tree created with " 
+            VLOG(1) << "Quantifier tree created with " 
                         << qtroot->getUnivVars().size() << " universal and "
-                        << qtroot->getExistVars().size() << " existential variables quantified in it." << std::endl
+                        << qtroot->getExistVars().size() << " existential variables quantified in it."
                         //<< *qtroot << std::endl
-                        << "Pushing quantifiers inside" << std::endl;
+                        << "Pushing quantifiers inside";
             //std::cout << qtroot->getUnivVars() << std::endl
             //          << qtroot->getExistVars() << std::endl;
 
+            //std::ofstream blabla("testtttttt.dot");
+            //qtroot->printToDot(blabla);
             qtroot->localise( dqbdd::VariableSet{ } );
+            //qtroot->qvMgr->reorderVars(mgr);
+            //blabla.close();
+            //blabla.open("testttttttttttttt.dot");
+            //qtroot->printToDot(blabla);
 
-            std::cout << "Quantifiers pushed inside" << std::endl
+            VLOG(1) << "Quantifiers pushed inside";
                         //<< *qtroot << std::endl
-                        << "Creating BDD formula" << std::endl;
+            VLOG(1) << "Creating BDD formula";
             
             f = qtroot->changeToFormula(mgr);
             //std::cout << *f <<std::endl;
@@ -263,11 +308,13 @@ int main(int argc, char **argv)
     }
 
     f->removeUnusedVars();
-    std::cout << "BDD formula created" << std::endl;
-    f->printStats();
+    VLOG(1) << "BDD formula created";
+    if (el::Loggers::verboseLevel() > 0) {
+        f->printStats();
+    }
     //std::cout << "Universal variables: " << f->getUnivVars() << std::endl;
     //std::cout << "Existential variables: " << f->getExistVars() << std::endl;
-    std::cout << "Eliminating variables in the created formula" << std::endl;
+    VLOG(1) << "Eliminating variables in the created formula";
     try {
         f->eliminatePossibleVars();
     } catch(const std::exception &e) {
