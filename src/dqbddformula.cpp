@@ -66,13 +66,11 @@ void Formula::eliminateUnivVar(Variable uVarToEliminate, bool useAlreadyComputed
         removeUnivVar(uVarToEliminate);
         return;
     }
+
+    std::string logHeader = std::string("eliminateUnivVar(") + std::to_string(uVarToEliminate.getId()) + std::string("): ");
     
-    VLOG(1) << "Eliminating universal variable " 
-              << uVarToEliminate.getId();
-              //<< " where we have " << getExistVars().size() 
-              //<< " existential and " << getUnivVars().size() << " universal variables"
-              //<< "....."
-              //<< std::flush;
+    VLOG(1) << logHeader << "Eliminating universal variable " << uVarToEliminate.getId();
+    VLOG(2) << logHeader << "There are " << getExistVars().size() << " existential and " << getUnivVars().size() << " universal variables in the prefix of this (sub)formula";
 
     // find existential variables that should be duplicated
     //VariableSet eVarsToDuplicate;
@@ -86,15 +84,15 @@ void Formula::eliminateUnivVar(Variable uVarToEliminate, bool useAlreadyComputed
 
     removeUnivVar(uVarToEliminate);
     
-    //std::cout << "Creating BDDs" << std::endl;
+    VLOG(2) << logHeader << "Creating BDD";
     // uVarToEliminate=false where we have old existential variables
     BDD f1 = (useAlreadyComputedf1f2) // if I already have the restriciton saved
                     ? minf1 : matrix.Restrict(!uVarToEliminate.getBDD());
-    //std::cout << "Restriction 1 finished" << std::endl;
+    VLOG(3) << logHeader << "Restriction 1 finished";
     // uVarToEliminate=true where we have new existential variables
     BDD f2 = (useAlreadyComputedf1f2)
                     ? minf2 : matrix.Restrict(uVarToEliminate);
-    //std::cout << "Restriction 2 finished" << std::endl;
+    VLOG(3) << logHeader << "Restriction 2 finished";
 
     /* We have to replace existential variables depending on uVarToEliminate in f2 with copies
      * but it is important to create them in mgr on the same level as thei original (so the created
@@ -114,27 +112,26 @@ void Formula::eliminateUnivVar(Variable uVarToEliminate, bool useAlreadyComputed
 
     // create copies of existential variables in f2 depending on uVarToEliminate,
     // but created in mgr on the same level as their original
-    //std::cout << "Duplicating vars ";
     for (Variable eVarToDuplicate : dependentExistVars.intersect(f2SupportSet)) {
-        //std::cout << eVarToDuplicate.getId() << " ";
         Variable newExistVar = eVarToDuplicate.newVarAtSameLevel();
+        VLOG(4) << logHeader << "Existential variable " << eVarToDuplicate.getId() << " will be replaced with the new variable " << newExistVar.getId() << " in restriction 2";
         addExistVar(newExistVar, getExistVarDependencies(eVarToDuplicate));
         varsToBeReplaced.push_back(eVarToDuplicate);
         varsToReplaceWith.push_back(newExistVar);
     }
-    //std::cout << std::endl;
+    VLOG(3) << logHeader << "Replacing existential vars with new ones in restriction 2";
     f2 = f2.SwapVariables(varsToBeReplaced, varsToReplaceWith);
-    //std::cout << "Replacing finished" << std::endl;
     if (dynReordering) {
         //TODO: add some variable in which the reordering method is saved
         mgr.AutodynEnable(Cudd_ReorderingType::CUDD_REORDER_SIFT);
     }
 
+    VLOG(3) << logHeader << "Creating BDD for conjunction of the two restrictions";
     // get their conjuction and thus remove uVarToEliminate from the formula
     setMatrix(f1 & f2);
-    //std::cout << "BDD created" << std::endl;
+    VLOG(2) << logHeader << "BDD created";
 
-    VLOG(1) << "Universal variable " << uVarToEliminate.getId() << " eliminated";
+    VLOG(1) << logHeader << "Universal variable " << uVarToEliminate.getId() << " eliminated";
 }
 
 void Formula::eliminateExistVar(Variable existVarToEliminate) {
@@ -145,25 +142,26 @@ void Formula::eliminateExistVar(Variable existVarToEliminate) {
 void Formula::eliminateExistVars(VariableSet existVarsToEliminate) {
     if (existVarsToEliminate.empty())
         return;
+
+    VLOG(2) << "eliminateExistVars: Eliminating exist vars " << existVarsToEliminate;
     
     /* for eliminating multiple existential variables it was just a tiny bit
      * better on benchmarks from QBFEVAL'19 to eliminate them at the same time 
      * using ExistAbstract with the cube of exist vars to eliminate
      */
-    //std::cout << "Eliminating exist variables ";
     BDD CubeToRemove = mgr.bddOne();
     for (const Variable &eVarToEliminate : existVarsToEliminate) {
         CubeToRemove = CubeToRemove & eVarToEliminate;
         removeExistVar(eVarToEliminate);
-        //std::cout << eVarToEliminate.getId() << " ";
     }
-    //std::cout << std::endl;
     setMatrix(matrix.ExistAbstract(CubeToRemove));
 
     // this is if we do it one by one, it was sometimes a tiny bit slower
     //for (const Variable &eVarToEliminate : existVarsToEliminate) {
     //    eliminateExistVar(eVarToEliminate);
     //}
+
+    VLOG(2) << "eliminateExistVars: Exist vars eliminated";
 }
 
 VariableSet Formula::getPossibleExistVarsToEliminate() {
@@ -344,18 +342,15 @@ bool Formula::eliminateSimpleUnivVars() {
     };
     auto univVarsToEliminate = getUnivVarsToEliminate();
     while (!univVarsToEliminate.empty()) {
+        VLOG(2) << "eliminateSimpleUnivVars: Eliminating universal variables " << univVarsToEliminate << " that are without dependencies";
 
         // this (eliminating all simple univ vars at the same time) was slower 
-        /*std::cout << "Eliminating universal variables ";
-        BDD CubeToRemove = mgr.bddOne();
-        for (const Variable &uVarToEliminate : univVarsToEliminate) {
-            CubeToRemove = CubeToRemove & uVarToEliminate;
-            removeUnivVar(uVarToEliminate);
-            std::cout << uVarToEliminate.getId() << " ";
-        }
-        std::cout << "without dependencies" << std::endl;
-        setMatrix(matrix.UnivAbstract(CubeToRemove));
-        */
+        // BDD CubeToRemove = mgr.bddOne();
+        // for (const Variable &uVarToEliminate : univVarsToEliminate) {
+        //     CubeToRemove = CubeToRemove & uVarToEliminate;
+        //     removeUnivVar(uVarToEliminate);
+        // }
+        // setMatrix(matrix.UnivAbstract(CubeToRemove));
 
         // it is better to eliminate one by one
         std::vector<Variable> orderedVarsToEliminate(univVarsToEliminate.begin(), univVarsToEliminate.end()); 
@@ -379,6 +374,8 @@ bool Formula::eliminateSimpleUnivVars() {
  */
 void Formula::eliminatePossibleVars() {
     removeUnusedVars();
+
+    // TODO maybe some check for whether this is not subformula but the whole formula + we only have univ vars -> we can just check if matrix==1, if yes SAT, otherwise UNSAT
 
     initializeUnivVarEliminationOrder();
 

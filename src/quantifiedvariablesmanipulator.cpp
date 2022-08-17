@@ -17,6 +17,10 @@
  * along with DQBDD. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <cassert>
+
+#include <easylogging++.hpp>
+
 #include "quantifiedvariablesmanipulator.hpp"
 #include "dqbddexceptions.hpp"
 
@@ -37,10 +41,17 @@ bool VariableSet::isSubsetOf(const VariableSet &vs) const {
 
 VariableSet VariableSet::intersect(const VariableSet &vs) const {
     VariableSet intersection = { };
-    // TODO iterate over smaller set
-    for (auto iter = this->begin(); iter != this->end(); ++iter) {
-        if (vs.contains(*iter)) {
-            intersection.insert(*iter);
+    if (this->size() < vs.size()) {
+        for (auto iter = this->begin(); iter != this->end(); ++iter) {
+            if (vs.contains(*iter)) {
+                intersection.insert(*iter);
+            }
+        }
+    } else {
+        for (const Variable &var : vs) {
+            if (this->contains(var)) {
+                intersection.insert(var);
+            }
         }
     }
     return intersection;
@@ -92,6 +103,7 @@ std::ostream& operator<<(std::ostream& os, const VariableSet& variableSet) {
 QuantifiedVariablesManager::QuantifiedVariablesManager(Options options) : options(options) {}
 
 void QuantifiedVariablesManager::addExistVarInstance(Variable eVar) {
+    VLOG(5) << "addExistVarInstance(" << eVar << ")";
     ++numberOfUsedExistVars[eVar];
     if (numberOfUsedExistVars[eVar] == 1) { // if eVar is newly added
         ++numberOfExistVars;
@@ -102,13 +114,17 @@ void QuantifiedVariablesManager::addExistVarInstance(Variable eVar) {
 void QuantifiedVariablesManager::removeExistVarInstance(Variable eVar) {
     --numberOfUsedExistVars[eVar];
     if (numberOfUsedExistVars[eVar] == 0) { // if eVar is not in manager anymore
+        VLOG(5) << "removeExistVarInstance(" << eVar << "): removing last instance";
         --numberOfExistVars;
         removeDependency(eVar, existVarsDependencies[eVar]);
         existVarsDependencies.erase(eVar);
+    } else {
+        VLOG(5) << "removeExistVarInstance(" << eVar << ")";
     }
 }
 
 void QuantifiedVariablesManager::addUnivVarInstance(Variable uVar) {
+    VLOG(5) << "addUnivVarInstance(" << uVar << ")";
     ++numberOfUsedUnivVars[uVar];
     if (numberOfUsedUnivVars[uVar] == 1) { // if uVar is newly added
         ++numberOfUnivVars;
@@ -120,16 +136,21 @@ void QuantifiedVariablesManager::addUnivVarInstance(Variable uVar) {
 void QuantifiedVariablesManager::removeUnivVarInstance(Variable uVar) {
     --numberOfUsedUnivVars[uVar];
     if (numberOfUsedUnivVars[uVar] == 0) { // if uVar is not in manager anymore
+        VLOG(5) << "removeUnivVarInstance(" << uVar << "): removing last instance";
         --numberOfUnivVars;
+        // making a copy, because we will be changing univVarsDependencies[uVar] in the loop
         auto existVarsToUpdate = univVarsDependencies[uVar];
         for (Variable existVarToUpdate : existVarsToUpdate) {
             removeDependency(existVarToUpdate, VariableSet{uVar});
         }
         univVarsDependencies.erase(uVar);
+    } else {
+        VLOG(5) << "removeUnivVarInstance(" << uVar << ")";
     }
 }
 
 void QuantifiedVariablesManager::addDependency(Variable eVar, VariableSet dependencies) {
+    VLOG(5) << "addDependency(" << eVar << ", " << dependencies << ")"; 
     for (Variable uVar : dependencies) {
         existVarsDependencies[eVar].insert(uVar);
         univVarsDependencies[uVar].insert(eVar);
@@ -137,6 +158,7 @@ void QuantifiedVariablesManager::addDependency(Variable eVar, VariableSet depend
 }
 
 void QuantifiedVariablesManager::removeDependency(Variable eVar, VariableSet dependencies) {
+    VLOG(5) << "removeDependency(" << eVar << ", " << dependencies << ")"; 
     for (Variable remVar : dependencies) {
         existVarsDependencies[eVar].erase(remVar);
         univVarsDependencies[remVar].erase(eVar);
@@ -180,6 +202,9 @@ void QuantifiedVariablesManager::reorderVars(Cudd &mgr) {
         existVars.insert(eVarWithDependencies.first);
     }
 
+    VLOG(5) << "reorderVars: Univ vars " << univVars;
+    VLOG(5) << "reorderVars: Exist vars " << existVars;
+
     std::sort(sortedUnivVars.begin(), sortedUnivVars.end(),
                     [&](const Variable &a, const Variable &b) {
                         auto aDependenciesSize = getUnivVarDependencies(a).size();
@@ -190,7 +215,7 @@ void QuantifiedVariablesManager::reorderVars(Cudd &mgr) {
                 );
     
     VariableSet removedUnivVars;
-    int i = univVars.size() + existVars.size();
+    int i = mgr.ReadSize(); // number of BDD variables in mgr (it is possible there are more than those used in formulas)
     // the new ordering of variables
     std::vector<int> orderOfElimination(i);
     // on the lowest level are existential variables that depend on everything (they will be eliminated first)
@@ -216,10 +241,25 @@ void QuantifiedVariablesManager::reorderVars(Cudd &mgr) {
         }
     }
 
-    // for (auto a : orderOfElimination) {
-    //     std::cout << a << ' ';
-    // } std:: cout << std::endl;
-    
+    // the variables in CUDD are given from 0 to mgr.ReadSize(), it is possible that some of them are not used in formulas, but we still need to give them some order
+    for (int bddVar = 0; bddVar < mgr.ReadSize(); ++bddVar) {
+        if (!existVarsDependencies.count(Variable(bddVar, mgr)) && !univVarsDependencies.count(Variable(bddVar, mgr))) {
+            --i; orderOfElimination[i] = bddVar;
+        }
+    }
+
+    if (VLOG_IS_ON(5)) {
+        std::stringstream orderLog;
+        orderLog << "reorderVars: new order of BDD variables from highest to lowest: ";
+        for (int j = i; j < orderOfElimination.size(); ++j) {
+            orderLog << orderOfElimination[j] << ' ';
+        }
+        VLOG(5) << orderLog.str();
+    }
+
+
+    assert(i == 0);
+
     mgr.ShuffleHeap(orderOfElimination.data());
 }
 
@@ -369,6 +409,7 @@ VariableSet const &QuantifiedVariablesManipulator::getSupportSet() {
 
 // removes variables that are not in the support set of matrix
 void QuantifiedVariablesManipulator::removeUnusedVars() {
+    VLOG(5) << "removeUnusedVars for " << this;
     VariableSet usedVars = getSupportSet();
 
     VariableSet varsToRemove;

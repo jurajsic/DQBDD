@@ -46,7 +46,7 @@ void PrenexDQCIRParser::parse(std::string fileName) {
     bool isCleansed = false;
     unsigned long maximumAllowedGateID;
 
-    unsigned long maxGateID = 0;
+    unsigned long maxGateID = 0; // TODO use maxGateID of parent class + right now variables are indexed from 1, so there is one not used variable 0 in CUDD
     std::unordered_map<std::string, unsigned long> gateStringToID;
     auto getIDFromGateString = [&isCleansed, &maximumAllowedGateID, &gateStringToID, &maxGateID](std::string gateString)->unsigned long {
         if (isCleansed) { // for cleansed (D)QCIR we just return the number on the input
@@ -83,17 +83,23 @@ void PrenexDQCIRParser::parse(std::string fileName) {
         streamLine >> token;
 
         if (!firstLineParsed) {
+            firstLineParsed = true;
             if (token != "#QCIR-G14") {
                  LOG(WARNING) << "First line of (D)QCIR file should start with '#QCIR-G14'";
+                 // if the first line does not correctly start with "#QCIR-G14", then if it is not comment, we should probably process it
+                 if (line[0] == '#') {
+                    continue;
+                 }
             } else {
-                if (streamLine >> token) {
-                    maximumAllowedGateID = std::stoul(token);
-                    isCleansed = true;
+                if (streamLine >> token) { // if #QCIR-G14 is followed by something...
+                    maximumAllowedGateID = std::stoul(token); // ...it has to be maximum number of (normal/gate) variables and...
+                    isCleansed = true; // ...it also means that (D)QCIR is in cleansed form
                 }
+                continue;
             }
-            firstLineParsed = true;
-            continue;
-        } else if (!prefixFinished) {  // processing quantifier prefix
+        }
+        
+        if (!prefixFinished) {  // processing quantifier prefix
             std::transform(token.begin(), token.end(), token.begin(), [](unsigned char c){ return std::tolower(c); });
             if (token == "exists") {
                 while (streamLine >> token) {

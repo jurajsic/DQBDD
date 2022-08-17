@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased]
+### New
+- added option '--verbose' for verbose output with multiple levels of verbosity using easylogging++ ('-v' is now for '--verbose', use '-V' for '--version')
+- added implementation of initial BDD ordering of variables based on expected order of elimination (variables that are first to eliminate are on the lowest level)
+- added option '--initial-ordering' that defines the initial ordering of BDD variables (1 is the new initial ordering based on order of elimination, 0 is the old one)
+
+### Fixes
+- (D)QCIR parser now expects '#QCIR-G14' at the beginning of the file, not '#QCIR-14' (and gives only warning instead of exception if it does not start with it)
+
 ## [1.3] - 20-04-2022
 ### New
 - added parsing of non-cleansed prenex (D)QCIR format

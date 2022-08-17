@@ -58,12 +58,13 @@ private:
     GateLiteral outputGateLiteral;
     std::unordered_map<unsigned long, Gate> gateIDToGate;
 
-    // ordered list of gates ID based on when they were added to the parser (used for printing to DQCIR)
+    // ordered list of gates ID based on when they were added to the parser (used for printing to DQCIR) + add getter
     std::list<unsigned long> gateInputOrder;
 
+    // TODO make this maxGateID+1 and rewrite stuff so that 0 can be actually used for the first gate
     unsigned long maxGateID = 0;
 
-    // true if parse(fileName) was called and we have not transformed formula either with getForumla() or getQuantifierTree()
+    // true if parse(fileName) was called and we have not transformed formula either with getFormula() or getQuantifierTree()
     bool isFormulaParsed = false;
 
     /**

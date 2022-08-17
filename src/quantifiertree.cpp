@@ -19,6 +19,8 @@
 
 #include <algorithm>
 
+#include <easylogging++.hpp>
+
 #include "quantifiertree.hpp"
 #include "dqbddexceptions.hpp"
 
@@ -62,6 +64,7 @@ VariableSet const& QuantifierTreeNode::getUVarsSupportSet() {
 }
 
 void QuantifierTreeNode::printToDot(std::ostream &out) const {
+    VLOG(2) << "Printing quantifier tree to DOT file";
     auto allConnections = getAllConnections();
     std::unordered_map<QuantifierTreeConnection*, int> connectionToId;
     int i = 0;

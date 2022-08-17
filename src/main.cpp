@@ -68,16 +68,6 @@ void checkAndPrintDQCIR(dqbdd::GateParser &parser, const std::unique_ptr<cxxopts
         std::ofstream outputFile(outputFileName);
         if (outputFile.is_open()) {
             parser.printPrenexDQCIR(outputFile);
-            // std::cout << "Transforming to NNF" << std::endl;
-            // parser.transformToNNF();
-            // std::cout << "Transformed to NNF" << std::endl;
-            // outputFile << "After NNF" << std::endl;
-            // parser.printGates(outputFile);
-            // std::cout << "Collapsing gates" << std::endl;
-            // parser.collapseGates();
-            // std::cout << "Gates collapsed" << std::endl;
-            // outputFile << "After collapsing gates" << std::endl;
-            // parser.printGates(outputFile);
             outputFile.close();
         } else {
             throw std::runtime_error("Could not open output DQCIR file");
@@ -105,8 +95,8 @@ int main(int argc, char **argv)
     cxxopts::Options optionsParser("DQBDD", "A DQBF solver using BDDs.");
     optionsParser.add_options()
         ("h,help", "Print usage")
-        ("v,version", "Print the version number")
-        ("verbosity", "Sets verbose level (0-9)", cxxopts::value<int>()->default_value("1"))
+        ("V,version", "Print the version number")
+        ("v,verbose", "Use verbose output (use multiple -v options, or set --verbose=1-9 for the desired verbose level)", cxxopts::value<int>()->default_value("0")->implicit_value("1"))
         ("l,localise", "Use quantifier tree with localisation of quantifiers", cxxopts::value<int>()->default_value("1"))
         ("p,preprocess", "Use preprocessing (only for (DQ)DIMACS files)", cxxopts::value<int>()->default_value("1"))
         ("e,elimination-choice", "Decide what to eliminate on each level of quantifier tree during transformation to formula", cxxopts::value<int>()->default_value("1"))
@@ -115,6 +105,9 @@ int main(int argc, char **argv)
         ("force-filetype", "Forces the filetype (0 - (DQ)DIMACS, 1 - (D)QCIR)", cxxopts::value<int>())
         ("dqcir-output", "Writes parsed (and possibly preprocessed) input file into given output file in DQCIR format without solving", cxxopts::value<std::string>())
         ("dqcir-output-cleansed", "Writes parsed (and possibly preprocessed) input file into given output file in cleansed DQCIR format without solving", cxxopts::value<std::string>())
+        ("print-to-dot", "Prints created quantifier tree into given output file in DOT format", cxxopts::value<std::string>())
+        ("print-to-dot-localise", "Prints quantifier tree after localisation into given output file in DOT format", cxxopts::value<std::string>())
+        ("initial-ordering", "Decides the initial ordering of variables", cxxopts::value<int>()->default_value("0")) // TODO write better, right now 0 means initial ordering is kinda random given by parsing (for DQDIMACS, if HQSpre -> first univ vars, then exist vars, if not HQSpre -> based on the number in file, for DQCIR for cleansed -> based on the number in file, for not cleansed -> based on the first occurence), 1 means based on expected elimination, the first to eliminate are on the lowest level
         ("f,file","(DQ)DIMACS/(D)QCIR file to solve", cxxopts::value<std::string>())
         ;
     optionsParser.parse_positional({"file"});
@@ -127,7 +120,6 @@ int main(int argc, char **argv)
         std::cerr << "ERROR: " << e.what() << ", try 'dqbdd --help' for more info" << std::endl;
         return ReturnCode::ERROR;
     }
-
 
     if (result->count("help")) {
         std::cout << optionsParser.help() << std::endl;
@@ -153,7 +145,19 @@ int main(int argc, char **argv)
     defConf.set(el::Level::Verbose, el::ConfigurationType::Format, "%datetime %level-%vlevel [DQBDD] %msg");
     el::Loggers::setDefaultConfigurations(defConf, true);
     // set the verbosity level
-    el::Loggers::setVerboseLevel(static_cast<dqbdd::TreeElimChoice>((*result)["verbosity"].as<int>()));
+    int verboseLevel = static_cast<dqbdd::TreeElimChoice>((*result)["verbose"].as<int>());
+    if (verboseLevel == 1) {
+        el::Loggers::setVerboseLevel(result->count("verbose"));
+    } else {
+        el::Loggers::setVerboseLevel(verboseLevel);
+    }
+    VLOG(1) << "Verbose level set to " << el::Loggers::verboseLevel();
+
+    for (const cxxopts::KeyValue &optionWithValue : result->arguments()) {
+        if (optionWithValue.key() != "verbose") {
+            VLOG(2) << "Option " << optionWithValue.key() << " is set to " << optionWithValue.value();  
+        }
+    }
 
     std::string fileName = (*result)["file"].as<std::string>();
     bool localise = (*result)["localise"].as<int>();
@@ -233,31 +237,52 @@ int main(int argc, char **argv)
             f = parser->getFormula();
         } else {
             VLOG(1) << "Creating quantifier tree";
-
             auto qtroot = parser->getQuantifierTree();
+            VLOG(1) << "Quantifier tree created"; 
+            VLOG(2) << "There are " << qtroot->getUnivVars().size() << " universal and " << qtroot->getExistVars().size() << " existential variables quantified in the prefix of the quantifier tree";
+            VLOG(3) << "Univ vars in the prefix of the root: " << qtroot->getUnivVars();
+            VLOG(3) << "Exist vars in the prefix of the root: " << qtroot->getExistVars();
+            VLOG(9) << "Current formula: " << *qtroot; // for crazy level of verbosity, we print the whole tree (as a formula)
 
-            VLOG(1) << "Quantifier tree created with " 
-                        << qtroot->getUnivVars().size() << " universal and "
-                        << qtroot->getExistVars().size() << " existential variables quantified in it."
-                        //<< *qtroot << std::endl
-                        << "Pushing quantifiers inside";
-            //std::cout << qtroot->getUnivVars() << std::endl
-            //          << qtroot->getExistVars() << std::endl;
+            if (result->count("print-to-dot") > 0) {
+                std::string outputFileName = (*result)["print-to-dot"].as<std::string>();
+                std::ofstream outputFile(outputFileName);
+                if (outputFile.is_open()) {
+                    qtroot->printToDot(outputFile);
+                } else {
+                    std::cerr << "ERROR: Could not open output DOT file" << std::endl;
+                    delete qtroot;
+                    return ReturnCode::ERROR;
+                }
+            }
 
-            //std::ofstream blabla("testtttttt.dot");
-            //qtroot->printToDot(blabla);
+            VLOG(1) << "Pushing quantifiers inside";
             qtroot->localise( dqbdd::VariableSet{ } );
-            //qtroot->qvMgr->reorderVars(mgr);
-            //blabla.close();
-            //blabla.open("testttttttttttttt.dot");
-            //qtroot->printToDot(blabla);
-
             VLOG(1) << "Quantifiers pushed inside";
-                        //<< *qtroot << std::endl
-            VLOG(1) << "Creating BDD formula";
-            
+            VLOG(2) << "There are " << qtroot->getUnivVars().size() << " universal and " << qtroot->getExistVars().size() << " existential variables quantified in the prefix of the quantifier tree";
+            VLOG(3) << "Univ vars in the prefix of the root: " << qtroot->getUnivVars();
+            VLOG(3) << "Exist vars in the prefix of the root: " << qtroot->getExistVars();
+            VLOG(9) << "Current formula: " << *qtroot; // for crazy level of verbosity, we print the whole tree (as a formula)
+
+            if (result->count("print-to-dot-localise") > 0) {
+                std::string outputFileName = (*result)["print-to-dot-localise"].as<std::string>();
+                std::ofstream outputFile(outputFileName);
+                if (outputFile.is_open()) {
+                    qtroot->printToDot(outputFile);
+                } else {
+                    std::cerr << "ERROR: Could not open output DOT file" << std::endl;
+                    delete qtroot;
+                    return ReturnCode::ERROR;
+                }
+            }
+
+            if ((*result)["initial-ordering"].as<int>() == 1) { // TODO create enum for this option, we will probably implement more initial orderings
+                VLOG(1) << "Set initial ordering of variables based on the expected elimination order";
+                qtroot->getManager()->reorderVars(mgr); // TODO this reordering kinda assumes that uvar-choice==0
+            }
+
+            VLOG(1) << "Creating BDD formula from the quantifier tree";
             f = qtroot->changeToFormula(mgr);
-            //std::cout << *f <<std::endl;
         }
     } catch(const std::exception &e) {
         std::cerr << "ERROR: " << e.what() << std::endl;
@@ -265,12 +290,13 @@ int main(int argc, char **argv)
     }
 
     f->removeUnusedVars();
-    VLOG(1) << "BDD formula created";
+    VLOG(1) << "Main BDD formula created";
     if (el::Loggers::verboseLevel() > 0) {
         f->printStats();
     }
-    //std::cout << "Universal variables: " << f->getUnivVars() << std::endl;
-    //std::cout << "Existential variables: " << f->getExistVars() << std::endl;
+    VLOG(3) << "Universal variables: " << f->getUnivVars();
+    VLOG(3) << "Existential variables: " << f->getExistVars();
+    VLOG(9) << "Current formula: " << *f; // for crazy level of verbosity, we print the whole formula
     VLOG(1) << "Eliminating variables in the created formula";
     try {
         f->eliminatePossibleVars();

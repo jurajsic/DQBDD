@@ -152,9 +152,12 @@ void HQSPreInterface::parse(std::string fileName) {
     // gates need to be copied, otherwise it can get a bit funky for some reason
     const auto gates = formula.getGates();
 
+    // return back to previous configuration for logging
+    el::Loggers::reconfigureLogger("default", *defConf);
+
     // mapping from hqspre (normal and gate) variables to vars in GateParser
     std::vector<unsigned long> hqspreVarToGateParserVar(formula.maxVarIndex() + 1);
-    unsigned long gateParserMaxVar = 0;
+    unsigned long gateParserMaxVar = 0; // TODO use maxGateID of parent class + right now variables are indexed from 1, so there is one not used variable 0 in CUDD
     auto getNewGateParserVar = [&gateParserMaxVar]() {
         ++gateParserMaxVar;
         return gateParserMaxVar;
@@ -184,9 +187,6 @@ void HQSPreInterface::parse(std::string fileName) {
             ++numOfExistVars;
         }
     }
-    
-    // return back to previous configuration for logging
-    el::Loggers::reconfigureLogger("default", *defConf);
 
     VLOG(1) << "Preprocessing finished with formula with " << numOfExistVars << " existential vars, " << numOfUnivVars << " univ. vars, "
             << formula.getGates().size() << " gates, and " << formula.numClauses() << " clauses which potentionally encode the gates.";

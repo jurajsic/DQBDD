@@ -110,7 +110,7 @@ public:
     //VariableSet getAllExistVars();
 
     /**
-     * @brief Reorders the variables in the BDD manager so that they are easier to eliminate
+     * @brief Reorders the variables in the BDD manager so that the ones that are expected to be eliminated first are on the lowest level
      */
     void reorderVars(Cudd &mgr);
 };
