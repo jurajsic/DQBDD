@@ -41,26 +41,24 @@ void PrenexDQCIRParser::parse(std::string fileName) {
 
     std::string line;
     bool prefixFinished = false;
-    GateLiteral outputGate;
+    std::string outputToken;
     bool firstLineParsed = false;
     bool isCleansed = false;
     unsigned long maximumAllowedGateID;
 
-    unsigned long maxGateID = 0; // TODO use maxGateID of parent class + right now variables are indexed from 1, so there is one not used variable 0 in CUDD
     std::unordered_map<std::string, unsigned long> gateStringToID;
-    auto getIDFromGateString = [&isCleansed, &maximumAllowedGateID, &gateStringToID, &maxGateID](std::string gateString)->unsigned long {
+    auto getIDFromGateString = [this, &isCleansed, &maximumAllowedGateID, &gateStringToID](std::string gateString)->unsigned long {
         if (isCleansed) { // for cleansed (D)QCIR we just return the number on the input
             unsigned long id = std::stoul(gateString);
             if (id > maximumAllowedGateID) {
                 LOG(WARNING) << "Variable or gate " << id << " was found during parsing (D)QCIR file, which is larger than the allowed maximum from the first line";
             }
             return id;
-        } else if (gateStringToID.count(gateString) > 0) {
+        } else { 
+            if (gateStringToID.count(gateString) == 0) {
+                gateStringToID[gateString] = getMaxGateID()+1;
+            }
             return gateStringToID[gateString];
-        } else {
-            ++maxGateID;
-            gateStringToID[gateString] = maxGateID;
-            return maxGateID;
         }
     };
 
@@ -124,8 +122,7 @@ void PrenexDQCIRParser::parse(std::string fileName) {
                 }
                 addExistVar(existVarID, dependenciesID);
             } else if (token == "output") {
-                streamLine >> token;
-                outputGate = getLiteralFromString(token);
+                streamLine >> outputToken;
                 prefixFinished = true;
             } else {
                 throw dqbddException("Unexpected token found in the quantifier prefix of the input (D)QCIR file.");
@@ -164,7 +161,7 @@ void PrenexDQCIRParser::parse(std::string fileName) {
         }
     }
 
-    finishedParsing(outputGate.first, outputGate.second);
+    finishedParsing(getLiteralFromString(outputToken));
 }
 
 } // namespace dqbdd

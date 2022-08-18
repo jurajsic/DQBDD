@@ -163,6 +163,15 @@ void GateParser::finishedParsing(bool isOutputGatePositive, unsigned long output
     isFormulaParsed = true;
 }
 
+void GateParser::finishedParsing(const GateLiteral &outputGateLiteral) {
+    this->outputGateLiteral = outputGateLiteral;
+    isFormulaParsed = true;
+}
+
+unsigned long GateParser::getMaxGateID() const {
+    return maxGateID;
+}
+
 void GateParser::clearParser() {
     DQBFPrefix.clear();
     gateIDToGate.clear();

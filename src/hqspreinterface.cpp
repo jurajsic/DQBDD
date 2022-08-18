@@ -157,18 +157,13 @@ void HQSPreInterface::parse(std::string fileName) {
 
     // mapping from hqspre (normal and gate) variables to vars in GateParser
     std::vector<unsigned long> hqspreVarToGateParserVar(formula.maxVarIndex() + 1);
-    unsigned long gateParserMaxVar = 0; // TODO use maxGateID of parent class + right now variables are indexed from 1, so there is one not used variable 0 in CUDD
-    auto getNewGateParserVar = [&gateParserMaxVar]() {
-        ++gateParserMaxVar;
-        return gateParserMaxVar;
-    };
 
     // Create the proper problem variables (without Tseitin variables)
     // first universal...
     unsigned long numOfUnivVars = 0;
     for (hqspre::Variable var = formula.minVarIndex(); var <= formula.maxVarIndex(); ++var) {
         if (!formula.varDeleted(var) && !formula.isGateOutput(var) && formula.isUniversal(var)) {
-            hqspreVarToGateParserVar[var] = getNewGateParserVar();
+            hqspreVarToGateParserVar[var] = getMaxGateID()+1;
             addUnivVar(hqspreVarToGateParserVar[var]);
             ++numOfUnivVars;
         }
@@ -178,7 +173,7 @@ void HQSPreInterface::parse(std::string fileName) {
     unsigned long numOfExistVars = 0;
     for (hqspre::Variable var = formula.minVarIndex(); var <= formula.maxVarIndex(); ++var) {
         if (!formula.varDeleted(var) && !formula.isGateOutput(var) && formula.isExistential(var)) {
-            hqspreVarToGateParserVar[var] = getNewGateParserVar();
+            hqspreVarToGateParserVar[var] = getMaxGateID()+1;
             std::vector<unsigned long> varDependencies;
             for (auto dep : formula.getDependencies(var)) {
                 varDependencies.push_back(hqspreVarToGateParserVar[dep]);
@@ -251,11 +246,10 @@ void HQSPreInterface::parse(std::string fileName) {
 
 
         const hqspre::Variable out_var = hqspre::lit2var(g._output_literal);
-        unsigned long newGateID = getNewGateParserVar();
-        hqspreVarToGateParserVar[out_var] = newGateID;
+        hqspreVarToGateParserVar[out_var] = addGate(newGateType, newGateOperands);
         isHqspreVarOutputNegated[out_var] = hqspre::isNegative(g._output_literal);
 
-        addGate(newGateID, newGateType, newGateOperands);
+        
 
         // remove clauses from which the hqspre gate is formed
         for (const auto c_nr: g._encoding_clauses) {
