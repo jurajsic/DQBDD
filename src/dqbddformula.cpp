@@ -67,10 +67,11 @@ void Formula::eliminateUnivVar(Variable uVarToEliminate, bool useAlreadyComputed
         return;
     }
 
-    std::string logHeader = std::string("eliminateUnivVar(") + std::to_string(uVarToEliminate.getId()) + std::string("): ");
+    std::stringstream logHeader;
+    logHeader << "eliminateUnivVar(" << uVarToEliminate << "): ";
     
-    VLOG(1) << logHeader << "Eliminating universal variable " << uVarToEliminate.getId();
-    VLOG(2) << logHeader << "There are " << getExistVars().size() << " existential and " << getUnivVars().size() << " universal variables in the prefix of this (sub)formula";
+    VLOG(1) << logHeader.str() << "Eliminating universal variable " << uVarToEliminate;
+    VLOG(2) << logHeader.str() << "There are " << getExistVars().size() << " existential and " << getUnivVars().size() << " universal variables in the prefix of this (sub)formula";
 
     // find existential variables that should be duplicated
     //VariableSet eVarsToDuplicate;
@@ -84,15 +85,15 @@ void Formula::eliminateUnivVar(Variable uVarToEliminate, bool useAlreadyComputed
 
     removeUnivVar(uVarToEliminate);
     
-    VLOG(2) << logHeader << "Creating BDD";
+    VLOG(2) << logHeader.str() << "Creating BDD";
     // uVarToEliminate=false where we have old existential variables
     BDD f1 = (useAlreadyComputedf1f2) // if I already have the restriciton saved
                     ? minf1 : matrix.Restrict(!uVarToEliminate.getBDD());
-    VLOG(3) << logHeader << "Restriction 1 finished";
+    VLOG(3) << logHeader.str() << "Restriction 1 finished";
     // uVarToEliminate=true where we have new existential variables
     BDD f2 = (useAlreadyComputedf1f2)
                     ? minf2 : matrix.Restrict(uVarToEliminate);
-    VLOG(3) << logHeader << "Restriction 2 finished";
+    VLOG(3) << logHeader.str() << "Restriction 2 finished";
 
     /* We have to replace existential variables depending on uVarToEliminate in f2 with copies
      * but it is important to create them in mgr on the same level as thei original (so the created
@@ -114,24 +115,24 @@ void Formula::eliminateUnivVar(Variable uVarToEliminate, bool useAlreadyComputed
     // but created in mgr on the same level as their original
     for (Variable eVarToDuplicate : dependentExistVars.intersect(f2SupportSet)) {
         Variable newExistVar = eVarToDuplicate.newVarAtSameLevel();
-        VLOG(4) << logHeader << "Existential variable " << eVarToDuplicate.getId() << " will be replaced with the new variable " << newExistVar.getId() << " in restriction 2";
+        VLOG(4) << logHeader.str() << "Existential variable " << eVarToDuplicate << " will be replaced with the new variable " << newExistVar << " in restriction 2";
         addExistVar(newExistVar, getExistVarDependencies(eVarToDuplicate));
         varsToBeReplaced.push_back(eVarToDuplicate);
         varsToReplaceWith.push_back(newExistVar);
     }
-    VLOG(3) << logHeader << "Replacing existential vars with new ones in restriction 2";
+    VLOG(3) << logHeader.str() << "Replacing existential vars with new ones in restriction 2";
     f2 = f2.SwapVariables(varsToBeReplaced, varsToReplaceWith);
     if (dynReordering) {
         //TODO: add some variable in which the reordering method is saved
         mgr.AutodynEnable(Cudd_ReorderingType::CUDD_REORDER_SIFT);
     }
 
-    VLOG(3) << logHeader << "Creating BDD for conjunction of the two restrictions";
+    VLOG(3) << logHeader.str() << "Creating BDD for conjunction of the two restrictions";
     // get their conjuction and thus remove uVarToEliminate from the formula
     setMatrix(f1 & f2);
-    VLOG(2) << logHeader << "BDD created";
+    VLOG(2) << logHeader.str() << "BDD created";
 
-    VLOG(1) << logHeader << "Universal variable " << uVarToEliminate.getId() << " eliminated";
+    VLOG(1) << logHeader.str() << "Universal variable " << uVarToEliminate << " eliminated";
 }
 
 void Formula::eliminateExistVar(Variable existVarToEliminate) {

@@ -29,9 +29,13 @@ namespace dqbdd {
 QuantifierTreeNode::QuantifierTreeNode(QuantifiedVariablesManager &qvmgr) : QuantifiedVariablesManipulator(qvmgr) {}
 
 void QuantifierTreeNode::pushExistVar(const Variable &var) {
+    VLOG(5) << "pushExistVar(" << var << ") for " << this;
     // only put var in this node if it is used in this node
     if (getSupportSet().contains(var)) {
+        VLOG(5) << "pushExistVar(" << var << ") for " << this << ": " << var << " added to prefix";
         addExistVar(var);
+    } else {
+        VLOG(5) << "pushExistVar(" << var << ") for " << this << ": " << var << " removed";
     }
 }
 
@@ -46,12 +50,14 @@ void QuantifierTreeNode::pushUnivVar(const Variable &var) {
      * variable we cannot push two copies inside the subtrees
      * for disjunction.
      */ 
+    VLOG(5) << "pushUnivVar(" << var << ") for " << this;
     if (getSupportSet().contains(var)) { // only put var in this node if it is used in this node
+        VLOG(5) << "pushUnivVar(" << var << ") for " << this << ": " << var << " added to prefix";
         addUnivVar(var);
     } else { // otherwise we can basically eliminate it by removing dependencies 
+        VLOG(5) << "pushUnivVar(" << var << ") for " << this << ": " << var << " removed";
         VariableSet dependentExistVars = getUnivVarDependencies(var);
         for (const Variable &dependentExistVar : dependentExistVars) {
-            //std::cout << dependentExistVar << " is in support set:" << getSupportSet().contains(dependentExistVar) << std::endl;
             if (getSupportSet().contains(dependentExistVar)) { // we assume this is the only tree that contains dependentExistVar
                 removeDependency(dependentExistVar,var);
             }
@@ -151,7 +157,7 @@ void QuantifierTree::deleteChildConnection(QuantifierTreeConnection *childConnec
 }
 
 bool QuantifierTree::removeFromOrderedListOtherOrderedListUsingChildrenOrder(std::list<QuantifierTreeConnection*> &listToRemoveFrom, std::list<QuantifierTreeConnection*> &listOfItemsToRemove) {
-    //std::cout << "Deleting from list of size " << listToRemoveFrom.size() << " the list of size " << listOfItemsToRemove.size() << " using children order of size " << children.size() << std::endl;
+    VLOG(6) << "removeFromOrderedListOtherOrderedListUsingChildrenOrder() for " << this << ": deleting from list of size " << listToRemoveFrom.size() << " the list of size " << listOfItemsToRemove.size() << " using children order of size " << childrenConnections.size();
     
     auto childrenConnectionsCopy = childrenConnections;
     auto orderIter = childrenConnectionsCopy.begin();
@@ -174,9 +180,9 @@ bool QuantifierTree::removeFromOrderedListOtherOrderedListUsingChildrenOrder(std
         }
 
         ++orderIter;
-        //if (listToRemoveFromIter == listToRemoveFrom.end()) std::cout << "we found end of listtoremovefrom" << std::endl;
-        //if (listOfItemsToRemoveIter == listOfItemsToRemove.end()) std::cout << "we found end of listofitemtoremove" << std::endl;
-        //if (orderIter == childrenCopy.end()) std::cout << "we found end of children" << std::endl;
+        VLOG_IF(listToRemoveFromIter == listToRemoveFrom.end(), 6) << "removeFromOrderedListOtherOrderedListUsingChildrenOrder() for " << this << ": we found end of listtoremovefrom";
+        VLOG_IF(listOfItemsToRemoveIter == listOfItemsToRemove.end(), 6) << "removeFromOrderedListOtherOrderedListUsingChildrenOrder() for " << this << ": we found end of listofitemtoremove";
+        VLOG_IF(orderIter == childrenConnections.end(), 6) << "removeFromOrderedListOtherOrderedListUsingChildrenOrder() for " << this << ": we found end of children";
     }
     return somethingWasDeleted;
 }
